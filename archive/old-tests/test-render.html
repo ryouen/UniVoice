@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniVoice Render Test</title>
+</head>
+<body>
+    <h1>UniVoice Component Test</h1>
+    <div id="status"></div>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        
+        // Test 1: Check if localhost:5173 is accessible
+        fetch('http://localhost:5173')
+            .then(res => {
+                statusDiv.innerHTML += `<p>✅ Dev server is running on port 5173</p>`;
+                return res.text();
+            })
+            .then(html => {
+                if (html.includes('UniVoice')) {
+                    statusDiv.innerHTML += `<p>✅ UniVoice app is loaded</p>`;
+                }
+            })
+            .catch(err => {
+                statusDiv.innerHTML += `<p>❌ Dev server error: ${err.message}</p>`;
+            });
+            
+        // Test 2: Check React app status
+        setTimeout(() => {
+            fetch('http://localhost:5173/src/main.tsx')
+                .then(res => res.text())
+                .then(content => {
+                    if (content.includes('App')) {
+                        statusDiv.innerHTML += `<p>✅ React app entry point found</p>`;
+                    }
+                })
+                .catch(err => {
+                    statusDiv.innerHTML += `<p>❌ React app error: ${err.message}</p>`;
+                });
+        }, 1000);
+    </script>
+</body>
+</html>

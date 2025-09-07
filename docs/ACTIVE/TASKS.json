@@ -1,0 +1,184 @@
+{
+  "lastUpdated": "2025-08-30T14:30:00Z",
+  "currentFocus": "SentenceCombiner統合によるstory履歴表示修正",
+  "tasks": [
+    {
+      "id": "sentence-combiner-integration",
+      "title": "SentenceCombiner統合作業",
+      "priority": "critical",
+      "status": "in_progress",
+      "description": "未統合のSentenceCombinerをUnifiedPipelineServiceに組み込む",
+      "subtasks": [
+        {
+          "id": "phase-0-prep",
+          "title": "Phase 0: 準備作業",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "current-log-collection",
+              "title": "現在の動作ログ収集とスクリーンショット",
+              "status": "pending",
+              "estimatedTime": "15min"
+            },
+            {
+              "id": "backup-files",
+              "title": "関連ファイルのバックアップ作成",
+              "status": "pending",
+              "estimatedTime": "15min"
+            }
+          ]
+        },
+        {
+          "id": "phase-1-integration",
+          "title": "Phase 1: SentenceCombiner統合",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "instantiate-combiner",
+              "title": "UnifiedPipelineServiceでSentenceCombinerをインスタンス化",
+              "status": "pending",
+              "location": "electron/services/domain/UnifiedPipelineService.ts:constructor",
+              "estimatedTime": "30min"
+            },
+            {
+              "id": "integrate-handle-segment",
+              "title": "handleSegmentメソッドへの組み込み",
+              "status": "pending",
+              "location": "electron/services/domain/UnifiedPipelineService.ts:handleSegment",
+              "estimatedTime": "30min"
+            }
+          ]
+        },
+        {
+          "id": "phase-2-event-flow",
+          "title": "Phase 2: イベントフロー接続",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "emit-combined-event",
+              "title": "CombinedSentenceEvent発行の有効化",
+              "status": "pending",
+              "estimatedTime": "30min"
+            },
+            {
+              "id": "frontend-reception",
+              "title": "フロントエンド受信確認",
+              "status": "pending",
+              "estimatedTime": "30min"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "documentation-cleanup",
+      "title": "誤解を招くドキュメントの整理",
+      "priority": "high",
+      "status": "in_progress",
+      "description": "実装状況と乖離したドキュメントの修正・アーカイブ",
+      "subtasks": [
+        {
+          "id": "archive-misleading",
+          "title": "誤解を招くドキュメントのアーカイブ",
+          "status": "completed",
+          "completedFiles": [
+            "HISTORY-TRANSLATION-IMPLEMENTATION-COMPLETE.md"
+          ]
+        },
+        {
+          "id": "update-warnings",
+          "title": "警告文の追加",
+          "status": "completed",
+          "updatedFiles": [
+            "SENTENCE-BASED-HISTORY-IMPLEMENTATION.md",
+            "HIGH-QUALITY-TRANSLATION-IMPLEMENTATION.md",
+            "START-HERE.md"
+          ]
+        },
+        {
+          "id": "update-state-files",
+          "title": "STATE.jsonとTASKS.jsonの更新",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": "post-integration-tasks",
+      "title": "統合後のタスク",
+      "priority": "high",
+      "status": "pending",
+      "description": "SentenceCombiner統合完了後の作業",
+      "subtasks": [
+        {
+          "id": "e2e-testing",
+          "title": "エンドツーエンドテスト実施",
+          "status": "pending",
+          "estimatedTime": "1-2hours"
+        },
+        {
+          "id": "performance-check",
+          "title": "パフォーマンス確認",
+          "status": "pending",
+          "estimatedTime": "30min"
+        },
+        {
+          "id": "documentation-update",
+          "title": "正確な実装状況のドキュメント化",
+          "status": "pending",
+          "estimatedTime": "1hour"
+        }
+      ]
+    },
+    {
+      "id": "ui-improvements",
+      "title": "UI機能の実装",
+      "priority": "medium",
+      "status": "pending",
+      "description": "保留中のUI機能の実装",
+      "subtasks": [
+        {
+          "id": "session-resume-ui",
+          "title": "セッション再開UI",
+          "status": "pending",
+          "estimatedTime": "2-3hours"
+        },
+        {
+          "id": "report-generation-ui",
+          "title": "レポート生成UI",
+          "status": "pending",
+          "estimatedTime": "3-4hours"
+        },
+        {
+          "id": "vocabulary-ui",
+          "title": "単語帳表示UI",
+          "status": "pending",
+          "estimatedTime": "2-3hours"
+        }
+      ]
+    }
+  ],
+  "completedToday": [
+    "型定義同期スクリプト（sync-contracts.js）の作成",
+    "TypeScriptビルドエラーの解消",
+    "SentenceCombiner未統合問題の発見と分析",
+    "深層分析レポートの作成",
+    "実装計画書の作成",
+    "誤解を招くドキュメントの修正開始",
+    "STATE.jsonとTASKS.jsonの更新"
+  ],
+  "blockers": [
+    {
+      "id": "sentence-combiner-not-integrated",
+      "description": "SentenceCombinerが一度も使用されていない",
+      "impact": "履歴に「翻訳中...」が残り、高品質翻訳が適用されない",
+      "proposedSolution": "SENTENCE-COMBINER-INTEGRATION-PLAN.mdに従って統合作業を実施"
+    }
+  ],
+  "insights": [
+    {
+      "date": "2025-08-30",
+      "insight": "実装の95%は完了していたが、コア部分（SentenceCombiner）が未統合だった",
+      "lesson": "ドキュメントの「実装済み」記載を鵜呑みにせず、実際のコードを確認する重要性"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Check</title>
+</head>
+<body>
+    <h1>UniVoice API Check</h1>
+    <div id="status">Checking...</div>
+    <pre id="log"></pre>
+    
+    <script>
+        const log = (msg) => {
+            const logEl = document.getElementById('log');
+            logEl.textContent += msg + '\n';
+            console.log(msg);
+        };
+        
+        // Check window properties
+        log('=== Window Properties ===');
+        log('window.univoice: ' + (window.univoice ? 'EXISTS' : 'NOT FOUND'));
+        log('window.electron: ' + (window.electron ? 'EXISTS' : 'NOT FOUND'));
+        log('window.electronAPI: ' + (window.electronAPI ? 'EXISTS' : 'NOT FOUND'));
+        
+        // List all window properties containing 'uni' or 'electron'
+        log('\n=== Related Properties ===');
+        Object.keys(window).forEach(key => {
+            if (key.toLowerCase().includes('uni') || key.toLowerCase().includes('electron')) {
+                log(`window.${key}: ${typeof window[key]}`);
+            }
+        });
+        
+        // If univoice exists, show its methods
+        if (window.univoice) {
+            log('\n=== UniVoice Methods ===');
+            Object.keys(window.univoice).forEach(method => {
+                log(`univoice.${method}: ${typeof window.univoice[method]}`);
+            });
+            
+            // Try to generate correlation ID
+            try {
+                const id = window.univoice.generateCorrelationId();
+                log(`\nGenerated correlation ID: ${id}`);
+            } catch (err) {
+                log(`\nError generating ID: ${err.message}`);
+            }
+        }
+        
+        // Update status
+        document.getElementById('status').textContent = window.univoice ? '✅ API is available' : '❌ API not found';
+        
+        // Check every second
+        let checkCount = 0;
+        const interval = setInterval(() => {
+            if (window.univoice && !checkCount) {
+                log('\n✅ UniVoice API became available!');
+                clearInterval(interval);
+            } else if (checkCount++ > 10) {
+                log('\n❌ API not available after 10 seconds');
+                clearInterval(interval);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

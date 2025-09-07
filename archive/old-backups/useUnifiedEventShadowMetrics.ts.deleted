@@ -1,0 +1,140 @@
+/**
+ * Unified Event Shadow Metrics Hook
+ * 
+ * Stage 0 implementation for measuring unified event system performance
+ * without affecting current behavior.
+ * 
+ * Metrics collected:
+ * - Event counts by type
+ * - Sequence ordering violations
+ * - Duplicate event detection
+ * - Latency measurements
+ */
+
+import { useEffect, useRef } from 'react';
+import type { UnifiedEvent } from '../shared/types/ipcEvents';
+
+const DEDUP_CACHE_SIZE = 512;
+
+export interface UnifiedEventMetrics {
+  received: number;
+  droppedSeqBackwards: number;
+  duplicateId: number;
+  applied: number;
+  byKind: Record<string, number>;
+  latencyP50: number;
+  latencyP95: number;
+  latencyP99: number;
+}
+
+/**
+ * Shadow consumer for unified events - measures without side effects
+ */
+export function useUnifiedEventShadowMetrics() {
+  const lastSeqRef = useRef<number>(-1);
+  const seenIds = useRef<Map<string, number>>(new Map());
+  const latencies = useRef<number[]>([]);
+  const metricsRef = useRef<UnifiedEventMetrics>({
+    received: 0,
+    droppedSeqBackwards: 0,
+    duplicateId: 0,
+    applied: 0,
+    byKind: {},
+    latencyP50: 0,
+    latencyP95: 0,
+    latencyP99: 0
+  });
+
+  useEffect(() => {
+    // Only activate if onUnifiedEvent is available (development mode)
+    if (!window.univoice?.onUnifiedEvent) {
+      console.log('[Shadow Metrics] Unified event system not available (production mode)');
+      return;
+    }
+
+    const cleanup = window.univoice.onUnifiedEvent((event: UnifiedEvent) => {
+      const metrics = metricsRef.current;
+      const receiveTime = Date.now();
+      
+      // Count received
+      metrics.received++;
+      
+      // Count by kind
+      metrics.byKind[event.kind] = (metrics.byKind[event.kind] || 0) + 1;
+      
+      // Check sequence ordering
+      if (event.seq <= lastSeqRef.current) {
+        metrics.droppedSeqBackwards++;
+        console.warn('[Shadow Metrics] Sequence backwards:', {
+          current: event.seq,
+          last: lastSeqRef.current,
+          kind: event.kind
+        });
+        return;
+      }
+      lastSeqRef.current = event.seq;
+      
+      // Check for duplicates
+      if (seenIds.current.has(event.id)) {
+        metrics.duplicateId++;
+        console.warn('[Shadow Metrics] Duplicate ID:', event.id);
+        return;
+      }
+      
+      // Add to seen IDs with LRU eviction
+      seenIds.current.set(event.id, event.seq);
+      if (seenIds.current.size > DEDUP_CACHE_SIZE) {
+        // Remove oldest entry
+        const oldest = [...seenIds.current.entries()]
+          .sort((a, b) => a[1] - b[1])[0];
+        if (oldest) {
+          seenIds.current.delete(oldest[0]);
+        }
+      }
+      
+      // Calculate latency
+      const latency = receiveTime - event.ts;
+      latencies.current.push(latency);
+      
+      // Keep only recent latencies (last 1000)
+      if (latencies.current.length > 1000) {
+        latencies.current = latencies.current.slice(-1000);
+      }
+      
+      // Update percentiles
+      if (latencies.current.length > 0) {
+        const sorted = [...latencies.current].sort((a, b) => a - b);
+        const p50Index = Math.floor(sorted.length * 0.5);
+        const p95Index = Math.floor(sorted.length * 0.95);
+        const p99Index = Math.floor(sorted.length * 0.99);
+        
+        metrics.latencyP50 = sorted[p50Index] || 0;
+        metrics.latencyP95 = sorted[p95Index] || 0;
+        metrics.latencyP99 = sorted[p99Index] || 0;
+      }
+      
+      // Count as applied
+      metrics.applied++;
+      
+      // Log periodically (every 100 events)
+      if (metrics.received % 100 === 0) {
+        console.log('[Shadow Metrics] Summary:', {
+          received: metrics.received,
+          applied: metrics.applied,
+          dropped: metrics.droppedSeqBackwards,
+          duplicates: metrics.duplicateId,
+          latency: {
+            p50: metrics.latencyP50,
+            p95: metrics.latencyP95,
+            p99: metrics.latencyP99
+          },
+          kinds: metrics.byKind
+        });
+      }
+    });
+    
+    return cleanup;
+  }, []);
+  
+  return metricsRef;
+}

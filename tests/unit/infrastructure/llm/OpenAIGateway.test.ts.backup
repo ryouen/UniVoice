@@ -1,0 +1,384 @@
+/**
+ * OpenAIGateway ユニットテスト
+ * 
+ * 既存の動作を壊さないことを確認
+ */
+
+import { OpenAIGateway } from '../../../../electron/infrastructure/llm/OpenAIGateway';
+import { LLMPurpose, LLMConfig } from '../../../../electron/infrastructure/llm/types';
+import OpenAI from 'openai';
+
+// OpenAIモジュールのモック
+jest.mock('openai');
+const MockOpenAI = OpenAI as jest.MockedClass<typeof OpenAI>;
+
+// Loggerのモック
+const mockLogger = {
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+  child: jest.fn(() => mockLogger)
+};
+
+jest.mock('../../../../electron/utils/logger', () => ({
+  logger: mockLogger
+}));
+
+describe('OpenAIGateway', () => {
+  let gateway: OpenAIGateway;
+  let mockOpenAIInstance: any;
+  
+  const validConfig: LLMConfig = {
+    apiKey: 'test-api-key',
+    models: {
+      [LLMPurpose.TRANSLATION]: 'gpt-5-nano',
+      [LLMPurpose.SUMMARY]: 'gpt-5-mini',
+      [LLMPurpose.SUMMARY_TRANSLATE]: 'gpt-5-nano',
+      [LLMPurpose.USER_TRANSLATE]: 'gpt-5-nano',
+      [LLMPurpose.VOCABULARY]: 'gpt-5-mini',
+      [LLMPurpose.REPORT]: 'gpt-5'
+    },
+    maxTokens: {
+      [LLMPurpose.TRANSLATION]: 1500,
+      [LLMPurpose.SUMMARY]: 1500,
+      [LLMPurpose.SUMMARY_TRANSLATE]: 1500,
+      [LLMPurpose.USER_TRANSLATE]: 1500,
+      [LLMPurpose.VOCABULARY]: 1500,
+      [LLMPurpose.REPORT]: 8192
+    }
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // OpenAI instanceのモック
+    mockOpenAIInstance = {
+      responses: {
+        create: jest.fn()
+      }
+    };
+    
+    MockOpenAI.mockImplementation(() => mockOpenAIInstance);
+  });
+
+  describe('Model Validation', () => {
+    it('should accept GPT-5 series models', () => {
+      expect(() => {
+        gateway = new OpenAIGateway(validConfig);
+      }).not.toThrow();
+      
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Model configuration validated',
+        expect.objectContaining({
+          models: validConfig.models
+        })
+      );
+    });
+
+    it('should reject non-GPT-5 models', () => {
+      const invalidConfig: LLMConfig = {
+        ...validConfig,
+        models: {
+          ...validConfig.models,
+          [LLMPurpose.TRANSLATION]: 'gpt-4' // 間違ったモデル
+        }
+      };
+
+      expect(() => {
+        gateway = new OpenAIGateway(invalidConfig);
+      }).toThrow('無効なモデル設定: gpt-4');
+    });
+
+    it('should reject old model names', () => {
+      const oldModels = ['gpt-3.5-turbo', 'gpt-4-turbo', 'claude-3'];
+      
+      oldModels.forEach(model => {
+        const invalidConfig: LLMConfig = {
+          ...validConfig,
+          models: {
+            ...validConfig.models,
+            [LLMPurpose.TRANSLATION]: model
+          }
+        };
+
+        expect(() => {
+          gateway = new OpenAIGateway(invalidConfig);
+        }).toThrow(`無効なモデル設定: ${model}`);
+      });
+    });
+  });
+
+  describe('Complete Method', () => {
+    beforeEach(() => {
+      gateway = new OpenAIGateway(validConfig);
+    });
+
+    it('should use responses.create API', async () => {
+      // モックレスポンス
+      mockOpenAIInstance.responses.create.mockResolvedValueOnce({
+        output_text: 'こんにちは',
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 5,
+          total_tokens: 15
+        }
+      });
+
+      const result = await gateway.complete({
+        purpose: LLMPurpose.TRANSLATION,
+        systemPrompt: 'Translate to Japanese',
+        userContent: 'Hello'
+      });
+
+      // responses.createが正しく呼ばれたか確認
+      expect(mockOpenAIInstance.responses.create).toHaveBeenCalledWith({
+        model: 'gpt-5-nano',
+        input: [
+          { role: 'system', content: 'Translate to Japanese' },
+          { role: 'user', content: 'Hello' }
+        ],
+        max_output_tokens: 1500,
+        reasoning: { effort: 'minimal' },
+        temperature: 1.0,
+        stream: false
+      });
+
+      // レスポンスが正しく変換されたか
+      expect(result).toEqual({
+        content: 'こんにちは',
+        usage: {
+          promptTokens: 10,
+          completionTokens: 5,
+          totalTokens: 15
+        },
+        metadata: expect.objectContaining({
+          model: 'gpt-5-nano',
+          latencyMs: expect.any(Number),
+          requestId: expect.any(String)
+        })
+      });
+    });
+
+    it('should NOT use chat.completions.create', async () => {
+      mockOpenAIInstance.responses.create.mockResolvedValueOnce({
+        output_text: 'Test response'
+      });
+
+      await gateway.complete({
+        purpose: LLMPurpose.TRANSLATION,
+        systemPrompt: 'Test',
+        userContent: 'Test'
+      });
+
+      // chat.completionsが存在しないことを確認
+      expect(mockOpenAIInstance.chat).toBeUndefined();
+    });
+
+    it('should use correct reasoning effort for each purpose', async () => {
+      const testCases = [
+        { purpose: LLMPurpose.REPORT, expectedEffort: 'high' },
+        { purpose: LLMPurpose.SUMMARY, expectedEffort: 'low' },
+        { purpose: LLMPurpose.VOCABULARY, expectedEffort: 'low' },
+        { purpose: LLMPurpose.TRANSLATION, expectedEffort: 'minimal' }
+      ];
+
+      for (const testCase of testCases) {
+        mockOpenAIInstance.responses.create.mockResolvedValueOnce({
+          output_text: 'Test'
+        });
+
+        await gateway.complete({
+          purpose: testCase.purpose,
+          systemPrompt: 'Test',
+          userContent: 'Test'
+        });
+
+        expect(mockOpenAIInstance.responses.create).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            reasoning: { effort: testCase.expectedEffort }
+          })
+        );
+      }
+    });
+  });
+
+  describe('Stream Method', () => {
+    beforeEach(() => {
+      gateway = new OpenAIGateway(validConfig);
+    });
+
+    it('should handle streaming correctly', async () => {
+      // ストリーミングレスポンスのモック
+      const mockStream = {
+        async *[Symbol.asyncIterator]() {
+          yield { type: 'response.output_text.delta', delta: 'こ' };
+          yield { type: 'response.output_text.delta', delta: 'ん' };
+          yield { type: 'response.output_text.delta', delta: 'に' };
+          yield { type: 'response.output_text.delta', delta: 'ち' };
+          yield { type: 'response.output_text.delta', delta: 'は' };
+        }
+      };
+
+      mockOpenAIInstance.responses.create.mockResolvedValueOnce(mockStream);
+
+      const chunks: string[] = [];
+      const stream = gateway.stream({
+        purpose: LLMPurpose.TRANSLATION,
+        systemPrompt: 'Translate to Japanese',
+        userContent: 'Hello'
+      });
+
+      for await (const chunk of stream) {
+        if (!chunk.isComplete) {
+          chunks.push(chunk.delta);
+        }
+      }
+
+      // ストリーミングが有効になっているか
+      expect(mockOpenAIInstance.responses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stream: true
+        })
+      );
+
+      // チャンクが正しく処理されたか
+      expect(chunks).toEqual(['こ', 'ん', 'に', 'ち', 'は']);
+    });
+
+    it('should handle chunk.type correctly', async () => {
+      // 異なるタイプのチャンクを含むストリーム
+      const mockStream = {
+        async *[Symbol.asyncIterator]() {
+          yield { type: 'response.output_text.delta', delta: 'Hello' };
+          yield { type: 'other.type', delta: 'Ignore this' };
+          yield { type: 'response.output_text.delta', delta: ' world' };
+          yield { type: 'response.output_text.delta' }; // deltaなし
+        }
+      };
+
+      mockOpenAIInstance.responses.create.mockResolvedValueOnce(mockStream);
+
+      const chunks: string[] = [];
+      const stream = gateway.stream({
+        purpose: LLMPurpose.TRANSLATION,
+        systemPrompt: 'Test',
+        userContent: 'Test'
+      });
+
+      for await (const chunk of stream) {
+        if (!chunk.isComplete) {
+          chunks.push(chunk.delta);
+        }
+      }
+
+      // 正しいタイプのチャンクのみ処理されたか
+      expect(chunks).toEqual(['Hello', ' world']);
+    });
+  });
+
+  describe('Error Handling', () => {
+    beforeEach(() => {
+      gateway = new OpenAIGateway(validConfig);
+    });
+
+    it('should handle rate limit errors', async () => {
+      const rateLimitError = new Error('Rate limit exceeded (429)');
+      mockOpenAIInstance.responses.create.mockRejectedValueOnce(rateLimitError);
+
+      await expect(gateway.complete({
+        purpose: LLMPurpose.TRANSLATION,
+        systemPrompt: 'Test',
+        userContent: 'Test'
+      })).rejects.toMatchObject({
+        code: 'RATE_LIMIT_ERROR',
+        retryable: true
+      });
+    });
+
+    it('should handle auth errors', async () => {
+      const authError = new Error('Unauthorized (401)');
+      mockOpenAIInstance.responses.create.mockRejectedValueOnce(authError);
+
+      await expect(gateway.complete({
+        purpose: LLMPurpose.TRANSLATION,
+        systemPrompt: 'Test',
+        userContent: 'Test'
+      })).rejects.toMatchObject({
+        code: 'AUTH_ERROR',
+        retryable: false
+      });
+    });
+
+    it('should record metrics on error', async () => {
+      const error = new Error('Test error');
+      mockOpenAIInstance.responses.create.mockRejectedValueOnce(error);
+
+      try {
+        await gateway.complete({
+          purpose: LLMPurpose.TRANSLATION,
+          systemPrompt: 'Test',
+          userContent: 'Test'
+        });
+      } catch {
+        // エラーは期待通り
+      }
+
+      const metrics = gateway.getLastMetrics();
+      expect(metrics).toMatchObject({
+        success: false,
+        errorCode: 'UNKNOWN_ERROR'
+      });
+    });
+  });
+
+  describe('Health Check', () => {
+    beforeEach(() => {
+      gateway = new OpenAIGateway(validConfig);
+    });
+
+    it('should return true when healthy', async () => {
+      mockOpenAIInstance.responses.create.mockResolvedValueOnce({
+        output_text: 'Test'
+      });
+
+      const isHealthy = await gateway.isHealthy();
+      expect(isHealthy).toBe(true);
+    });
+
+    it('should return false when unhealthy', async () => {
+      mockOpenAIInstance.responses.create.mockRejectedValueOnce(new Error('API Error'));
+
+      const isHealthy = await gateway.isHealthy();
+      expect(isHealthy).toBe(false);
+    });
+  });
+
+  describe('Metrics', () => {
+    beforeEach(() => {
+      gateway = new OpenAIGateway(validConfig);
+    });
+
+    it('should record metrics for successful requests', async () => {
+      mockOpenAIInstance.responses.create.mockResolvedValueOnce({
+        output_text: 'Test response',
+        usage: { total_tokens: 42 }
+      });
+
+      await gateway.complete({
+        purpose: LLMPurpose.TRANSLATION,
+        systemPrompt: 'Test',
+        userContent: 'Test'
+      });
+
+      const metrics = gateway.getLastMetrics();
+      expect(metrics).toMatchObject({
+        purpose: LLMPurpose.TRANSLATION,
+        model: 'gpt-5-nano',
+        success: true,
+        tokenCount: 42,
+        latencyMs: expect.any(Number)
+      });
+    });
+  });
+});

@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* グローバルリセット - スクロール問題の解決 */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden; /* 全体のスクロールを防止 */
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Electron draggable regions */
+.draggable-window {
+  -webkit-app-region: drag;
+}
+
+/* Make interactive elements non-draggable */
+button,
+input,
+textarea,
+select,
+a,
+.no-drag,
+[role="button"],
+[tabindex] {
+  -webkit-app-region: no-drag;
+}
+
+/* Specific non-draggable areas for content */
+.content-area,
+.bg-black,
+.rounded-md,
+.tooltip-content {
+  -webkit-app-region: no-drag;
+}
+
+/* フェードインアニメーション */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* UniVoice固有のスタイル */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.resize-handle:hover {
+  background: rgba(102, 126, 234, 0.3) !important;
+}
+
+.resize-handle.active {
+  background: #667eea !important;
+}
+
+.small-font {
+  font-size: 16px !important;
+}
+
+.extra-small-font {
+  font-size: 14px !important;
+}
+
+.history-paragraph.topic-break {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #667eea;
+}
+
+.incomplete-sentence {
+  color: #999;
+  font-style: italic;
+}
+
+/* スクロールバーのカスタマイズ */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

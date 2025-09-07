@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # UniVoice Development Environment
+  univoice-dev:
+    build:
+      context: .
+      target: development
+    container_name: univoice-dev
+    ports:
+      - "5174:5174"
+      - "9229:9229" # Node.js debugging
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+      - /app/dist-electron
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    env_file:
+      - .env
+    command: npm run start
+    networks:
+      - univoice-network
+
+  # Test Runner Service
+  univoice-test:
+    build:
+      context: .
+      target: development
+    container_name: univoice-test
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=test
+    env_file:
+      - .env
+    command: npm run test:watch
+    networks:
+      - univoice-network
+
+  # Performance Testing Service
+  univoice-perf:
+    build:
+      context: .
+      target: development
+    container_name: univoice-perf
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=test
+    env_file:
+      - .env
+    command: npm run test:performance
+    networks:
+      - univoice-network
+    profiles:
+      - performance
+
+  # Redis for caching (optional for future use)
+  redis:
+    image: redis:7-alpine
+    container_name: univoice-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - univoice-network
+    profiles:
+      - cache
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: univoice-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - univoice-network
+    profiles:
+      - monitoring
+
+volumes:
+  redis-data:
+
+networks:
+  univoice-network:
+    driver: bridge

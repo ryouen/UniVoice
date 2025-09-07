@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniVoice リアルタイム表示テスト</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        h1 {
+            margin: 0;
+            padding: 20px;
+            background: #667eea;
+            color: white;
+            font-size: 24px;
+        }
+        .test-section {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .test-section:last-child {
+            border-bottom: none;
+        }
+        h2 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: #fafafa;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .test-original {
+            padding-right: 15px;
+            border-right: 1px solid #e0e0e0;
+            color: #333;
+        }
+        .test-translation {
+            padding-left: 15px;
+            color: #0066cc;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .realtime-test {
+            height: 300px;
+            display: flex;
+            background: linear-gradient(to bottom, #fafafa, #ffffff);
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .realtime-original, .realtime-translation {
+            flex: 1;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            line-height: 1.6;
+        }
+        .realtime-original {
+            border-right: 1px solid #e0e0e0;
+            color: #111;
+        }
+        .realtime-translation {
+            color: #0066cc;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UniVoice リアルタイム表示テスト</h1>
+        
+        <div class="test-section">
+            <h2>1. 履歴表示スタイルテスト（新しいライトテーマ）</h2>
+            <div class="test-grid">
+                <div class="test-original">
+                    This is a test sentence to verify the light theme styling is working correctly.
+                </div>
+                <div class="test-translation">
+                    これはライトテーマのスタイリングが正しく動作していることを確認するためのテスト文です。
+                </div>
+            </div>
+            <div class="status success">
+                ✓ 履歴表示: ライトテーマ適用済み（背景: #fafafa、枠線: #e0e0e0）
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. リアルタイム表示モックアップ</h2>
+            <div class="realtime-test">
+                <div class="realtime-original">
+                    Today we'll discuss the fundamentals of machine learning...
+                </div>
+                <div class="realtime-translation">
+                    今日は機械学習の基礎について議論します...
+                </div>
+            </div>
+            <div class="status warning">
+                ⚠ 注意: これは静的なモックアップです。実際のリアルタイム表示は動的に更新されます。
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. CSS詳細度チェック</h2>
+            <pre>
+/* 履歴表示のCSS */
+.sentence-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* リアルタイム表示のCSS（RealtimeSection内） */
+div style={{
+  flex: 1,
+  padding: '20px 30px',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center'
+}}
+            </pre>
+            <div class="status success">
+                ✓ スタイルは独立: 履歴表示のCSSはRealtimeSectionに影響しません
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. コンポーネント構造の確認</h2>
+            <ul>
+                <li>HistorySection: FlexibleHistoryDisplay を使用（独立したスタイル）</li>
+                <li>RealtimeSection: ThreeLineDisplay を使用（インラインスタイル）</li>
+                <li>両者は完全に独立したコンポーネント</li>
+            </ul>
+            <div class="status success">
+                ✓ コンポーネントの分離: 各セクションは独立して動作
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>5. 推奨デバッグ手順</h2>
+            <ol>
+                <li>ブラウザの開発者ツール (F12) を開く</li>
+                <li>Elements タブで #currentOriginal と #currentTranslation を検索</li>
+                <li>Console タブでエラーメッセージを確認</li>
+                <li>Network タブで WebSocket 接続を確認</li>
+            </ol>
+            <pre>
+// コンソールで実行するデバッグコマンド
+console.log('Current Original:', document.getElementById('currentOriginal')?.textContent);
+console.log('Current Translation:', document.getElementById('currentTranslation')?.textContent);
+            </pre>
+        </div>
+    </div>
+
+    <script>
+        // 簡単な動作確認
+        console.log('UniVoice リアルタイム表示テストページ読み込み完了');
+        
+        // リアルタイム表示要素の存在確認
+        setTimeout(() => {
+            const original = document.querySelector('.realtime-original');
+            const translation = document.querySelector('.realtime-translation');
+            
+            if (original && translation) {
+                console.log('✓ リアルタイム表示要素が正常に存在します');
+            } else {
+                console.error('✗ リアルタイム表示要素が見つかりません');
+            }
+        }, 100);
+    </script>
+</body>
+</html>

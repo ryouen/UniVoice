@@ -1,0 +1,163 @@
+/**
+ * TranslationDisplay - Real-time translation display component
+ * 
+ * 元のUniVoicePerfect.tsxの現在セクションを完全に再現
+ * - 3行表示 (RealtimeDisplayManager使用)
+ * - 3段階のopacity (0.3, 0.6, 1.0)
+ * - 元と完全に同じデザイン
+ */
+
+import React from 'react';
+import type { DisplaySegment } from '../../hooks/useUnifiedPipeline';
+
+interface TranslationDisplayProps {
+  segments: DisplaySegment[];
+  showBlockGuides: boolean;
+  height?: string;
+}
+
+export const TranslationDisplay: React.FC<TranslationDisplayProps> = ({
+  segments,
+  showBlockGuides,
+  height = '22vh'
+}) => {
+  // Ensure we always have 3 segments for display
+  const displaySegments = [...segments];
+  while (displaySegments.length < 3) {
+    displaySegments.push({
+      id: `empty_${displaySegments.length}`,
+      original: '',
+      translation: '',
+      status: 'completed',
+      timestamp: Date.now(),
+      opacity: 0.3
+    } as DisplaySegment);
+  }
+  
+  // Take only the last 3 segments
+  const [oldest, older, recent] = displaySegments.slice(-3);
+  
+  return (
+    <>
+      {/* 現在のセクション（固定） - 3行表示 */}
+      <div style={{
+        height,
+        display: 'flex',
+        background: 'linear-gradient(to bottom, #fafafa, #ffffff)',
+        borderBottom: '2px solid #ddd'
+      }}>
+        <div style={{
+          flex: 1,
+          padding: '20px 30px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-around',
+          borderRight: '1px solid #e0e0e0'
+        }}>
+          {/* 原文表示 (3行) */}
+          <div style={{
+            fontSize: '18px',
+            lineHeight: '1.5',
+            color: '#111',
+            opacity: oldest.opacity ?? 0.3,
+            minHeight: '1.5em'
+          }}>
+            {oldest.original}
+          </div>
+          <div style={{
+            fontSize: '18px',
+            lineHeight: '1.5',
+            color: '#111',
+            opacity: older.opacity ?? 0.6,
+            minHeight: '1.5em'
+          }}>
+            {older.original}
+          </div>
+          <div style={{
+            fontSize: '20px',
+            lineHeight: '1.5',
+            color: '#111',
+            opacity: recent.opacity ?? 1.0,
+            fontWeight: 500,
+            minHeight: '1.5em'
+          }}>
+            {recent.original}
+          </div>
+        </div>
+        <div style={{
+          flex: 1,
+          padding: '20px 30px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-around'
+        }}>
+          {/* 翻訳表示 (3行) */}
+          <div style={{
+            fontSize: '18px',
+            lineHeight: '1.5',
+            color: '#0066cc',
+            opacity: oldest.opacity ?? 0.3,
+            minHeight: '1.5em'
+          }}>
+            {oldest.translation}
+          </div>
+          <div style={{
+            fontSize: '18px',
+            lineHeight: '1.5',
+            color: '#0066cc',
+            opacity: older.opacity ?? 0.6,
+            minHeight: '1.5em'
+          }}>
+            {older.translation}
+          </div>
+          <div style={{
+            fontSize: '20px',
+            lineHeight: '1.5',
+            color: '#0066cc',
+            opacity: recent.opacity ?? 1.0,
+            fontWeight: 500,
+            minHeight: '1.5em'
+          }}>
+            {recent.translation}
+          </div>
+        </div>
+      </div>
+
+      {/* ブロックガイド - 元のデザインから */}
+      {showBlockGuides && (
+        <>
+          <div style={{
+            position: 'absolute',
+            top: '5px',
+            left: '25%',
+            transform: 'translateX(-50%)',
+            background: '#667eea',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '3px',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+          }}>
+            ③
+          </div>
+          <div style={{
+            position: 'absolute',
+            top: '5px',
+            left: '75%',
+            transform: 'translateX(-50%)',
+            background: '#667eea',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '3px',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+          }}>
+            ④
+          </div>
+        </>
+      )}
+    </>
+  );
+};

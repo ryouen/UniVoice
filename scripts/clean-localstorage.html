@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UniVoice LocalStorage クリーンアップ</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+        }
+        .before, .after {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .before {
+            border-left: 4px solid #ff6b6b;
+        }
+        .after {
+            border-left: 4px solid #4ecdc4;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4f5d4;
+            color: #2d6a2d;
+        }
+        .error {
+            background: #ffd4d4;
+            color: #8b0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UniVoice LocalStorage クリーンアップツール</h1>
+        
+        <p>このツールは、UniVoiceアプリケーションのLocalStorageに保存された授業リストから重複した日付プレフィックスを削除します。</p>
+        
+        <h2>使い方：</h2>
+        <ol>
+            <li>UniVoiceアプリケーションで使用しているブラウザ（Electron）でこのHTMLファイルを開く</li>
+            <li>「クリーンアップ実行」ボタンをクリック</li>
+            <li>結果を確認</li>
+        </ol>
+        
+        <button onclick="cleanupLocalStorage()">クリーンアップ実行</button>
+        
+        <div id="status"></div>
+        
+        <h3>変更前：</h3>
+        <div id="before" class="before">（未実行）</div>
+        
+        <h3>変更後：</h3>
+        <div id="after" class="after">（未実行）</div>
+    </div>
+
+    <script>
+        function cleanupLocalStorage() {
+            const statusEl = document.getElementById('status');
+            const beforeEl = document.getElementById('before');
+            const afterEl = document.getElementById('after');
+            
+            try {
+                // 現在の値を取得
+                const stored = localStorage.getItem('recentClasses');
+                if (!stored) {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'エラー: recentClassesが見つかりません';
+                    return;
+                }
+                
+                const original = JSON.parse(stored);
+                beforeEl.textContent = JSON.stringify(original, null, 2);
+                
+                // クリーンアップ処理
+                const cleaned = [...new Set(original.map(className => {
+                    // 複数の日付プレフィックスを再帰的に除去
+                    let clean = className;
+                    while (/^\d{6}_/.test(clean)) {
+                        clean = clean.replace(/^\d{6}_/, '');
+                    }
+                    return clean;
+                }))];
+                
+                // 重複を削除してユニークな授業名のみを保持
+                const unique = [...new Set(cleaned)];
+                
+                // 保存
+                localStorage.setItem('recentClasses', JSON.stringify(unique));
+                
+                afterEl.textContent = JSON.stringify(unique, null, 2);
+                
+                statusEl.className = 'status success';
+                statusEl.textContent = `✅ クリーンアップ完了！ ${original.length}個 → ${unique.length}個の授業`;
+                
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'エラー: ' + error.message;
+                console.error(error);
+            }
+        }
+        
+        // ページ読み込み時に現在の状態を表示
+        window.onload = function() {
+            const stored = localStorage.getItem('recentClasses');
+            if (stored) {
+                document.getElementById('before').textContent = JSON.stringify(JSON.parse(stored), null, 2);
+            }
+        };
+    </script>
+</body>
+</html>

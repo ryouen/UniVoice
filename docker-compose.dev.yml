@@ -1,0 +1,61 @@
+# Development-specific Docker Compose configuration
+version: '3.8'
+
+services:
+  univoice-dev:
+    build:
+      context: .
+      target: development
+      args:
+        - NODE_ENV=development
+    container_name: univoice-dev
+    ports:
+      - "5174:5174"
+      - "9229:9229" # Node.js debugging port
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - univoice-dist:/app/dist
+      - univoice-dist-electron:/app/dist-electron
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - FORCE_COLOR=1
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    networks:
+      - univoice-dev-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5174"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Hot reload test runner
+  test-runner:
+    build:
+      context: .
+      target: development
+    container_name: univoice-test-runner
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=test
+      - CI=true
+    env_file:
+      - .env
+    command: npm run test:watch
+    networks:
+      - univoice-dev-network
+
+volumes:
+  univoice-dist:
+  univoice-dist-electron:
+
+networks:
+  univoice-dev-network:
+    driver: bridge

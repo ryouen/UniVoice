@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UniVoice Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            min-height: 200px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>UniVoice Integration Test</h1>
+    
+    <button onclick="checkAPIs()">Check APIs</button>
+    <button onclick="startSession()">Start Session</button>
+    <button onclick="stopSession()">Stop Session</button>
+    <button onclick="clearOutput()">Clear Output</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        let correlationId = null;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const className = type;
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            console.log(`[${type}] ${message}`);
+        }
+        
+        function clearOutput() {
+            output.innerHTML = '';
+        }
+        
+        function checkAPIs() {
+            log('=== Checking APIs ===', 'info');
+            
+            // Check window.univoice
+            if (window.univoice) {
+                log('✓ window.univoice exists', 'success');
+                log('Available methods: ' + Object.keys(window.univoice).join(', '), 'info');
+            } else {
+                log('✗ window.univoice NOT FOUND', 'error');
+            }
+            
+            // Check window.electron
+            if (window.electron) {
+                log('✓ window.electron exists', 'success');
+                log('Available methods: ' + Object.keys(window.electron).join(', '), 'info');
+            } else {
+                log('✗ window.electron NOT FOUND', 'error');
+            }
+            
+            // Check window.electronAPI
+            if (window.electronAPI) {
+                log('✓ window.electronAPI exists', 'success');
+            } else {
+                log('✗ window.electronAPI NOT FOUND', 'error');
+            }
+        }
+        
+        async function startSession() {
+            log('=== Starting Session ===', 'info');
+            
+            if (!window.univoice) {
+                log('Error: window.univoice is not available', 'error');
+                return;
+            }
+            
+            try {
+                correlationId = window.univoice.generateCorrelationId();
+                log(`Generated correlation ID: ${correlationId}`, 'info');
+                
+                // Set up event listeners
+                const cleanup = window.univoice.onPipelineEvent((event) => {
+                    log(`Event: ${event.type} - ${JSON.stringify(event.data)}`, 'info');
+                });
+                
+                // Start listening
+                log('Calling startListening...', 'info');
+                const result = await window.univoice.startListening({
+                    sourceLanguage: 'en',
+                    targetLanguage: 'ja',
+                    correlationId: correlationId
+                });
+                
+                log(`Result: ${JSON.stringify(result)}`, result.success ? 'success' : 'error');
+                
+                if (!result.success) {
+                    log(`Failed to start session: ${result.error}`, 'error');
+                } else {
+                    log('Session started successfully!', 'success');
+                }
+                
+            } catch (error) {
+                log(`Exception: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        async function stopSession() {
+            log('=== Stopping Session ===', 'info');
+            
+            if (!window.univoice) {
+                log('Error: window.univoice is not available', 'error');
+                return;
+            }
+            
+            if (!correlationId) {
+                log('Error: No active session to stop', 'error');
+                return;
+            }
+            
+            try {
+                log('Calling stopListening...', 'info');
+                const result = await window.univoice.stopListening({
+                    correlationId: correlationId
+                });
+                
+                log(`Result: ${JSON.stringify(result)}`, result.success ? 'success' : 'error');
+                
+                if (result.success) {
+                    log('Session stopped successfully!', 'success');
+                    correlationId = null;
+                } else {
+                    log(`Failed to stop session: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Exception: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        // Check APIs on load
+        window.addEventListener('load', () => {
+            log('Page loaded', 'info');
+            checkAPIs();
+        });
+    </script>
+</body>
+</html>

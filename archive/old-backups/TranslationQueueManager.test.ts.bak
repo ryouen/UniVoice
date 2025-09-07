@@ -1,0 +1,399 @@
+/**
+ * TranslationQueueManager Unit Tests
+ */
+
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { TranslationQueueManager, QueuedTranslation } from '../../src/utils/TranslationQueueManager';
+
+describe('TranslationQueueManager', () => {
+  let manager: TranslationQueueManager;
+  let mockHandler: ReturnType<typeof vi.fn>;
+  
+  beforeEach(() => {
+    manager = new TranslationQueueManager({
+      maxConcurrency: 3,
+      maxQueueSize: 10,
+      requestTimeoutMs: 5000
+    });
+    
+    // Mock translation handler
+    mockHandler = vi.fn(async (translation: QueuedTranslation) => {
+      // Simulate translation delay
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return `Translated: ${translation.originalText}`;
+    });
+    
+    manager.setTranslationHandler(mockHandler);
+  });
+  
+  afterEach(() => {
+    manager.destroy();
+    vi.clearAllMocks();
+  });
+  
+  describe('Basic functionality', () => {
+    it('should enqueue and process translations', async () => {
+      const translation: QueuedTranslation = {
+        segmentId: 'seg-1',
+        originalText: 'Hello world',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      };
+      
+      await manager.enqueue(translation);
+      
+      // Wait for processing
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      expect(mockHandler).toHaveBeenCalledWith(translation);
+      expect(mockHandler).toHaveBeenCalledTimes(1);
+    });
+    
+    it('should prevent duplicate enqueuing', async () => {
+      const translation: QueuedTranslation = {
+        segmentId: 'seg-1',
+        originalText: 'Hello world',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      };
+      
+      await manager.enqueue(translation);
+      await manager.enqueue(translation); // Duplicate
+      
+      const status = manager.getStatus();
+      expect(status.queuedCount + status.activeCount).toBeLessThanOrEqual(1);
+    });
+  });
+  
+  describe('Concurrency control', () => {
+    it('should limit concurrent translations to maxConcurrency', async () => {
+      // Create 5 translations
+      const translations: QueuedTranslation[] = [];
+      for (let i = 0; i < 5; i++) {
+        translations.push({
+          segmentId: `seg-${i}`,
+          originalText: `Text ${i}`,
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          timestamp: Date.now()
+        });
+      }
+      
+      // Enqueue all at once
+      await Promise.all(translations.map(t => manager.enqueue(t)));
+      
+      // Check immediately - should have 3 active, 2 queued
+      const status = manager.getStatus();
+      expect(status.activeCount).toBeLessThanOrEqual(3);
+      expect(status.queuedCount).toBe(2);
+    });
+    
+    it('should process queued items as active ones complete', async () => {
+      // Set up a slower handler to better control timing
+      let processCount = 0;
+      mockHandler.mockImplementation(async () => {
+        processCount++;
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return 'translated';
+      });
+      
+      // Enqueue 5 translations
+      for (let i = 0; i < 5; i++) {
+        await manager.enqueue({
+          segmentId: `seg-${i}`,
+          originalText: `Text ${i}`,
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          timestamp: Date.now()
+        });
+      }
+      
+      // Wait for all to complete
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      expect(processCount).toBe(5);
+      const finalStatus = manager.getStatus();
+      expect(finalStatus.completedCount).toBe(5);
+      expect(finalStatus.activeCount).toBe(0);
+      expect(finalStatus.queuedCount).toBe(0);
+    });
+  });
+  
+  describe('Priority handling', () => {
+    it('should process high priority translations first', async () => {
+      const processOrder: string[] = [];
+      mockHandler.mockImplementation(async (translation: QueuedTranslation) => {
+        processOrder.push(translation.segmentId);
+        await new Promise(resolve => setTimeout(resolve, 50));
+        return 'translated';
+      });
+      
+      // Fill up active slots first
+      for (let i = 0; i < 3; i++) {
+        await manager.enqueue({
+          segmentId: `active-${i}`,
+          originalText: `Active ${i}`,
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          timestamp: Date.now()
+        });
+      }
+      
+      // Now add mixed priority items to queue
+      await manager.enqueue({
+        segmentId: 'normal-1',
+        originalText: 'Normal priority',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now(),
+        priority: 'normal'
+      });
+      
+      await manager.enqueue({
+        segmentId: 'high-1',
+        originalText: 'High priority',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now(),
+        priority: 'high'
+      });
+      
+      await manager.enqueue({
+        segmentId: 'low-1',
+        originalText: 'Low priority',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now(),
+        priority: 'low'
+      });
+      
+      // Wait for all to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check that high priority was processed before normal and low
+      const highIndex = processOrder.indexOf('high-1');
+      const normalIndex = processOrder.indexOf('normal-1');
+      const lowIndex = processOrder.indexOf('low-1');
+      
+      expect(highIndex).toBeLessThan(normalIndex);
+      expect(normalIndex).toBeLessThan(lowIndex);
+    });
+  });
+  
+  describe('Error handling', () => {
+    it('should handle translation errors gracefully', async () => {
+      mockHandler.mockImplementationOnce(async () => {
+        throw new Error('Translation failed');
+      });
+      
+      await manager.enqueue({
+        segmentId: 'error-seg',
+        originalText: 'This will fail',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      });
+      
+      // Wait for processing
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const status = manager.getStatus();
+      expect(status.errorCount).toBe(1);
+      expect(status.activeCount).toBe(0);
+    });
+    
+    it('should timeout long-running translations', async () => {
+      mockHandler.mockImplementationOnce(async () => {
+        // Simulate a translation that takes longer than timeout
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        return 'translated';
+      });
+      
+      await manager.enqueue({
+        segmentId: 'timeout-seg',
+        originalText: 'This will timeout',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      });
+      
+      // Wait for timeout (5s) plus buffer
+      await new Promise(resolve => setTimeout(resolve, 6000));
+      
+      const status = manager.getStatus();
+      expect(status.errorCount).toBe(1);
+      expect(status.activeCount).toBe(0);
+    }, 10000); // Increase test timeout
+  });
+  
+  describe('Queue management', () => {
+    it('should reject enqueue when queue is full', async () => {
+      // Create a manager with small queue
+      const smallManager = new TranslationQueueManager({
+        maxConcurrency: 1,
+        maxQueueSize: 2
+      });
+      
+      // Set a very slow handler
+      smallManager.setTranslationHandler(async () => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return 'translated';
+      });
+      
+      // Fill active slot and queue
+      await smallManager.enqueue({
+        segmentId: 'seg-1',
+        originalText: 'Text 1',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      });
+      
+      await smallManager.enqueue({
+        segmentId: 'seg-2',
+        originalText: 'Text 2',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      });
+      
+      await smallManager.enqueue({
+        segmentId: 'seg-3',
+        originalText: 'Text 3',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      });
+      
+      // This should throw
+      await expect(smallManager.enqueue({
+        segmentId: 'seg-4',
+        originalText: 'Text 4',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      })).rejects.toThrow('Queue is full');
+      
+      smallManager.destroy();
+    });
+    
+    it('should clear queue on demand', async () => {
+      // Enqueue some items
+      for (let i = 0; i < 5; i++) {
+        await manager.enqueue({
+          segmentId: `seg-${i}`,
+          originalText: `Text ${i}`,
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          timestamp: Date.now()
+        });
+      }
+      
+      // Clear queue
+      manager.clear();
+      
+      const status = manager.getStatus();
+      expect(status.queuedCount).toBe(0);
+    });
+  });
+  
+  describe('Statistics', () => {
+    it('should track average processing time', async () => {
+      // Set predictable processing times
+      const times = [100, 200, 150];
+      let callCount = 0;
+      
+      mockHandler.mockImplementation(async () => {
+        const delay = times[callCount++];
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return 'translated';
+      });
+      
+      // Process 3 translations
+      for (let i = 0; i < 3; i++) {
+        await manager.enqueue({
+          segmentId: `seg-${i}`,
+          originalText: `Text ${i}`,
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          timestamp: Date.now()
+        });
+      }
+      
+      // Wait for all to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const status = manager.getStatus();
+      expect(status.completedCount).toBe(3);
+      expect(status.averageProcessingTimeMs).toBeGreaterThan(100);
+      expect(status.averageProcessingTimeMs).toBeLessThan(250);
+    });
+    
+    it('should reset statistics on demand', async () => {
+      // Process a translation
+      await manager.enqueue({
+        segmentId: 'seg-1',
+        originalText: 'Text',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Reset stats
+      manager.resetStats();
+      
+      const status = manager.getStatus();
+      expect(status.completedCount).toBe(0);
+      expect(status.errorCount).toBe(0);
+      expect(status.averageProcessingTimeMs).toBe(0);
+    });
+  });
+  
+  describe('Segment status tracking', () => {
+    it('should track segment status correctly', async () => {
+      // Slow handler to keep items active
+      mockHandler.mockImplementation(async () => {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return 'translated';
+      });
+      
+      const seg1: QueuedTranslation = {
+        segmentId: 'seg-1',
+        originalText: 'Active',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      };
+      
+      const seg2: QueuedTranslation = {
+        segmentId: 'seg-2',
+        originalText: 'Queued',
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        timestamp: Date.now()
+      };
+      
+      // Fill active slots
+      for (let i = 0; i < 3; i++) {
+        await manager.enqueue({
+          segmentId: `active-${i}`,
+          originalText: `Active ${i}`,
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          timestamp: Date.now()
+        });
+      }
+      
+      // This will be queued
+      await manager.enqueue(seg2);
+      
+      expect(manager.getSegmentStatus('active-0')).toBe('active');
+      expect(manager.getSegmentStatus('seg-2')).toBe('queued');
+      expect(manager.getSegmentStatus('non-existent')).toBe('not-found');
+    });
+  });
+});

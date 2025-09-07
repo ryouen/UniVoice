@@ -1,0 +1,13 @@
+バックアップ情報
+作成日時: 2025-08-30
+目的: 履歴表示の「翻訳中...」問題の修正前のバックアップ
+
+バックアップ対象ファイル:
+- useUnifiedPipeline.ts
+- UnifiedPipelineService.ts  
+- FlexibleHistoryGrouper.ts
+- FlexibleHistoryDisplay.tsx
+
+修正内容:
+- 「翻訳中...」の初期値を空文字列に変更
+- 翻訳完了時の更新ロジックの改善
