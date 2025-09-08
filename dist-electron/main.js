@@ -250,11 +250,28 @@ function setupIPCGateway() {
                     console.log('[Main] Starting listening with params:', domainCommand.params);
                     mainLogger.info('Starting listening', domainCommand.params);
                     await pipelineService.startListening(domainCommand.params.sourceLanguage, domainCommand.params.targetLanguage, domainCommand.correlationId);
+                    // Start AdvancedFeatureService with the same correlation ID and languages
+                    if (advancedFeatureService) {
+                        advancedFeatureService.start(domainCommand.correlationId, domainCommand.params.sourceLanguage, domainCommand.params.targetLanguage);
+                        mainLogger.info('AdvancedFeatureService started', {
+                            correlationId: domainCommand.correlationId,
+                            sourceLanguage: domainCommand.params.sourceLanguage,
+                            targetLanguage: domainCommand.params.targetLanguage
+                        });
+                    }
+                    else {
+                        mainLogger.error('AdvancedFeatureService not initialized');
+                    }
                     console.log('[Main] Started listening successfully');
                     mainLogger.info('Started listening successfully');
                     break;
                 case 'stopListening':
                     await pipelineService.stopListening(domainCommand.correlationId);
+                    // Stop AdvancedFeatureService as well
+                    if (advancedFeatureService) {
+                        await advancedFeatureService.stop();
+                        mainLogger.info('AdvancedFeatureService stopped');
+                    }
                     break;
                 case 'getHistory':
                     // TODO: Implement history retrieval
@@ -383,7 +400,7 @@ function setupPipelineService() {
             mainWindow.webContents.send('progressive-summary', summary);
         }
     });
-    advancedFeatureService.on('summary', (summary) => {
+    advancedFeatureService.on('summaryGenerated', (summary) => {
         mainLogger.info('Summary generated', {
             wordCount: summary.data?.wordCount,
             summaryLength: summary.data?.english?.length
@@ -392,14 +409,14 @@ function setupPipelineService() {
             mainWindow.webContents.send('summary', summary);
         }
     });
-    advancedFeatureService.on('vocabulary', (vocabulary) => {
-        mainLogger.info('Vocabulary generated', { itemCount: vocabulary.items?.length });
+    advancedFeatureService.on('vocabularyGenerated', (vocabulary) => {
+        mainLogger.info('Vocabulary generated', { itemCount: vocabulary.data?.items?.length });
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('vocabulary-generated', vocabulary);
         }
     });
-    advancedFeatureService.on('finalReport', (report) => {
-        mainLogger.info('Final report generated', { reportLength: report.content?.length });
+    advancedFeatureService.on('finalReportGenerated', (report) => {
+        mainLogger.info('Final report generated', { reportLength: report.data?.report?.length });
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('final-report-generated', report);
         }
@@ -454,12 +471,25 @@ function setupPipelineService() {
             payload: data
         });
         // Forward to AdvancedFeatureService
-        if (advancedFeatureService && data.originalText && data.translatedText) {
+        // Note: The event uses 'japanese' field name for compatibility
+        if (advancedFeatureService && data.original && data.japanese) {
             advancedFeatureService.addTranslation({
                 id: `trans-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                original: data.originalText,
-                translated: data.translatedText,
+                original: data.original,
+                translated: data.japanese,
                 timestamp: Date.now()
+            });
+            mainLogger.debug('Translation forwarded to AdvancedFeatureService', {
+                originalLength: data.original.length,
+                translatedLength: data.japanese.length
+            });
+        }
+        else {
+            mainLogger.warn('Translation not forwarded to AdvancedFeatureService', {
+                hasService: !!advancedFeatureService,
+                hasOriginal: !!data.original,
+                hasJapanese: !!data.japanese,
+                dataKeys: Object.keys(data || {})
             });
         }
     });
@@ -635,7 +665,7 @@ function setupPipelineService() {
                             mainWindow.webContents.send('progressive-summary', summary);
                         }
                     });
-                    advancedFeatureService.on('summary', (summary) => {
+                    advancedFeatureService.on('summaryGenerated', (summary) => {
                         mainLogger.info('Summary generated', {
                             wordCount: summary.data?.wordCount,
                             summaryLength: summary.data?.english?.length

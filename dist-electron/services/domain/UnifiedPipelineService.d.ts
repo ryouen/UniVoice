@@ -53,7 +53,6 @@ export declare class UnifiedPipelineService extends EventEmitter {
     private openaiConfig;
     private deepgramAdapter;
     private openai;
-    private advancedFeatures;
     private translationQueue;
     private sentenceCombiner;
     private stateManager;
@@ -172,10 +171,12 @@ export declare class UnifiedPipelineService extends EventEmitter {
     private emitError;
     /**
      * Generate vocabulary from current session
+     * @deprecated This method should be called directly on AdvancedFeatureService from main.ts
      */
     generateVocabulary(correlationId: string): Promise<void>;
     /**
      * Generate final report from current session
+     * @deprecated This method should be called directly on AdvancedFeatureService from main.ts
      */
     generateFinalReport(correlationId: string): Promise<void>;
     /**

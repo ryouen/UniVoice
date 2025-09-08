@@ -19,14 +19,12 @@ import { DeepgramStreamAdapter, TranscriptResult, DeepgramError } from '../adapt
 import OpenAI from 'openai';
 // 🔴 CRITICAL: SegmentManagerのインポートを削除（使用しない）
 // import { SegmentManager } from './SegmentManager';
-import { AdvancedFeatureService } from './AdvancedFeatureService';
+// AdvancedFeatureService is managed in main.ts, not here
 import { 
   createASREvent,
   createTranslationEvent,
   createErrorEvent,
   createStatusEvent,
-  createVocabularyEvent,
-  createFinalReportEvent,
   createCombinedSentenceEvent,  // 【Phase 2-2】追加
   // 🔴 ParagraphBuilderを一時的に無効化 - フロントエンドでのグループ化を優先
   // createParagraphCompleteEvent,  // 【Phase 2-ParagraphBuilder】追加
@@ -128,7 +126,7 @@ export class UnifiedPipelineService extends EventEmitter {
   private openai: OpenAI;
   // 🔴 CRITICAL: SegmentManagerフィールドを削除（使用しない）
   // private segmentManager: SegmentManager;
-  private advancedFeatures: AdvancedFeatureService;
+  // AdvancedFeatureService is managed in main.ts, not here
   private translationQueue: TranslationQueueManager;
   private sentenceCombiner: SentenceCombiner;
   // 🔴 ParagraphBuilderを一時的に無効化 - フロントエンドでのグループ化を優先
@@ -221,28 +219,8 @@ export class UnifiedPipelineService extends EventEmitter {
     //   }
     // );
     
-    // Initialize AdvancedFeatureService
-    this.advancedFeatures = new AdvancedFeatureService({
-      openaiApiKey: this.openaiConfig.apiKey,
-      summaryInterval: parseInt(process.env.SUMMARY_INTERVAL_MS || '600000'),
-      summaryModel: process.env.OPENAI_MODEL_SUMMARY || 'gpt-5-mini',
-      vocabularyModel: process.env.OPENAI_MODEL_VOCABULARY || 'gpt-5-mini',
-      reportModel: process.env.OPENAI_MODEL_REPORT || 'gpt-5',
-      maxTokens: {
-        summary: parseInt(process.env.OPENAI_SUMMARY_MAX_TOKENS || '1500'),
-        vocabulary: parseInt(process.env.OPENAI_VOCAB_MAX_TOKENS || '1500'),
-        report: parseInt(process.env.OPENAI_REPORT_MAX_TOKENS || '8192')
-      }
-    });
-    
-    // Forward advanced feature events
-    this.advancedFeatures.on('summaryGenerated', (event) => {
-      this.emit('pipelineEvent', event);
-    });
-    
-    this.advancedFeatures.on('error', (event) => {
-      this.emit('pipelineEvent', event);
-    });
+    // AdvancedFeatureService is managed externally in main.ts to maintain
+    // proper separation of concerns and avoid duplicate instances
     
     this.componentLogger.info('UnifiedPipelineService initialized', {
       audioConfig: this.audioConfig,
@@ -310,8 +288,7 @@ export class UnifiedPipelineService extends EventEmitter {
       await this.connectToDeepgram();
       this.setState('listening');
       
-      // Start advanced features for periodic summaries with language settings
-      this.advancedFeatures.start(correlationId, this.sourceLanguage, this.targetLanguage);
+      // AdvancedFeatureService.start is handled in main.ts to maintain proper separation
       
       this.componentLogger.info('Started listening', {
         sourceLanguage,
@@ -351,8 +328,7 @@ export class UnifiedPipelineService extends EventEmitter {
       // 【Phase 2-ParagraphBuilder】Force complete any pending paragraph
       // this.paragraphBuilder.flush();
       
-      // Stop advanced features
-      await this.advancedFeatures.stop();
+      // AdvancedFeatureService.stop is handled in main.ts to maintain proper separation
       
       // Close Deepgram connection
       if (this.deepgramAdapter) {
@@ -858,13 +834,8 @@ export class UnifiedPipelineService extends EventEmitter {
       // 🔴 CRITICAL: SegmentManagerは使わない - 親フォルダと同じシンプルな処理
       // 重複の原因を完全に排除
       
-      // Add translation to advanced features for summary generation
-      this.advancedFeatures.addTranslation({
-        id: result.id,
-        original: result.original,
-        translated: result.translated,
-        timestamp: result.timestamp
-      });
+      // Translation forwarding to AdvancedFeatureService is handled in main.ts
+      // via the translationComplete event to maintain proper separation of concerns
       
       // Emit translation event
       this.emitEvent(createTranslationEvent({
@@ -1013,83 +984,22 @@ export class UnifiedPipelineService extends EventEmitter {
 
   /**
    * Generate vocabulary from current session
+   * @deprecated This method should be called directly on AdvancedFeatureService from main.ts
    */
   public async generateVocabulary(correlationId: string): Promise<void> {
-    try {
-      this.componentLogger.info('Generating vocabulary', { correlationId });
-      
-      const vocabulary = await this.advancedFeatures.generateVocabulary();
-      
-      if (vocabulary.length > 0) {
-        this.emitEvent(createVocabularyEvent({
-          items: vocabulary,
-          totalTerms: vocabulary.length,
-        }, correlationId));
-        
-        this.componentLogger.info('Vocabulary generated', {
-          correlationId,
-          termCount: vocabulary.length,
-        });
-      } else {
-        this.componentLogger.warn('No vocabulary items generated', { correlationId });
-      }
-    } catch (error) {
-      this.componentLogger.error('Failed to generate vocabulary', {
-        error: error instanceof Error ? error.message : String(error),
-        correlationId,
-      });
-      
-      this.emitError('VOCABULARY_GENERATION_FAILED',
-        `Failed to generate vocabulary: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        correlationId
-      );
-    }
+    this.componentLogger.warn('generateVocabulary called on UnifiedPipelineService - this should be called on AdvancedFeatureService from main.ts', { correlationId });
+    // Emit an event to notify that vocabulary generation was requested
+    this.emit('vocabularyRequested', { correlationId });
   }
 
   /**
    * Generate final report from current session
+   * @deprecated This method should be called directly on AdvancedFeatureService from main.ts
    */
   public async generateFinalReport(correlationId: string): Promise<void> {
-    try {
-      this.componentLogger.info('Generating final report', { correlationId });
-      
-      const report = await this.advancedFeatures.generateFinalReport();
-      
-      if (report) {
-        const totalWordCount = this.translations.reduce(
-          (sum, t) => sum + t.original.split(' ').length, 
-          0
-        );
-        const summaryCount = this.advancedFeatures.getSummaries().length;
-        const vocabularyCount = (await this.advancedFeatures.generateVocabulary()).length;
-        
-        this.emitEvent(createFinalReportEvent({
-          report,
-          totalWordCount,
-          summaryCount,
-          vocabularyCount,
-        }, correlationId));
-        
-        this.componentLogger.info('Final report generated', {
-          correlationId,
-          reportLength: report.length,
-          totalWordCount,
-          summaryCount,
-        });
-      } else {
-        this.componentLogger.warn('Empty final report generated', { correlationId });
-      }
-    } catch (error) {
-      this.componentLogger.error('Failed to generate final report', {
-        error: error instanceof Error ? error.message : String(error),
-        correlationId,
-      });
-      
-      this.emitError('FINAL_REPORT_GENERATION_FAILED',
-        `Failed to generate final report: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        correlationId
-      );
-    }
+    this.componentLogger.warn('generateFinalReport called on UnifiedPipelineService - this should be called on AdvancedFeatureService from main.ts', { correlationId });
+    // Emit an event to notify that final report generation was requested
+    this.emit('finalReportRequested', { correlationId });
   }
   
   /**
@@ -1525,7 +1435,7 @@ export class UnifiedPipelineService extends EventEmitter {
     
     // 🔴 CRITICAL: SegmentManager.destroy()を削除
     // this.segmentManager.destroy();
-    this.advancedFeatures.destroy();
+    // AdvancedFeatureService is managed in main.ts
     this.translationQueue.destroy();
     this.sentenceCombiner.destroy();
     this.removeAllListeners();

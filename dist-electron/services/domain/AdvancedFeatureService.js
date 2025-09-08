@@ -106,15 +106,18 @@ class AdvancedFeatureService extends events_1.EventEmitter {
         if (!this.isActive)
             return;
         this.translations.push(translation);
-        // 単語数を更新
-        const wordCount = translation.original.split(' ').length;
+        // Count words in SOURCE language for summary thresholds
+        // This ensures consistent counting regardless of translation target
+        const wordCount = this.countWords(translation.original, this.sourceLanguage);
         this.totalWordCount += wordCount;
-        this.componentLogger.debug('Translation added', {
+        this.componentLogger.info('Translation added', {
             translationCount: this.translations.length,
             wordCount: wordCount,
-            totalWordCount: this.totalWordCount
+            totalWordCount: this.totalWordCount,
+            sourceLanguage: this.sourceLanguage,
+            targetLanguage: this.targetLanguage
         });
-        // 段階的要約のチェック
+        // Check progressive summary thresholds based on source word count
         this.checkProgressiveSummaryThresholds();
     }
     /**
@@ -150,12 +153,20 @@ class AdvancedFeatureService extends events_1.EventEmitter {
         if (this.translations.length === 0)
             return;
         const startTime = Date.now();
-        const wordCount = this.translations.reduce((sum, t) => sum + t.original.split(' ').length, 0);
+        const wordCount = this.translations.reduce((sum, t) => sum + this.countWords(t.original, this.sourceLanguage), 0);
+        this.componentLogger.info('Generating summary', {
+            isFinal,
+            wordCount,
+            translationCount: this.translations.length,
+            sourceLanguage: this.sourceLanguage,
+            targetLanguage: this.targetLanguage
+        });
         try {
-            // Prepare content for summary
+            // For summary generation, use ONLY the original source content
+            // This ensures summaries are based on actual lecture content, not translations
             const content = this.translations
-                .map(t => `${t.original} | ${t.translated}`)
-                .join('\n');
+                .map(t => t.original)
+                .join(' ');
             const prompt = isFinal
                 ? this.getFinalSummaryPrompt(content, wordCount)
                 : this.getPeriodicSummaryPrompt(content, wordCount);
@@ -199,7 +210,7 @@ class AdvancedFeatureService extends events_1.EventEmitter {
                         startTime: summary.startTime,
                         endTime: summary.endTime
                     }, this.currentCorrelationId);
-                    this.emit('summary', summaryEvent);
+                    this.emit('summaryGenerated', summaryEvent);
                 }
                 // Clear translations after summary (for periodic summaries)
                 if (!isFinal) {
@@ -237,7 +248,7 @@ class AdvancedFeatureService extends events_1.EventEmitter {
             let wordCount = 0;
             let translationsToInclude = [];
             for (const translation of this.translations) {
-                const words = translation.original.split(' ').length;
+                const words = this.countWords(translation.original, this.sourceLanguage);
                 if (wordCount + words <= threshold) {
                     translationsToInclude.push(translation);
                     wordCount += words;
@@ -246,10 +257,11 @@ class AdvancedFeatureService extends events_1.EventEmitter {
                     break;
                 }
             }
-            // Prepare content for summary
+            // For summary generation, use ONLY the original source content
+            // This ensures summaries are based on actual lecture content, not translations
             const content = translationsToInclude
-                .map(t => `${t.original} | ${t.translated}`)
-                .join('\n');
+                .map(t => t.original)
+                .join(' ');
             const prompt = this.getProgressiveSummaryPrompt(content, threshold);
             // Generate summary
             const response = await this.openai.responses.create({
@@ -305,6 +317,7 @@ class AdvancedFeatureService extends events_1.EventEmitter {
     }
     /**
      * Generate vocabulary list from content
+     * This method both returns the vocabulary and emits an event
      */
     async generateVocabulary() {
         if (this.translations.length === 0)
@@ -330,16 +343,34 @@ class AdvancedFeatureService extends events_1.EventEmitter {
             });
             const vocabularyResponse = response.output_text || '[]';
             try {
-                const vocabulary = JSON.parse(vocabularyResponse);
-                return Array.isArray(vocabulary) ? vocabulary : [];
-            }
-            catch {
-                // Try to extract JSON from the response
-                const jsonMatch = vocabularyResponse.match(/\[[\s\S]*\]/);
-                if (jsonMatch) {
-                    const vocabulary = JSON.parse(jsonMatch[0]);
-                    return Array.isArray(vocabulary) ? vocabulary : [];
+                let vocabulary;
+                try {
+                    vocabulary = JSON.parse(vocabularyResponse);
                 }
+                catch {
+                    // Try to extract JSON from the response
+                    const jsonMatch = vocabularyResponse.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        vocabulary = JSON.parse(jsonMatch[0]);
+                    }
+                    else {
+                        vocabulary = [];
+                    }
+                }
+                if (Array.isArray(vocabulary) && vocabulary.length > 0) {
+                    // Emit vocabulary event
+                    if (this.currentCorrelationId) {
+                        const vocabEvent = (0, contracts_1.createVocabularyEvent)({
+                            items: vocabulary,
+                            totalTerms: vocabulary.length
+                        }, this.currentCorrelationId);
+                        this.emit('vocabularyGenerated', vocabEvent);
+                    }
+                }
+                return vocabulary;
+            }
+            catch (error) {
+                this.componentLogger.error('Failed to parse vocabulary response', { error });
                 return [];
             }
         }
@@ -351,17 +382,23 @@ class AdvancedFeatureService extends events_1.EventEmitter {
     /**
      * Generate final report
      */
+    /**
+     * Generate final report
+     * This method both returns the report and emits an event
+     */
     async generateFinalReport() {
         if (this.translations.length === 0 && this.summaries.length === 0) {
             return '';
         }
         try {
-            const totalWordCount = this.translations.reduce((sum, t) => sum + t.original.split(' ').length, 0);
+            const totalWordCount = this.translations.reduce((sum, t) => sum + this.countWords(t.original, this.sourceLanguage), 0);
+            // Use only source content for final report
             const content = this.translations
-                .map(t => `${t.original} | ${t.translated}`)
-                .join('\n');
+                .map(t => t.original)
+                .join(' ');
+            // Use appropriate language field based on target language
             const summariesContent = this.summaries
-                .map(s => s.japanese) // 互換性のためフィールド名は保持
+                .map(s => this.targetLanguage === 'ja' ? s.japanese : s.english)
                 .join('\n\n');
             const vocabulary = await this.generateVocabulary();
             const prompt = this.getFinalReportPrompt(content, summariesContent, vocabulary, totalWordCount);
@@ -384,6 +421,16 @@ class AdvancedFeatureService extends events_1.EventEmitter {
                 summaryCount: this.summaries.length,
                 vocabularyCount: vocabulary.length
             });
+            // Emit final report event
+            if (report && this.currentCorrelationId) {
+                const reportEvent = (0, contracts_1.createFinalReportEvent)({
+                    report,
+                    totalWordCount,
+                    summaryCount: this.summaries.length,
+                    vocabularyCount: vocabulary.length
+                }, this.currentCorrelationId);
+                this.emit('finalReportGenerated', reportEvent);
+            }
             return report;
         }
         catch (error) {
@@ -821,6 +868,25 @@ ${content}
         };
         const langPrompts = promptsMap[this.sourceLanguage] || promptsMap['en'];
         return langPrompts[threshold] || this.getPeriodicSummaryPrompt(content, threshold);
+    }
+    /**
+     * Count words based on language
+     * For Japanese/Chinese: count characters (excluding punctuation)
+     * For other languages: count space-separated words
+     *
+     * NOTE: For summary thresholds, we always use the SOURCE language word count
+     * to maintain consistency with the original content.
+     */
+    countWords(text, language) {
+        if (language === 'ja' || language === 'zh') {
+            // For Japanese/Chinese, count characters excluding common punctuation
+            const cleanedText = text.replace(/[。、！？,.!?\s]/g, '');
+            return cleanedText.length;
+        }
+        else {
+            // For other languages, count space-separated words
+            return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+        }
     }
     /**
      * Destroy the service

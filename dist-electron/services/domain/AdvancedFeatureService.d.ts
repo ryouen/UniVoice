@@ -86,10 +86,15 @@ export declare class AdvancedFeatureService extends EventEmitter {
     generateProgressiveSummary(threshold: number): Promise<void>;
     /**
      * Generate vocabulary list from content
+     * This method both returns the vocabulary and emits an event
      */
     generateVocabulary(): Promise<VocabularyItem[]>;
     /**
      * Generate final report
+     */
+    /**
+     * Generate final report
+     * This method both returns the report and emits an event
      */
     generateFinalReport(): Promise<string>;
     /**
@@ -140,6 +145,15 @@ export declare class AdvancedFeatureService extends EventEmitter {
      * Get progressive summary prompt for specific threshold
      */
     private getProgressiveSummaryPromptForThreshold;
+    /**
+     * Count words based on language
+     * For Japanese/Chinese: count characters (excluding punctuation)
+     * For other languages: count space-separated words
+     *
+     * NOTE: For summary thresholds, we always use the SOURCE language word count
+     * to maintain consistency with the original content.
+     */
+    private countWords;
     /**
      * Destroy the service
      */

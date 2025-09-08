@@ -488,18 +488,16 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
   // セッション選択からの再開処理
   const handleSelectSession = async (courseName: string, dateStr: string, sessionNumber: number) => {
     try {
-      if (window.electron) {
-        const sessionData = await window.electron.invoke('load-session', {
-          courseName,
-          dateStr,
-          sessionNumber
-        });
-        
-        if (sessionData) {
-          setSourceLanguage(sessionData.metadata.sourceLanguage);
-          setTargetLanguage(sessionData.metadata.targetLanguage);
-          onStartSession(courseName, sessionData.metadata.sourceLanguage, sessionData.metadata.targetLanguage);
-        }
+      const sessionData = await window.electron.invoke('load-session', {
+        courseName,
+        dateStr,
+        sessionNumber
+      });
+      
+      if (sessionData) {
+        setSourceLanguage(sessionData.metadata.sourceLanguage);
+        setTargetLanguage(sessionData.metadata.targetLanguage);
+        onStartSession(courseName, sessionData.metadata.sourceLanguage, sessionData.metadata.targetLanguage);
       }
     } catch (error) {
       console.error('Failed to load session:', error);
