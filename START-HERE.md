@@ -1,17 +1,18 @@
 # 🚀 START HERE - UniVoice 2.0 開発ガイド
 
-**最終更新**: 2025-09-04 (パラグラフモード実装完了)  
-**状態**: ✅ Phase 2 パラグラフモード実装完了 / 🚧 Phase 3 Advanced Features実装中  
+**最終更新**: 2025-09-10 (パラグラフモード実装状況の再調査)  
+**状態**: 🚧 Phase 2 パラグラフモード要改善 / 🚧 Phase 3 Advanced Features実装中  
 **実装者**: Claude Code
 
-## ✅ 最新の実装状況（2025-09-04）
+## ✅ 最新の実装状況（2025-09-10更新）
 
-### パラグラフモード実装完了
-**成果**:
-- 履歴表示が文単位（1-2文）からパラグラフ単位（10-60秒）に改善
-- 短いセッション（10秒以上）でも適切に動作
-- UI更新頻度を1/10～1/20に削減
+### パラグラフモードの実際の状況
+**重要な発見**:
+- パラグラフモード（ParagraphBuilder）は**現在無効化されている**
+- 履歴表示は文単位（1-2文）のまま
+- 改善が必要な状態
 - 詳細: [`docs/PARAGRAPH-MODE-IMPLEMENTATION-SUMMARY.md`](docs/PARAGRAPH-MODE-IMPLEMENTATION-SUMMARY.md)
+- 改善計画: [`docs/PARAGRAPH-MODE-IMPROVEMENT-PLAN.md`](docs/PARAGRAPH-MODE-IMPROVEMENT-PLAN.md)
 
 ### データ永続化機能（2025-08-28）
 **成果**:
@@ -38,7 +39,7 @@
 |------|------|------|
 | 基本音声認識 | ✅ | Deepgram Nova-3 |
 | リアルタイム翻訳 | ✅ | GPT-5-nano |
-| パラグラフ履歴 | ✅ | ParagraphBuilder統合済み |
+| パラグラフ履歴 | ❌ | ParagraphBuilder無効化中、文単位表示 |
 | データ永続化 | ✅ | ファイルシステム実装 |
 | 進捗的要約 | ✅ | 400, 800*n語での要約（CJK言語は文字数×4） |
 | 定期要約 | ❌ | 無効化済み（不要のため） |

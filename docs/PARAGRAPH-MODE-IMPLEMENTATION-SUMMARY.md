@@ -2,19 +2,38 @@
 
 ## 実施日: 2025-09-03
 ## 実装者: Claude Code
+## 最終更新: 2025-09-10（実装状況の再調査により更新）
 
-## 概要
-UniVoice 2.0の履歴表示を文単位（1-2秒）からパラグラフ単位（10-60秒）に変更し、より読みやすい履歴を実現しました。
+## 🔴 重要：現在の実装状況
 
-## 問題点
+**パラグラフモードは現在無効化されています**。実際のコード調査により、以下の事実が判明しました：
+
+1. **ParagraphBuilderは無効化**
+   - UnifiedPipelineServiceでインポートと初期化がコメントアウト
+   - コメント: "🔴 ParagraphBuilderを一時的に無効化 - フロントエンドでのグループ化を優先"
+
+2. **SentenceCombinerが有効**
+   - 1-10セグメント（0.8-8秒）単位で文を結合
+   - combinedSentenceイベントが有効で履歴に追加
+
+3. **現在の履歴表示**
+   - FlexibleHistoryGrouperが3-5文でグループ化
+   - 各文が短いため、1-2文程度の短い表示になっている
+
+## 当初の計画（未実装）
+
+### 概要
+UniVoice 2.0の履歴表示を文単位（1-2秒）からパラグラフ単位（10-60秒）に変更し、より読みやすい履歴を実現する計画でした。
+
+### 問題点
 1. **細切れ表示**: 1文ずつブロックになり、読みにくい
 2. **重複表示**: 同じ内容が複数回表示される
 3. **文の分断**: 文が途中で切れて別ブロックになる
 4. **短いセッション対応**: 20秒未満のセッションで履歴が残らない
 
-## 実装内容
+### 計画された実装内容
 
-### 1. ParagraphBuilderの設定変更
+#### 1. ParagraphBuilderの設定
 ```typescript
 // electron/services/domain/UnifiedPipelineService.ts
 this.paragraphBuilder = new ParagraphBuilder(
@@ -27,62 +46,76 @@ this.paragraphBuilder = new ParagraphBuilder(
 );
 ```
 
-### 2. 文単位の履歴追加を無効化
-```typescript
-// src/hooks/useUnifiedPipeline.ts
-// translationイベント処理内
-// 🔴 DISABLED: パラグラフモード優先のため、個別セグメントの履歴追加を無効化
-/*
-if (historyGrouperRef.current && !addedToGrouperSet.current.has(event.data.segmentId)) {
-  historyGrouperRef.current.addSentence({...});
-}
-*/
+#### 2. 文単位の履歴追加を無効化
+- translationイベントでの個別セグメント追加を無効化
+- combinedSentenceイベントでの文単位追加を無効化
 
-// combinedSentenceイベント処理内
-// 🔴 DISABLED: パラグラフモード優先のため、文単位の履歴追加を無効化
-/*
-historyGrouperRef.current.addSentence({...});
-*/
+#### 3. paragraphCompleteイベントの処理
+- `historyGrouperRef.current.addParagraph()`でパラグラフ単位追加
+- パラグラフ翻訳を低優先度で実行
+
+## 実際の実装状況（2025-09-10時点）
+
+### バックエンド（UnifiedPipelineService.ts）
+```typescript
+// ParagraphBuilderのインポートはコメントアウト
+// import { ParagraphBuilder, Paragraph } from './ParagraphBuilder';
+
+// 初期化部分もコメントアウト
+// this.paragraphBuilder = new ParagraphBuilder(...);
+
+// SentenceCombinerは有効
+this.sentenceCombiner = new SentenceCombiner(
+  (combinedSentence) => this.handleCombinedSentence(combinedSentence),
+  {
+    maxSegments: 10,
+    timeoutMs: 2000,
+    minSegments: 1  // 短い文も履歴に含める
+  }
+);
 ```
 
-### 3. paragraphCompleteイベントの処理
-- 既存実装で正しく処理されていることを確認
-- `historyGrouperRef.current.addParagraph()`が呼ばれる
-- パラグラフ翻訳も低優先度で実行される
+### フロントエンド（useUnifiedPipeline.ts）
+```typescript
+// combinedSentenceイベントは有効
+case 'combinedSentence':
+  // 【Phase 1 復活】SentenceCombinerによる文単位の履歴追加を復活
+  historyGrouperRef.current.addSentence({
+    id: event.data.combinedId,
+    original: event.data.originalText,
+    translation: '',
+    timestamp: event.data.timestamp
+  });
+  break;
 
-## テスト結果
+// paragraphCompleteイベントはコメントアウト
+// case 'paragraphComplete':
+//   ...
+```
 
-### 短いセッションテスト（12秒）
-- ✅ 12セグメント（12秒）で1つのパラグラフが形成
-- ✅ ParagraphCompleteEventが正しく発行
-- ✅ flush()メソッドでセッション終了時に確実に処理
-- ✅ パラグラフ翻訳もキューに追加
+## 今後の改善案
 
-### パフォーマンス
-- UI更新頻度: 文単位の1/10〜1/20に削減
-- メモリ使用量: 変化なし（既存のセグメントを再利用）
-- 翻訳レイテンシ: 変化なし（リアルタイム翻訳は維持）
+### 1. パラグラフモードの再有効化
+- ParagraphBuilderのコメントを解除
+- minDurationMs: 30秒、maxDurationMs: 90秒に調整
+- より長い単位での履歴表示を実現
 
-## 今後の課題
+### 2. ハイブリッドアプローチ
+- 短い発話（10秒未満）: SentenceCombinerで処理
+- 長い発話（10秒以上）: ParagraphBuilderで処理
+- 両方の利点を活用
 
-1. **セッション終了時の自動フラッシュ**
-   - 現在はUnifiedPipelineService側でflush()を呼ぶ必要がある
-   - stopListening時に自動的に呼ばれるように改善可能
-
-2. **履歴表示の切り替え機能**
-   - ユーザーが文単位/パラグラフ単位を選択できるオプション
-   - 設定画面での切り替え機能
-
-3. **パラグラフサイズの動的調整**
-   - 話者のペースに応じて10-60秒の範囲で自動調整
-   - 話題の転換をより正確に検出
+### 3. UI側での統合
+- FlexibleHistoryGrouperの設定を調整
+- minSentencesPerBlock: 5、maxSentencesPerBlock: 10に増加
+- より大きな単位でのグループ化
 
 ## 影響範囲
 - ✅ リアルタイム表示: 影響なし（従来通り動作）
-- ✅ 履歴表示: パラグラフ単位に改善
+- ❌ 履歴表示: 文単位のまま（パラグラフ単位は未実装）
 - ✅ 要約機能: 影響なし
 - ✅ 語彙抽出: 影響なし
 - ✅ 最終レポート: 影響なし
 
 ## 結論
-パラグラフモードの実装により、履歴の可読性が大幅に向上しました。短いセッション（10秒以上）でも適切に動作し、ユーザーエクスペリエンスが改善されています。
+パラグラフモードは計画されたが、現在は無効化されています。履歴表示を改善するには、ParagraphBuilderの再有効化またはFlexibleHistoryGrouperの設定調整が必要です。

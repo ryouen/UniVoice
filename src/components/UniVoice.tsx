@@ -25,6 +25,7 @@ import { SummarySection } from '../presentation/components/UniVoice/sections/Sum
 import { ProgressiveSummarySection } from '../presentation/components/UniVoice/sections/ProgressiveSummarySection';
 import { UserInputSection } from '../presentation/components/UniVoice/sections/UserInputSection';
 import { FullscreenModal, MemoModal, ReportModal } from '../presentation/components/UniVoice/modals';
+import { renderHistoryToHTML } from './UnifiedHistoryRenderer';
 // import { exportToWord, exportToPDF } from '../utils/exportUtils'; // TODO: Copy utility files
 
 interface SectionHeights {
@@ -883,7 +884,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     if (window.getSelection()?.toString()) return;
     if ((event.target as HTMLElement).classList.contains('resize-handle')) return;
     
-    setModalTitle('📖 全文履歴（時間整列表示）');
+    // タイトルは renderHistoryToHTML 内で設定されるため不要
+    setModalTitle('');
     setModalContent(getAlignedHistoryContent());
     setShowFullscreenModal(true);
   };
@@ -1009,43 +1011,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   };
   
   const getAlignedHistoryContent = (): string => {
-    const timeBlocks = historyEntries.map((entry) => {
-      const startTime = formatTime(Math.floor(entry.timestamp / 1000));
-      const endTime = formatTime(Math.floor((entry.timestamp + 150000) / 1000));
-      
-      return `
-        <div class="aligned-paragraph" style="
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin-bottom: 20px;
-          padding: 15px;
-          background: #fafafa;
-          border-radius: 6px;
-        ">
-          <div class="paragraph-time" style="
-            grid-column: 1 / -1;
-            font-size: 11px;
-            color: #999;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e0e0e0;
-          ">⏱ ${startTime} - ${endTime}</div>
-          <div class="aligned-original" style="
-            padding-right: 15px;
-            border-right: 1px solid #e0e0e0;
-            line-height: 1.7;
-          ">${entry.original}${!entry.isComplete ? ' <span style="color: #999; font-style: italic;">[続く...]</span>' : ''}</div>
-          <div class="aligned-translation" style="
-            padding-left: 15px;
-            line-height: 1.7;
-            color: #0066cc;
-          ">${entry.translation}${!entry.isComplete ? ' <span style="color: #999; font-style: italic;">[続く...]</span>' : ''}</div>
-        </div>
-      `;
-    }).join('');
-    
-    return timeBlocks;
+    // historyBlocksを使用（FlexibleHistoryGrouper形式）
+    return renderHistoryToHTML(historyBlocks, {
+      showTimestamps: true,
+      showBlockNumbers: true,
+      title: '📖 全文履歴（時間整列表示）'
+    });
   };
   
   const getSummaryComparisonContent = (): string => {

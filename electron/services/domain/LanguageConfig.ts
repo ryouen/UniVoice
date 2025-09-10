@@ -9,20 +9,19 @@ export interface LanguageConfig {
 }
 
 // Source languages - Limited by Deepgram Nova-3 support
+// Nova-3 official support: English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, Dutch
 export type SourceLanguageCode = 
   | 'multi'  // Multilingual (10 languages)
   | 'en'     // English
   | 'ja'     // Japanese (requires 'multi' in Nova-3)
-  | 'es'     // Spanish
   | 'fr'     // French
   | 'de'     // German
-  | 'hi'     // Hindi (requires 'multi' in Nova-3)
-  | 'ru'     // Russian (requires 'multi' in Nova-3)
-  | 'pt'     // Portuguese
   | 'it'     // Italian (requires 'multi' in Nova-3)
-  | 'nl'     // Dutch
-  | 'sv'     // Swedish
-  | 'da';    // Danish
+  | 'es'     // Spanish
+  | 'pt'     // Portuguese
+  | 'ru'     // Russian (requires 'multi' in Nova-3)
+  | 'hi'     // Hindi (requires 'multi' in Nova-3)
+  | 'nl';    // Dutch
 
 // Target languages - All languages supported by GPT-5
 export type TargetLanguageCode = 
@@ -76,20 +75,19 @@ export interface LanguageInfo {
 }
 
 // Source languages info (for speech recognition)
+// Order: Multi / English / Japanese / French / German / Italian / Spanish / Portuguese / Russian / Hindi / Dutch
 export const SOURCE_LANGUAGES: Record<SourceLanguageCode, LanguageInfo> = {
   multi: { code: 'multi', name: 'Multilingual', nativeName: 'Multilingual', direction: 'ltr' },
   en: { code: 'en', name: 'English', nativeName: 'English', direction: 'ltr' },
   ja: { code: 'ja', name: 'Japanese', nativeName: '日本語', direction: 'ltr' },
-  es: { code: 'es', name: 'Spanish', nativeName: 'Español', direction: 'ltr' },
   fr: { code: 'fr', name: 'French', nativeName: 'Français', direction: 'ltr' },
   de: { code: 'de', name: 'German', nativeName: 'Deutsch', direction: 'ltr' },
-  hi: { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', direction: 'ltr' },
-  ru: { code: 'ru', name: 'Russian', nativeName: 'Русский', direction: 'ltr' },
-  pt: { code: 'pt', name: 'Portuguese', nativeName: 'Português', direction: 'ltr' },
   it: { code: 'it', name: 'Italian', nativeName: 'Italiano', direction: 'ltr' },
+  es: { code: 'es', name: 'Spanish', nativeName: 'Español', direction: 'ltr' },
+  pt: { code: 'pt', name: 'Portuguese', nativeName: 'Português', direction: 'ltr' },
+  ru: { code: 'ru', name: 'Russian', nativeName: 'Русский', direction: 'ltr' },
+  hi: { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', direction: 'ltr' },
   nl: { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', direction: 'ltr' },
-  sv: { code: 'sv', name: 'Swedish', nativeName: 'Svenska', direction: 'ltr' },
-  da: { code: 'da', name: 'Danish', nativeName: 'Dansk', direction: 'ltr' },
 };
 
 // Target languages info (for translation)

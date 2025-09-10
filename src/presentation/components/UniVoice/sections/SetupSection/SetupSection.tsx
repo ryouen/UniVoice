@@ -11,20 +11,72 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { SessionResumeModal } from '../../modals';
-import { SOURCE_LANGUAGES, TARGET_LANGUAGES, SourceLanguageCode, TargetLanguageCode } from '../../../../../../electron/services/domain/LanguageConfig';
+
+// 言語オプションの定義（LanguageConfigに依存せず直接定義）
+// Nova-3 公式対応: English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, Dutch
+export type SourceLanguageCode = 'multi' | 'en' | 'ja' | 'fr' | 'de' | 'it' | 'es' | 'pt' | 'ru' | 'hi' | 'nl';
+export type TargetLanguageCode = 
+  | 'en' | 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'pt-BR' | 'ru' | 'zh' | 'zh-TW' | 'ko'
+  | 'ar' | 'hi' | 'nl' | 'sv' | 'da' | 'no' | 'fi' | 'pl' | 'tr' | 'el' | 'he' | 'id' 
+  | 'ms' | 'th' | 'vi' | 'cs' | 'hu' | 'ro' | 'uk' | 'bg' | 'hr' | 'sr' | 'sk' | 'sl' | 'lt' | 'lv' | 'et';
 
 // Convert language records to arrays for dropdowns
-const SOURCE_LANGUAGE_OPTIONS = Object.values(SOURCE_LANGUAGES).map(lang => ({
-  code: lang.code,
-  name: lang.name,
-  nativeName: lang.nativeName
-}));
+// Nova-3公式対応言語: English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, Dutch
+const SOURCE_LANGUAGE_OPTIONS = [
+  { code: 'multi', name: 'Multilingual', nativeName: '多言語' },
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+  { code: 'fr', name: 'French', nativeName: 'Français' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
+  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands' }
+];
 
-const TARGET_LANGUAGE_OPTIONS = Object.values(TARGET_LANGUAGES).map(lang => ({
-  code: lang.code,  
-  name: lang.name,
-  nativeName: lang.nativeName
-}));
+const TARGET_LANGUAGE_OPTIONS = [
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español' },
+  { code: 'fr', name: 'French', nativeName: 'Français' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+  { code: 'pt-BR', name: 'Portuguese BR', nativeName: 'Português BR' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
+  { code: 'zh', name: 'Chinese Simplified', nativeName: '简体中文' },
+  { code: 'zh-TW', name: 'Chinese Traditional', nativeName: '繁體中文' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
+  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands' },
+  { code: 'sv', name: 'Swedish', nativeName: 'Svenska' },
+  { code: 'da', name: 'Danish', nativeName: 'Dansk' },
+  { code: 'no', name: 'Norwegian', nativeName: 'Norsk' },
+  { code: 'fi', name: 'Finnish', nativeName: 'Suomi' },
+  { code: 'pl', name: 'Polish', nativeName: 'Polski' },
+  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe' },
+  { code: 'el', name: 'Greek', nativeName: 'Ελληνικά' },
+  { code: 'he', name: 'Hebrew', nativeName: 'עברית' },
+  { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia' },
+  { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu' },
+  { code: 'th', name: 'Thai', nativeName: 'ไทย' },
+  { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
+  { code: 'cs', name: 'Czech', nativeName: 'Čeština' },
+  { code: 'hu', name: 'Hungarian', nativeName: 'Magyar' },
+  { code: 'ro', name: 'Romanian', nativeName: 'Română' },
+  { code: 'uk', name: 'Ukrainian', nativeName: 'Українська' },
+  { code: 'bg', name: 'Bulgarian', nativeName: 'Български' },
+  { code: 'hr', name: 'Croatian', nativeName: 'Hrvatski' },
+  { code: 'sr', name: 'Serbian', nativeName: 'Српски' },
+  { code: 'sk', name: 'Slovak', nativeName: 'Slovenčina' },
+  { code: 'sl', name: 'Slovenian', nativeName: 'Slovenščina' },
+  { code: 'lt', name: 'Lithuanian', nativeName: 'Lietuvių' },
+  { code: 'lv', name: 'Latvian', nativeName: 'Latviešu' },
+  { code: 'et', name: 'Estonian', nativeName: 'Eesti' }
+];
 
 // デフォルトラベル（ユーザーが編集可能）
 const DEFAULT_LABELS = [

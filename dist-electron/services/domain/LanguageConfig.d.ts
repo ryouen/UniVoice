@@ -6,7 +6,7 @@ export interface LanguageConfig {
     sourceLanguage: LanguageCode;
     targetLanguage: LanguageCode;
 }
-export type SourceLanguageCode = 'multi' | 'en' | 'ja' | 'es' | 'fr' | 'de' | 'hi' | 'ru' | 'pt' | 'it' | 'nl' | 'sv' | 'da';
+export type SourceLanguageCode = 'multi' | 'en' | 'ja' | 'fr' | 'de' | 'it' | 'es' | 'pt' | 'ru' | 'hi' | 'nl';
 export type TargetLanguageCode = 'en' | 'ja' | 'es' | 'fr' | 'de' | 'hi' | 'ru' | 'pt' | 'it' | 'nl' | 'sv' | 'da' | 'zh' | 'ko' | 'ar' | 'tr' | 'pl' | 'vi' | 'th' | 'cs' | 'el' | 'he' | 'hu' | 'id' | 'ms' | 'no' | 'ro' | 'uk' | 'fi' | 'bg' | 'hr' | 'sk' | 'sl' | 'lt' | 'lv' | 'et' | 'ca' | 'tl';
 export type LanguageCode = SourceLanguageCode | TargetLanguageCode;
 export interface LanguageInfo {

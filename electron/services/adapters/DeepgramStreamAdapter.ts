@@ -261,7 +261,8 @@ export class DeepgramStreamAdapter extends EventEmitter {
       // Reference: https://developers.deepgram.com/docs/multilingual-code-switching
       if (this.config.model === 'nova-3' || this.config.model === 'nova-3-ea') {
         // Languages that require 'multi' parameter in Nova-3
-        const multilingualLanguages = ['ja', 'hi', 'ru', 'it', 'es', 'fr', 'de', 'pt', 'nl'];
+        // Nova-3 native support: English only. All others require 'multi'
+        const multilingualLanguages = ['ja', 'fr', 'de', 'it', 'es', 'pt', 'ru', 'hi', 'nl'];
         
         if (multilingualLanguages.includes(this.config.sourceLanguage) || this.config.sourceLanguage === 'multi') {
           languageParam = 'multi';
