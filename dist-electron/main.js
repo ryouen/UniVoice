@@ -21,7 +21,7 @@ const startup_check_1 = require("./utils/startup-check");
 const ipcEvents_1 = require("./shared/ipcEvents");
 // import { UNIFIED_CHANNEL } from './shared/ipcEvents'; // Will be used in Stage 1
 // Load environment variables
-(0, dotenv_1.config)({ quiet: true });
+(0, dotenv_1.config)({ path: path_1.default.resolve(__dirname, '..', '.env'), quiet: true });
 // Run startup checks (nul file cleanup, etc.)
 (0, startup_check_1.runStartupChecks)();
 // Watch for nul file creation in development
@@ -167,14 +167,6 @@ async function createWindow() {
     }
     mainLogger.info('createWindow completed successfully');
     // IPC Gateway and Pipeline Service are setup in app.whenReady()
-    // 🔴 開発モードで自動テストを有効化
-    // TEMPORARY: Disable DevTestService to debug sendCommand error
-    /*
-    if (isDev) {
-      devTestService.attach(mainWindow);
-      mainLogger.info('DevTestService attached for automatic testing');
-    }
-    */
     // Auto-approve media device permissions
     mainWindow.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
         mainLogger.info('Permission requested', { permission });
@@ -335,26 +327,14 @@ function setupPipelineService() {
     };
     /**
      * 🔴 重要警告：OpenAIモデル設定
-     *
-     * これらのモデル名を変更する前に、必ず以下を確認すること：
-     * 1. CLAUDE.md の「3. 時系列認識と最新技術の理解」セクション（34-41行目）を読む
-     * 2. CLAUDE.md の「4. 知識カットオフ後のAPIパターンの尊重」セクション（43-51行目）を読む
-     * 3. docs/GPT5-RESPONSES-API-GUIDE.md - GPT-5とResponses APIの正しい使用方法
-     * 4. docs/PARAMETER-INCONSISTENCIES-REPORT.md - APIパラメータの正しい情報
-     *
-     * 現在は2025年8月。GPT-5系が最新モデルです。
-     * GPT-4系への変更は「ダウングレード」として禁止されています。
-     *
-     * 利用可能なモデル:
-     * - gpt-5: 高度な推論（$1.25/1M input, $10/1M output）
-     * - gpt-5-mini: 中間モデル（$0.25/1M input, $2/1M output）
-     * - gpt-5-nano: 軽量モデル（$0.05/1M input, $0.40/1M output）
-     *
-     * もしモデル変更が必要と感じた場合：
-     * - まずCLAUDE.mdを確認
-     * - test-3min-complete.jsの動作確認済み設定を参照
-     * - それでも変更が必要な場合は、変更理由を明確にドキュメント化
      */
+    // Debug API key loading
+    mainLogger.info('API Key Debug:', {
+        hasKey: !!process.env.OPENAI_API_KEY,
+        keyLength: process.env.OPENAI_API_KEY?.length || 0,
+        keyStart: process.env.OPENAI_API_KEY?.substring(0, 20) || 'NONE',
+        keyEnd: process.env.OPENAI_API_KEY?.slice(-5) || 'NONE'
+    });
     const openaiConfig = {
         apiKey: process.env.OPENAI_API_KEY || '',
         models: {
@@ -582,10 +562,6 @@ function setupPipelineService() {
             }
             if (pipelineService && buffer && buffer.length > 0) {
                 pipelineService.sendAudioChunk(buffer);
-                // Sampling log (about once per second)
-                if (Math.random() < 0.05) {
-                    mainLogger.debug('Audio chunk received', { size: buffer.length });
-                }
             }
         }
         catch (error) {
@@ -637,66 +613,16 @@ function setupPipelineService() {
                 });
                 // startSessionが内部で自動保存を開始するので、ここでは不要
                 mainLogger.info('Session started', { className: metadata.className, sessionId });
-                // Recreate AdvancedFeatureService with updated languages
+                // STRUCTURAL FIX: Do not recreate the service, just update its languages
                 if (advancedFeatureService) {
-                    // Recreate service with new language settings
-                    advancedFeatureService = new AdvancedFeatureService_1.AdvancedFeatureService({
-                        openaiApiKey: process.env.OPENAI_API_KEY || '',
-                        summaryInterval: parseInt(process.env.SUMMARY_INTERVAL_MS || '600000'),
-                        summaryModel: process.env.OPENAI_MODEL_SUMMARY || 'gpt-5-mini',
-                        vocabularyModel: process.env.OPENAI_MODEL_VOCABULARY || 'gpt-5-mini',
-                        reportModel: process.env.OPENAI_MODEL_REPORT || 'gpt-5',
-                        summaryThresholds: [400, 800, 1600, 2400],
-                        maxTokens: {
-                            summary: parseInt(process.env.OPENAI_SUMMARY_MAX_TOKENS || '1500'),
-                            vocabulary: parseInt(process.env.OPENAI_VOCAB_MAX_TOKENS || '1500'),
-                            report: parseInt(process.env.OPENAI_REPORT_MAX_TOKENS || '8192')
-                        },
-                        sourceLanguage: metadata.sourceLanguage || 'en',
-                        targetLanguage: metadata.targetLanguage || 'ja'
-                    });
-                    // Re-attach event listeners
-                    advancedFeatureService.on('progressiveSummary', (summary) => {
-                        mainLogger.info('Progressive summary generated', {
-                            threshold: summary.threshold,
-                            summaryLength: summary.english?.length
-                        });
-                        if (mainWindow && !mainWindow.isDestroyed()) {
-                            mainWindow.webContents.send('progressive-summary', summary);
-                        }
-                    });
-                    advancedFeatureService.on('summaryGenerated', (summary) => {
-                        mainLogger.info('Summary generated', {
-                            wordCount: summary.data?.wordCount,
-                            summaryLength: summary.data?.english?.length
-                        });
-                        if (mainWindow && !mainWindow.isDestroyed()) {
-                            mainWindow.webContents.send('summary', summary);
-                        }
-                    });
-                    advancedFeatureService.on('vocabulary', (vocabulary) => {
-                        mainLogger.info('Vocabulary generated', { itemCount: vocabulary.items?.length });
-                        if (mainWindow && !mainWindow.isDestroyed()) {
-                            mainWindow.webContents.send('vocabulary-generated', vocabulary);
-                        }
-                    });
-                    advancedFeatureService.on('finalReport', (report) => {
-                        mainLogger.info('Final report generated', { reportLength: report.content?.length });
-                        if (mainWindow && !mainWindow.isDestroyed()) {
-                            mainWindow.webContents.send('final-report-generated', report);
-                        }
-                    });
-                    advancedFeatureService.on('error', (error) => {
-                        mainLogger.error('AdvancedFeatureService error', error);
-                        if (mainWindow && !mainWindow.isDestroyed()) {
-                            mainWindow.webContents.send('advanced-feature-error', error.message || String(error));
-                        }
-                    });
+                    advancedFeatureService.updateLanguages(metadata.sourceLanguage || 'en', metadata.targetLanguage || 'ja');
                     mainLogger.info('Updated AdvancedFeatureService languages', {
                         sourceLanguage: metadata.sourceLanguage || 'en',
                         targetLanguage: metadata.targetLanguage || 'ja'
                     });
                 }
+                // REGRESSION FIX: Do not update pipeline service languages here, as it will restart the connection.
+                // The pipeline is already started with the correct languages via the startListening command.
             }
         }
         catch (error) {

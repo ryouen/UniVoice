@@ -55,7 +55,15 @@ export declare class AdvancedFeatureService extends EventEmitter {
     private reachedThresholds;
     private sourceLanguage;
     private targetLanguage;
+    private lastProgressiveSummary;
+    private lastProgressiveThresholdIndex;
+    private isGeneratingProgressiveSummary;
+    private progressiveSummaryQueue;
     constructor(config: AdvancedFeatureConfig);
+    /**
+     * STRUCTURAL FIX: Add a method to update languages without re-creating the instance.
+     */
+    updateLanguages(sourceLanguage: string, targetLanguage: string): void;
     /**
      * Start the advanced features service
      */
@@ -73,9 +81,20 @@ export declare class AdvancedFeatureService extends EventEmitter {
      */
     private checkProgressiveSummaryThresholds;
     /**
-     * Start periodic summary generation
+     * Enqueue progressive summary generation
      */
-    private startPeriodicSummary;
+    private enqueueProgressiveSummary;
+    /**
+     * Process progressive summary queue
+     */
+    private processProgressiveSummaryQueue;
+    /**
+     * Start periodic summary generation
+     * @deprecated Disabled per user request - progressive summaries are used instead
+     *
+     * This method is kept for reference but is no longer used.
+     * Progressive summaries at 400, 800*n word thresholds are used instead.
+     */
     /**
      * Generate a summary of recent translations
      */
@@ -83,80 +102,29 @@ export declare class AdvancedFeatureService extends EventEmitter {
     /**
      * Generate progressive summary at word count thresholds
      */
-    generateProgressiveSummary(threshold: number): Promise<void>;
+    generateProgressiveSummary(baseThreshold: number, actualThreshold: number): Promise<void>;
     /**
      * Generate vocabulary list from content
-     * This method both returns the vocabulary and emits an event
      */
     generateVocabulary(): Promise<VocabularyItem[]>;
     /**
      * Generate final report
      */
-    /**
-     * Generate final report
-     * This method both returns the report and emits an event
-     */
     generateFinalReport(): Promise<string>;
-    /**
-     * Get progressive summary prompt based on threshold
-     */
-    private getProgressiveSummaryPrompt;
-    /**
-     * Get periodic summary prompt
-     */
-    private getPeriodicSummaryPrompt;
-    /**
-     * Get final summary prompt
-     */
-    private getFinalSummaryPrompt;
-    /**
-     * Translate text to target language
-     */
-    private translateToTargetLanguage;
-    /**
-     * Get current summaries
-     */
-    getSummaries(): Summary[];
-    /**
-     * Get summary system prompt based on source language
-     */
+    private getLanguageName;
     private getSummarySystemPrompt;
-    /**
-     * Get translation system prompt
-     */
-    private getTranslationSystemPrompt;
-    /**
-     * Get vocabulary prompt based on target language
-     */
-    private getVocabularyPrompt;
-    /**
-     * Get vocabulary system prompt
-     */
+    private getPeriodicSummaryPrompt;
+    private getFinalSummaryPrompt;
+    private getProgressiveSummaryPrompt;
+    private getCumulativeProgressiveSummaryPrompt;
     private getVocabularySystemPrompt;
-    /**
-     * Get final report prompt based on target language
-     */
-    private getFinalReportPrompt;
-    /**
-     * Get final report system prompt
-     */
+    private getVocabularyPrompt;
     private getFinalReportSystemPrompt;
-    /**
-     * Get progressive summary prompt for specific threshold
-     */
-    private getProgressiveSummaryPromptForThreshold;
-    /**
-     * Count words based on language
-     * For Japanese/Chinese: count characters (excluding punctuation)
-     * For other languages: count space-separated words
-     *
-     * NOTE: For summary thresholds, we always use the SOURCE language word count
-     * to maintain consistency with the original content.
-     */
+    private getFinalReportPrompt;
+    private translateToTargetLanguage;
+    getSummaries(): Summary[];
+    private isCharacterBasedLanguage;
     private countWords;
-    /**
-     * Destroy the service
-     */
     destroy(): void;
 }
 export {};

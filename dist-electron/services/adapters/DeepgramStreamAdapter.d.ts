@@ -85,6 +85,8 @@ export declare class DeepgramStreamAdapter extends EventEmitter {
     private componentLogger;
     private keepAliveInterval;
     private keepAliveIntervalMs;
+    private audioStarted;
+    private initialAudioTimer;
     constructor(config: DeepgramAdapterConfig);
     /**
      * Connect to Deepgram WebSocket

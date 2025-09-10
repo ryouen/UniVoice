@@ -11,26 +11,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { SessionResumeModal } from '../../modals';
+import { SOURCE_LANGUAGES, TARGET_LANGUAGES, SourceLanguageCode, TargetLanguageCode } from '../../../../../../electron/services/domain/LanguageConfig';
 
-// 全16言語設定（元ファイルと同じ）
-const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch' },
-  { code: 'ko', name: 'Korean', nativeName: '한국어' },
-  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
-  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
-  { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
-  { code: 'th', name: 'Thai', nativeName: 'ไทย' },
-  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe' },
-  { code: 'pl', name: 'Polish', nativeName: 'Polski' }
-];
+// Convert language records to arrays for dropdowns
+const SOURCE_LANGUAGE_OPTIONS = Object.values(SOURCE_LANGUAGES).map(lang => ({
+  code: lang.code,
+  name: lang.name,
+  nativeName: lang.nativeName
+}));
+
+const TARGET_LANGUAGE_OPTIONS = Object.values(TARGET_LANGUAGES).map(lang => ({
+  code: lang.code,  
+  name: lang.name,
+  nativeName: lang.nativeName
+}));
 
 // デフォルトラベル（ユーザーが編集可能）
 const DEFAULT_LABELS = [
@@ -762,7 +756,7 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
                 value={sourceLanguage}
                 onChange={(e) => setSourceLanguage(e.target.value)}
                 style={{
-                  flex: 1,
+                  width: '180px',
                   padding: '6px 10px',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
@@ -770,9 +764,9 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
                   fontSize: '13px'
                 }}
               >
-                {SUPPORTED_LANGUAGES.map(lang => (
+                {SOURCE_LANGUAGE_OPTIONS.map(lang => (
                   <option key={lang.code} value={lang.code}>
-                    {lang.nativeName}
+                    {lang.name === lang.nativeName ? lang.nativeName : `${lang.name} (${lang.nativeName})`}
                   </option>
                 ))}
               </select>
@@ -783,7 +777,7 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
                 value={targetLanguage}
                 onChange={(e) => setTargetLanguage(e.target.value)}
                 style={{
-                  flex: 1,
+                  width: '180px',
                   padding: '6px 10px',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
@@ -791,9 +785,9 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
                   fontSize: '13px'
                 }}
               >
-                {SUPPORTED_LANGUAGES.map(lang => (
+                {TARGET_LANGUAGE_OPTIONS.filter(lang => lang.code !== sourceLanguage).map(lang => (
                   <option key={lang.code} value={lang.code}>
-                    {lang.nativeName}
+                    {lang.name === lang.nativeName ? lang.nativeName : `${lang.name} (${lang.nativeName})`}
                   </option>
                 ))}
               </select>
@@ -807,6 +801,28 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
                 marginBottom: 0
               }}>
                 ⚠️ 授業の言語と母国語が同じです
+              </p>
+            )}
+            
+            {['ja', 'hi', 'ru', 'it'].includes(sourceLanguage) && (
+              <p style={{
+                fontSize: '12px',
+                color: '#666',
+                marginTop: '8px',
+                marginBottom: 0
+              }}>
+                ℹ️ {SOURCE_LANGUAGE_OPTIONS.find(lang => lang.code === sourceLanguage)?.name}はマルチリンガルモードで認識されます
+              </p>
+            )}
+            
+            {sourceLanguage === 'multi' && (
+              <p style={{
+                fontSize: '12px',
+                color: '#666',
+                marginTop: '8px',
+                marginBottom: 0
+              }}>
+                ℹ️ 英語、日本語、スペイン語、フランス語など10言語を自動認識
               </p>
             )}
           </div>

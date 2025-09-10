@@ -76,6 +76,7 @@ export interface Summary {
     start: number;
     end: number;
   };
+  threshold?: number; // Optional: present for progressive summaries (400, 800, 1600, 2400)
 }
 
 // Re-export types for UI compatibility
@@ -743,7 +744,8 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
             timeRange: {
               start: event.data.startTime || 0,
               end: event.data.endTime || Date.now()
-            }
+            },
+            threshold: event.data.threshold // Add threshold for progressive summaries
           };
           
           setSummaries(prev => [...prev, summary]);
@@ -935,8 +937,31 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     });
     cleanupFunctions.current.push(unsubscribe);
     
-    // 親フォルダ互換イベントは削除済み
-    // UniVoice 2.0は独立したアーキテクチャで動作
+    // リアルタイム表示用の直接イベントリスナー
+    if (window.electron) {
+      // 文字起こし結果の直接更新
+      const originalUpdateHandler = (_event: any, data: any) => {
+        console.log('[useUnifiedPipeline] current-original-update received:', data);
+        if (originalTextManagerRef.current) {
+          originalTextManagerRef.current.update(data.text);
+        }
+        setCurrentOriginal(data.text);
+      };
+      window.electron.on('current-original-update', originalUpdateHandler);
+      cleanupFunctions.current.push(() => {
+        window.electron?.removeListener('current-original-update', originalUpdateHandler);
+      });
+      
+      // 翻訳結果の直接更新
+      const translationUpdateHandler = (_event: any, text: string) => {
+        console.log('[useUnifiedPipeline] current-translation-update received:', text);
+        setCurrentTranslation(text);
+      };
+      window.electron.on('current-translation-update', translationUpdateHandler);
+      cleanupFunctions.current.push(() => {
+        window.electron?.removeListener('current-translation-update', translationUpdateHandler);
+      });
+    }
 
     // Cleanup on unmount
     return () => {
@@ -1117,12 +1142,36 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         return out;
       };
 
+      // 🔴 音声処理カウンター
+      let audioProcessCount = 0;
+      
       processor.onaudioprocess = (e: AudioProcessingEvent) => {
         const float = e.inputBuffer.getChannelData(0);
         const pcm16 = resampleTo16k(float, ctx.sampleRate);
+        
+        audioProcessCount++;
+        if (audioProcessCount % 50 === 1) { // 50フレームごとにログ
+          console.log('[useUnifiedPipeline] Audio processing:', {
+            frameCount: audioProcessCount,
+            floatLength: float.length,
+            pcm16Length: pcm16.length,
+            hasElectronAPI: !!window.electron,
+            hasSendAudioChunk: !!window.electron?.sendAudioChunk,
+            sampleRate: ctx.sampleRate
+          });
+        }
+        
         if (window.electron?.sendAudioChunk) {
           // TypedArrayを送信（preload.tsで適切に処理される）
           window.electron.sendAudioChunk(pcm16);
+          
+          if (audioProcessCount % 50 === 1) {
+            console.log('[useUnifiedPipeline] Sending audio chunk to main process');
+          }
+        } else {
+          if (audioProcessCount % 50 === 1) {
+            console.error('[useUnifiedPipeline] Cannot send audio - electron API not available');
+          }
         }
       };
 

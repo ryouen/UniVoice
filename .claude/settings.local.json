@@ -56,15 +56,20 @@
       "Bash(start /B npm run electron)",
       "Bash(move start-clean.bat start-electron-only.bat start-electron.bat test-clean-startup.bat start-univoice.bat archivescriptsstartup)",
       "Bash(wmic:*)",
-      "Bash(xcopy:*)"
+      "Bash(xcopy:*)",
+      "Bash(where uvx)",
+      "Bash(del \"C:\\Users\\ryosu\\Dropbox\\ai\\UniVoice\\docs\\DEEP-THINK-PROTOCOL.md\")",
+      "Bash(move:*)",
+      "Bash(rimraf:*)",
+      "Bash(del \"electron\\services\\domain\\AdvancedFeatureService.cumulative.ts\")",
+      "Bash(del test-api-key.js)",
+      "mcp__serena__check_onboarding_performed"
     ],
     "deny": []
   },
-  "disabledMcpjsonServers": [
-    "serena"
-  ],
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "serena"
   ],
-  "enableAllProjectMcpServers": true
+  "disabledMcpjsonServers": []
 }

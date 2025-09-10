@@ -6,13 +6,17 @@ export interface LanguageConfig {
     sourceLanguage: LanguageCode;
     targetLanguage: LanguageCode;
 }
-export type LanguageCode = 'en' | 'ja' | 'zh' | 'es' | 'fr' | 'de' | 'ko' | 'pt' | 'ru' | 'ar' | 'hi' | 'it' | 'nl' | 'pl' | 'tr' | 'vi';
+export type SourceLanguageCode = 'multi' | 'en' | 'ja' | 'es' | 'fr' | 'de' | 'hi' | 'ru' | 'pt' | 'it' | 'nl' | 'sv' | 'da';
+export type TargetLanguageCode = 'en' | 'ja' | 'es' | 'fr' | 'de' | 'hi' | 'ru' | 'pt' | 'it' | 'nl' | 'sv' | 'da' | 'zh' | 'ko' | 'ar' | 'tr' | 'pl' | 'vi' | 'th' | 'cs' | 'el' | 'he' | 'hu' | 'id' | 'ms' | 'no' | 'ro' | 'uk' | 'fi' | 'bg' | 'hr' | 'sk' | 'sl' | 'lt' | 'lv' | 'et' | 'ca' | 'tl';
+export type LanguageCode = SourceLanguageCode | TargetLanguageCode;
 export interface LanguageInfo {
     code: LanguageCode;
     name: string;
     nativeName: string;
     direction: 'ltr' | 'rtl';
 }
+export declare const SOURCE_LANGUAGES: Record<SourceLanguageCode, LanguageInfo>;
+export declare const TARGET_LANGUAGES: Record<TargetLanguageCode, LanguageInfo>;
 export declare const SUPPORTED_LANGUAGES: Record<LanguageCode, LanguageInfo>;
 /**
  * Get display name for a language in the target language

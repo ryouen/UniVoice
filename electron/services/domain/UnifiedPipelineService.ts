@@ -30,7 +30,8 @@ import {
   // createParagraphCompleteEvent,  // 【Phase 2-ParagraphBuilder】追加
   PipelineEvent
 } from '../ipc/contracts';
-import { LanguageConfig, LanguageCode, getTranslationPrompt } from './LanguageConfig';
+import { LanguageConfig, LanguageCode, getTranslationPrompt, SUPPORTED_LANGUAGES } from './LanguageConfig';
+import { isDeepgramSupported } from './DeepgramLanguageSupport';
 import { logger } from '../../utils/logger';
 import { TranslationQueueManager, QueuedTranslation } from './TranslationQueueManager';
 import { SentenceCombiner, CombinedSentence } from './SentenceCombiner';
@@ -152,6 +153,7 @@ export class UnifiedPipelineService extends EventEmitter {
   private summaries: Summary[] = [];
   
   private componentLogger = logger.child('UnifiedPipelineService');
+  private audioFrameCount = 0; // 音声フレームカウンター
 
   constructor(
     audioConfig: AudioConfig,
@@ -278,11 +280,24 @@ export class UnifiedPipelineService extends EventEmitter {
       throw new Error(`Cannot start listening in state: ${this.stateManager.getState()}`);
     }
     
+    // Validate source language is supported by Deepgram
+    if (!isDeepgramSupported(sourceLanguage)) {
+      throw new Error(`Source language '${sourceLanguage}' is not supported by Deepgram Nova-3. Supported languages: multi, en, ja, es, fr, de, hi, ru, pt, it, nl`);
+    }
+    
     this.setState('starting');
     this.currentCorrelationId = correlationId;
     this.sourceLanguage = sourceLanguage;
     this.targetLanguage = targetLanguage;
     this.startTime = Date.now();
+    
+    // 🔴 言語設定の可視化
+    console.log('[UnifiedPipelineService] Language Configuration:', {
+      sourceLanguage,
+      targetLanguage,
+      isSameLanguage: sourceLanguage === targetLanguage,
+      correlationId
+    });
     
     try {
       await this.connectToDeepgram();
@@ -354,6 +369,54 @@ export class UnifiedPipelineService extends EventEmitter {
         correlationId
       );
       throw error;
+    }
+  }
+  
+  /**
+   * Update language settings (used when session metadata is updated)
+   */
+  async updateLanguages(
+    sourceLanguage: LanguageCode, 
+    targetLanguage: LanguageCode
+  ): Promise<void> {
+    // Check if languages actually changed
+    if (this.sourceLanguage === sourceLanguage && this.targetLanguage === targetLanguage) {
+      this.componentLogger.info('Language settings unchanged, skipping update', {
+        sourceLanguage,
+        targetLanguage
+      });
+      return;
+    }
+    
+    this.componentLogger.info('Updating language settings', {
+      from: { source: this.sourceLanguage, target: this.targetLanguage },
+      to: { source: sourceLanguage, target: targetLanguage }
+    });
+    
+    const wasListening = this.stateManager.getState() === 'listening';
+    const currentCorrelationId = this.currentCorrelationId;
+    
+    // Update languages
+    this.sourceLanguage = sourceLanguage;
+    this.targetLanguage = targetLanguage;
+    
+    // If currently listening, restart with new language settings
+    if (wasListening && currentCorrelationId) {
+      this.componentLogger.info('Restarting pipeline with new language settings');
+      
+      try {
+        // Stop current session
+        await this.stopListening(currentCorrelationId);
+        
+        // Brief delay to ensure clean restart
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Restart with new languages
+        await this.startListening(sourceLanguage, targetLanguage, currentCorrelationId);
+      } catch (error) {
+        this.componentLogger.error('Failed to restart pipeline with new languages', { error });
+        // Don't throw - let the user manually restart if needed
+      }
     }
   }
 
@@ -452,6 +515,18 @@ export class UnifiedPipelineService extends EventEmitter {
       return;
     }
     
+    // 🔴 音声データ送信のカウント
+    this.audioFrameCount = (this.audioFrameCount || 0) + 1;
+    if (this.audioFrameCount % 50 === 1) { // 50フレームごと (約1秒)
+      console.log('[UnifiedPipelineService] Sending audio to Deepgram:', {
+        bufferSize: buffer.length,
+        frameCount: this.audioFrameCount,
+        sourceLanguage: this.sourceLanguage,
+        state: currentState,
+        adapterConnected: this.deepgramAdapter.isConnected()
+      });
+    }
+    
     try {
       this.deepgramAdapter.sendAudio(buffer);
       this.lastActivityTime = Date.now();
@@ -539,8 +614,18 @@ export class UnifiedPipelineService extends EventEmitter {
       sourceLanguage: this.sourceLanguage
     };
     
+    // 🔴 Deepgram設定の可視化
+    console.log('[Deepgram] Configuration:', {
+      model: this.deepgramConfig.model,
+      sourceLanguage: this.sourceLanguage,
+      sampleRate: this.audioConfig.sampleRate,
+      interim: this.deepgramConfig.interim,
+      endpointing: this.deepgramConfig.endpointing
+    });
+    
     this.componentLogger.info('Creating DeepgramStreamAdapter', { 
-      config: { ...adapterConfig, apiKey: '***' } 
+      config: { ...adapterConfig, apiKey: '***' },
+      note: this.sourceLanguage === 'ja' ? 'Japanese selected - will use multi for Nova-3' : undefined
     });
     
     // アダプターを作成
@@ -740,6 +825,47 @@ export class UnifiedPipelineService extends EventEmitter {
     const segmentId = queuedTranslation.segmentId;
     const text = queuedTranslation.originalText;
     
+    // Check if translation is needed (skip if source and target languages are the same)
+    if (this.sourceLanguage === this.targetLanguage) {
+      this.componentLogger.info('Skipping translation - same source and target language', {
+        language: this.sourceLanguage,
+        segmentId
+      });
+      
+      // 🔴 同言語スキップの可視化
+      console.log('[Translation] SKIP - Same language:', {
+        sourceLanguage: this.sourceLanguage,
+        targetLanguage: this.targetLanguage,
+        text: text.substring(0, 50) + '...',
+        segmentId
+      });
+      
+      // Emit translation event with original text
+      const translationEvent = createTranslationEvent({
+        originalText: text,
+        translatedText: text,
+        sourceLanguage: this.sourceLanguage,
+        targetLanguage: this.targetLanguage,
+        confidence: 1.0,
+        isFinal: true,
+        segmentId: segmentId
+      }, this.currentCorrelationId || 'unknown');
+      
+      this.emit('translation', translationEvent);
+      
+      // Also emit translationComplete for history tracking
+      this.emit('translationComplete', {
+        id: segmentId,
+        original: text,
+        japanese: text,
+        timestamp: Date.now(),
+        firstPaintMs: 0,
+        completeMs: 0
+      });
+      
+      return text;
+    }
+    
     try {
       // 🚀 Shadow Modeを優先的に使用（環境変数で制御）
       // Shadow Mode not implemented - commented out
@@ -780,6 +906,14 @@ export class UnifiedPipelineService extends EventEmitter {
       // 動的に翻訳プロンプトを生成
       const translationPrompt = getTranslationPrompt(this.sourceLanguage, this.targetLanguage);
       
+      // 🔴 AIプロンプトの可視化
+      console.log('[Translation] AI Prompt:', {
+        sourceLanguage: this.sourceLanguage,
+        targetLanguage: this.targetLanguage,
+        prompt: translationPrompt,
+        inputText: text.substring(0, 100) + '...'
+      });
+      
       const stream = await this.openai.responses.create({
         model: this.openaiConfig.models.translate,
         input: [
@@ -816,6 +950,13 @@ export class UnifiedPipelineService extends EventEmitter {
       
       // 翻訳結果をクリーンアップ（GPTの思考プロセスを除去）
       const cleanedTranslation = this.cleanTranslationOutput(translation.trim());
+      
+      // 🔴 翻訳結果の可視化
+      console.log('[Translation] Result:', {
+        originalText: text.substring(0, 50) + '...',
+        translatedText: cleanedTranslation.substring(0, 50) + '...',
+        timings: { firstPaintMs: firstPaintTime, completeMs: completeTime }
+      });
       
       // 翻訳完了
       const result: Translation = {
@@ -1138,6 +1279,30 @@ export class UnifiedPipelineService extends EventEmitter {
     const text = queuedTranslation.originalText;
     
     try {
+      // Check if translation is needed (skip if source and target languages are the same)
+      if (this.sourceLanguage === this.targetLanguage) {
+        this.componentLogger.info('Skipping history translation - same source and target language', {
+          language: this.sourceLanguage,
+          baseId,
+          isParagraph
+        });
+        
+        // Emit translation event with original text for history
+        const historyEvent = createTranslationEvent({
+          originalText: text,
+          translatedText: text,
+          sourceLanguage: this.sourceLanguage,
+          targetLanguage: this.targetLanguage,
+          confidence: 1.0,
+          isFinal: true,
+          segmentId: queuedTranslation.segmentId
+        }, this.currentCorrelationId || 'unknown');
+        
+        this.emit('translation', historyEvent);
+        
+        return text;
+      }
+      
       console.log(`[UnifiedPipelineService] Starting ${isParagraph ? 'paragraph' : 'history'} translation for: ${baseId}`);
       // 【Phase 1-2】データフロー可視化ログ追加
       console.log('[DataFlow-7] executeHistoryTranslation called:', {
@@ -1148,17 +1313,20 @@ export class UnifiedPipelineService extends EventEmitter {
         timestamp: Date.now()
       });
       
-      // 履歴用の詳細な翻訳プロンプト
-      const historyTranslationPrompt = `あなたは${this.sourceLanguage}から${this.targetLanguage}への専門翻訳者です。
-以下の講義内容を、文脈を考慮して自然で正確な${this.targetLanguage}に翻訳してください。
+      // 履歴用の詳細な翻訳プロンプト（英語で記述）
+      const sourceName = SUPPORTED_LANGUAGES[this.sourceLanguage].name;
+      const targetName = SUPPORTED_LANGUAGES[this.targetLanguage].name;
+      
+      const historyTranslationPrompt = `You are a professional translator specializing in ${sourceName} to ${targetName} translation for academic lectures.
+Translate the following lecture content from ${sourceName} to natural and accurate ${targetName}, considering the full context.
 
-重要な指示:
-1. 専門用語は正確に翻訳する
-2. 文の流れを自然にし、講義として聞きやすい表現にする
-3. 複数の文がある場合は、文脈を考慮して一貫性のある翻訳にする
-4. 翻訳結果のみを出力し、注釈・説明・原語併記は一切含めない
+Important instructions:
+1. Translate technical terms accurately
+2. Ensure natural flow suitable for lecture listening
+3. Maintain consistency across multiple sentences by considering context
+4. Output ONLY the translation without any annotations, explanations, or original language references
 
-翻訳のみを出力してください。`;
+Output only the ${targetName} translation.`;
       
       // 高品質モデルで翻訳（gpt-5-miniまたはgpt-5）
       const stream = await this.openai.responses.create({

@@ -22,6 +22,7 @@ import { SetupSection } from '../presentation/components/UniVoice/sections/Setup
 import { RealtimeSection } from '../presentation/components/UniVoice/sections/RealtimeSection';
 import { HistorySection } from '../presentation/components/UniVoice/sections/HistorySection';
 import { SummarySection } from '../presentation/components/UniVoice/sections/SummarySection';
+import { ProgressiveSummarySection } from '../presentation/components/UniVoice/sections/ProgressiveSummarySection';
 import { UserInputSection } from '../presentation/components/UniVoice/sections/UserInputSection';
 import { FullscreenModal, MemoModal, ReportModal } from '../presentation/components/UniVoice/modals';
 // import { exportToWord, exportToPDF } from '../utils/exportUtils'; // TODO: Copy utility files
@@ -511,13 +512,17 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   }, [_summaryOverride]);
   
-  // パイプラインから最新の要約を取得
+  // パイプラインから最新の要約を取得（通常の要約用）
   useEffect(() => {
     if (summaries && summaries.length > 0) {
-      const latestSummary = summaries[summaries.length - 1];
-      setSummaryJapanese(latestSummary.japanese || '');
-      setSummaryEnglish(latestSummary.english || '');
-      console.log('[UniVoice] Summary updated:', latestSummary);
+      // 進捗的要約ではない通常の要約のみを表示
+      const regularSummaries = summaries.filter(s => !s.threshold);
+      if (regularSummaries.length > 0) {
+        const latestSummary = regularSummaries[regularSummaries.length - 1];
+        setSummaryJapanese(latestSummary.japanese || '');
+        setSummaryEnglish(latestSummary.english || '');
+      }
+      console.log('[UniVoice] Summaries:', { total: summaries.length, progressive: summaries.filter(s => s.threshold).length });
     }
   }, [summaries]);
   
@@ -1339,10 +1344,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             debug={true} // デバッグを有効化
           />
           
-          {/* 要約セクション - パイプラインからのリアルデータ */}
-          <SummarySection
-            summaryEnglish={summaryEnglish}
-            summaryJapanese={summaryJapanese}
+          {/* 要約セクション - 進捗的要約を表示 */}
+          <ProgressiveSummarySection
+            summaries={summaries || []}
             pipelineError={pipelineError}
             height={sectionHeights.summary}
             isExpanded={expandedSection === 'summary'}

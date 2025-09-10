@@ -65,6 +65,7 @@ export declare class UnifiedPipelineService extends EventEmitter {
     private translations;
     private summaries;
     private componentLogger;
+    private audioFrameCount;
     constructor(audioConfig: AudioConfig, deepgramConfig: DeepgramConfig, openaiConfig: OpenAIConfig, languageConfig?: LanguageConfig);
     /**
      * Start listening with specified languages
@@ -74,6 +75,10 @@ export declare class UnifiedPipelineService extends EventEmitter {
      * Stop listening
      */
     stopListening(correlationId: string): Promise<void>;
+    /**
+     * Update language settings (used when session metadata is updated)
+     */
+    updateLanguages(sourceLanguage: LanguageCode, targetLanguage: LanguageCode): Promise<void>;
     /**
      * Pause the pipeline
      */

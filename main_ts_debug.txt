@@ -1,0 +1,3 @@
+[2025-09-09T12:20:47.431Z] setupPipelineService called.
+[2025-09-09T12:20:47.432Z] AdvancedFeatureService instance exists. Forcing start...
+[2025-09-09T12:20:47.433Z] advancedFeatureService.start() called.

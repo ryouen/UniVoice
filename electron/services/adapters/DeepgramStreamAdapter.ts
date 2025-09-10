@@ -107,7 +107,9 @@ export class DeepgramStreamAdapter extends EventEmitter {
   private reconnectDelay = 1000; // ms
   private componentLogger = logger.child('DeepgramStreamAdapter');
   private keepAliveInterval: NodeJS.Timeout | null = null;
-  private keepAliveIntervalMs = 8000; // Send KeepAlive every 8 seconds
+  private keepAliveIntervalMs = 5000; // Send KeepAlive every 5 seconds (Deepgram recommends 3-5 seconds)
+  private audioStarted = false;
+  private initialAudioTimer: NodeJS.Timeout | null = null;
 
   constructor(config: DeepgramAdapterConfig) {
     super();
@@ -126,7 +128,11 @@ export class DeepgramStreamAdapter extends EventEmitter {
     return new Promise((resolve, reject) => {
       const wsUrl = this.buildWebSocketUrl();
       
-      this.componentLogger?.info('Connecting to Deepgram', { url: wsUrl.replace(this.config.apiKey, '***') });
+      this.componentLogger?.info('Connecting to Deepgram', { 
+        url: wsUrl.replace(this.config.apiKey, '***'),
+        model: this.config.model,
+        sourceLanguage: this.config.sourceLanguage
+      });
       
       this.ws = new WebSocket(wsUrl, {
         headers: {
@@ -175,6 +181,7 @@ export class DeepgramStreamAdapter extends EventEmitter {
 
     try {
       this.ws!.send(buffer);
+      this.audioStarted = true; // ✅ 初回送信検知
       this.metrics.bytesSent += buffer.length;
       this.metrics.messagesSent++;
       this.metrics.lastActivityTime = Date.now();
@@ -225,22 +232,62 @@ export class DeepgramStreamAdapter extends EventEmitter {
       interim_results: String(this.config.interim),
       endpointing: String(this.config.endpointing),
       utterance_end_ms: String(this.config.utteranceEndMs),
-      language: this.config.sourceLanguage,
       sample_rate: String(this.config.sampleRate),
       channels: '1',
-      encoding: 'linear16',
-      punctuate: 'true'
+      encoding: 'linear16'
     });
     
-    if (this.config.smartFormat) {
+    // smart_format と punctuate の整合性
+    const useSmart = this.config.smartFormat === true;
+    if (useSmart) {
       params.append('smart_format', 'true');
+      // smart_format使用時はpunctuateを指定しない
+    } else {
+      params.append('punctuate', 'true');
     }
     
-    if (this.config.noDelay) {
+    // no_delay は smart_format と競合しやすいので抑止
+    if (this.config.noDelay && !useSmart) {
       params.append('no_delay', 'true');
+    } else if (this.config.noDelay && useSmart) {
+      this.componentLogger?.warn('no_delay is ignored because smart_format=true prioritizes formatting quality');
     }
     
-    return `wss://api.deepgram.com/v1/listen?${params}`;
+    // Language parameter handling
+    if (this.config.sourceLanguage) {
+      let languageParam = this.config.sourceLanguage;
+      
+      // Nova-3 requires 'multi' for multilingual support including Japanese
+      // Reference: https://developers.deepgram.com/docs/multilingual-code-switching
+      if (this.config.model === 'nova-3' || this.config.model === 'nova-3-ea') {
+        // Languages that require 'multi' parameter in Nova-3
+        const multilingualLanguages = ['ja', 'hi', 'ru', 'it', 'es', 'fr', 'de', 'pt', 'nl'];
+        
+        if (multilingualLanguages.includes(this.config.sourceLanguage) || this.config.sourceLanguage === 'multi') {
+          languageParam = 'multi';
+          this.componentLogger?.info('Nova-3 multilingual mode activated', {
+            originalLanguage: this.config.sourceLanguage,
+            languageParam: 'multi'
+          });
+        }
+      }
+      
+      params.append('language', languageParam);
+      
+      console.log('[DeepgramAdapter] WebSocket parameters:', {
+        model: this.config.model,
+        language: languageParam,
+        originalLanguage: this.config.sourceLanguage,
+        interim_results: this.config.interim,
+        endpointing: this.config.endpointing,
+        utterance_end_ms: this.config.utteranceEndMs
+      });
+    }
+    
+    const wsUrl = `wss://api.deepgram.com/v1/listen?${params}`;
+    console.log('[DeepgramAdapter] WebSocket URL:', wsUrl.replace(this.config.apiKey, 'API_KEY_HIDDEN'));
+    
+    return wsUrl;
   }
 
   private setupWebSocketHandlers(resolve: () => void, reject: (error: Error) => void): void {
@@ -259,6 +306,15 @@ export class DeepgramStreamAdapter extends EventEmitter {
     });
 
     this.ws.on('error', (error: any) => {
+      // 🔴 詳細なエラーログ
+      console.error('[DeepgramAdapter] WebSocket error details:', {
+        message: error.message,
+        code: error.code,
+        type: error.type,
+        sourceLanguage: this.config.sourceLanguage,
+        model: this.config.model
+      });
+      
       this.componentLogger?.error('Deepgram WebSocket error', { 
         error: error.message,
         code: error.code 
@@ -291,9 +347,34 @@ export class DeepgramStreamAdapter extends EventEmitter {
   private handleMessage(data: Buffer | ArrayBuffer | Buffer[]): void {
     this.metrics.messagesReceived++;
     this.metrics.lastActivityTime = Date.now();
+    
 
     try {
       const message = this.parseMessage(data);
+      
+      // 🔴 受信メッセージの詳細ログ（日本語またはmultiモードの場合）
+      if (this.config.sourceLanguage === 'ja' || this.config.sourceLanguage === 'multi') {
+        if (message.channel?.alternatives?.[0]) {
+          console.log('[DeepgramAdapter] Recognition result:', {
+            sourceLanguage: this.config.sourceLanguage,
+            text: message.channel.alternatives[0].transcript,
+            confidence: message.channel.alternatives[0].confidence,
+            isFinal: message.is_final,
+            messageType: message.type,
+            detectedLanguage: message.channel.alternatives[0].language || 'not specified',
+            words: message.channel.alternatives[0].words?.length || 0
+          });
+        } else if (message.type === 'Results' && message.channel) {
+          // 認識結果が空の場合もログ出力
+          console.log('[DeepgramAdapter] Empty recognition result:', {
+            sourceLanguage: this.config.sourceLanguage,
+            messageType: message.type,
+            channel: message.channel,
+            duration: message.duration,
+            isFinal: message.is_final
+          });
+        }
+      }
       
       if (message.type === 'Error' || message.error) {
         this.handleDeepgramError(message);
@@ -346,7 +427,7 @@ export class DeepgramStreamAdapter extends EventEmitter {
     const alternative = message.channel.alternatives[0];
     if (!alternative.transcript) return null;
     
-    return {
+    const result = {
       id: `transcript-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: alternative.transcript,
       confidence: alternative.confidence || 0,
@@ -356,10 +437,19 @@ export class DeepgramStreamAdapter extends EventEmitter {
       endMs: message.end ? Math.round(message.end * 1000) : undefined,
       language: this.config.sourceLanguage
     };
+    
+    
+    return result;
   }
 
   private handleDeepgramError(message: any): void {
     const errorMessage = message.error || message.message || 'Unknown error';
+    console.error('[DeepgramAdapter] Deepgram error received:', {
+      sourceLanguage: this.config.sourceLanguage,
+      model: this.config.model,
+      fullMessage: message,
+      error: errorMessage
+    });
     this.componentLogger?.error('Deepgram error message', { message });
     this.emitError('DEEPGRAM_MESSAGE_ERROR', errorMessage, true);
   }
@@ -478,6 +568,25 @@ export class DeepgramStreamAdapter extends EventEmitter {
    */
   private startKeepAlive(): void {
     this.componentLogger?.debug('Starting KeepAlive timer');
+    
+    // 10秒以内に音声が来ない場合、短いサイレンスを送って切断を防ぐ
+    if (this.initialAudioTimer) clearTimeout(this.initialAudioTimer);
+    this.initialAudioTimer = setTimeout(() => {
+      if (this.isConnected() && !this.audioStarted) {
+        const seconds = 0.2; // 200msのサイレンス
+        const bytes = Math.round(this.config.sampleRate * seconds) * 2; // 16bit mono
+        const silence = Buffer.alloc(bytes, 0);
+        try {
+          this.ws!.send(silence);
+          this.componentLogger?.debug('Sent initial silence frame to keep connection alive');
+          this.audioStarted = true;
+        } catch (e) {
+          this.componentLogger?.warn('Failed to send initial silence frame', { e });
+        }
+      }
+    }, 9000); // 9秒後（10秒ルールの手前）
+    
+    // 通常のKeepAlive（無音区間の維持）
     this.keepAliveInterval = setInterval(() => {
       if (this.isConnected()) {
         try {
@@ -498,8 +607,12 @@ export class DeepgramStreamAdapter extends EventEmitter {
     if (this.keepAliveInterval) {
       clearInterval(this.keepAliveInterval);
       this.keepAliveInterval = null;
-      this.componentLogger?.debug('Stopped KeepAlive timer');
     }
+    if (this.initialAudioTimer) {
+      clearTimeout(this.initialAudioTimer);
+      this.initialAudioTimer = null;
+    }
+    this.componentLogger?.debug('Stopped KeepAlive timer');
   }
 
   /**
