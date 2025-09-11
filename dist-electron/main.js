@@ -477,10 +477,15 @@ function setupPipelineService() {
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('pipeline:started');
         }
-        // AdvancedFeatureService starts automatically when created
-        // No explicit start method needed
+        // Start AdvancedFeatureService with the current session
         if (advancedFeatureService) {
-            mainLogger.info('AdvancedFeatureService ready');
+            // Get correlation ID from the current pipeline session
+            const correlationId = `main-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            // Get languages from the pipeline configuration (will be updated by session-metadata-update)
+            const sourceLanguage = 'en'; // Default, will be updated
+            const targetLanguage = 'ja'; // Default, will be updated
+            advancedFeatureService.start(correlationId, sourceLanguage, targetLanguage);
+            mainLogger.info('AdvancedFeatureService started', { correlationId, sourceLanguage, targetLanguage });
         }
         // データ永続化サービスの開始は、session-metadata-updateイベントで行うため、ここでは何もしない
         // セッション情報はフロントエンドから受け取るのを待つ

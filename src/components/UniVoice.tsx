@@ -26,6 +26,7 @@ import { ProgressiveSummarySection } from '../presentation/components/UniVoice/s
 import { UserInputSection } from '../presentation/components/UniVoice/sections/UserInputSection';
 import { FullscreenModal, MemoModal, ReportModal } from '../presentation/components/UniVoice/modals';
 import { renderHistoryToHTML } from './UnifiedHistoryRenderer';
+import { renderFlowHistoryToHTML } from './UnifiedHistoryRenderer-Flow';
 // import { exportToWord, exportToPDF } from '../utils/exportUtils'; // TODO: Copy utility files
 
 interface SectionHeights {
@@ -1011,11 +1012,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   };
   
   const getAlignedHistoryContent = (): string => {
-    // historyBlocksを使用（FlexibleHistoryGrouper形式）
-    return renderHistoryToHTML(historyBlocks, {
-      showTimestamps: true,
-      showBlockNumbers: true,
-      title: '📖 全文履歴（時間整列表示）'
+    // フロー型レンダラーを使用（より自然な表示）
+    return renderFlowHistoryToHTML(historyBlocks, {
+      title: '📖 全文履歴',
+      showMinimalTimestamps: true
     });
   };
   

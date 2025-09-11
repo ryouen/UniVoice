@@ -335,12 +335,22 @@ class AdvancedFeatureService extends events_1.EventEmitter {
             const prompt = this.lastProgressiveSummary
                 ? this.getCumulativeProgressiveSummaryPrompt(this.lastProgressiveSummary, newContent, baseThreshold)
                 : this.getProgressiveSummaryPrompt(translationsToInclude.map(t => t.original).join(' '), baseThreshold);
+            // Debug logging
+            const systemPrompt = this.getSummarySystemPrompt();
+            this.componentLogger.info('Progressive summary generation debug', {
+                sourceLanguage: this.sourceLanguage,
+                targetLanguage: this.targetLanguage,
+                systemPromptPreview: systemPrompt.substring(0, 100),
+                userPromptPreview: prompt.substring(0, 100),
+                baseThreshold,
+                actualThreshold
+            });
             const response = await this.openai.responses.create({
                 model: this.config.summaryModel,
                 input: [
                     {
                         role: 'system',
-                        content: this.getSummarySystemPrompt()
+                        content: systemPrompt
                     },
                     { role: 'user', content: prompt }
                 ],
@@ -352,6 +362,12 @@ class AdvancedFeatureService extends events_1.EventEmitter {
                 const summaryTextInTargetLang = this.sourceLanguage !== this.targetLanguage
                     ? await this.translateToTargetLanguage(summaryTextInSourceLang)
                     : summaryTextInSourceLang;
+                // Debug logging for summary content
+                this.componentLogger.info('Progressive summary content debug', {
+                    summaryInSourceLangPreview: summaryTextInSourceLang.substring(0, 200),
+                    summaryInTargetLangPreview: summaryTextInTargetLang.substring(0, 200),
+                    isTranslated: this.sourceLanguage !== this.targetLanguage
+                });
                 const summary = {
                     id: `summary-progressive-${baseThreshold}-${Date.now()}`,
                     timestamp: Date.now(),

@@ -1,92 +1,129 @@
 # 🚀 START HERE - UniVoice 2.0 開発ガイド
 
-**最終更新**: 2025-09-10 (パラグラフモード実装状況の再調査)  
-**状態**: 🚧 Phase 2 パラグラフモード要改善 / 🚧 Phase 3 Advanced Features実装中  
+**最終更新**: 2025-09-10 (実装評価とフロー型UI追加)  
+**状態**: 🟨 Phase 2 完了 / 🚧 Phase 3 Advanced Features実装中（50%）  
 **実装者**: Claude Code
 
-## ✅ 最新の実装状況（2025-09-10更新）
+## 📊 最新の実装評価（2025-09-10）
 
-### パラグラフモードの実際の状況
-**重要な発見**:
-- パラグラフモード（ParagraphBuilder）は**現在無効化されている**
-- 履歴表示は文単位（1-2文）のまま
-- 改善が必要な状態
-- 詳細: [`docs/PARAGRAPH-MODE-IMPLEMENTATION-SUMMARY.md`](docs/PARAGRAPH-MODE-IMPLEMENTATION-SUMMARY.md)
-- 改善計画: [`docs/PARAGRAPH-MODE-IMPROVEMENT-PLAN.md`](docs/PARAGRAPH-MODE-IMPROVEMENT-PLAN.md)
+**総合実装率: 50%** - 詳細は [`IMPLEMENTATION-STATUS-20250910.md`](IMPLEMENTATION-STATUS-20250910.md) 参照
 
-### データ永続化機能（2025-08-28）
-**成果**:
-- ファイルシステムベースの永続化（C:\Users\{username}\UniVoice\）
-- 自動保存（3分ごと）とセッション再開機能
-- 詳細: [`docs/DATA-PERSISTENCE-IMPLEMENTATION-STATUS.md`](docs/DATA-PERSISTENCE-IMPLEMENTATION-STATUS.md)
+### ✅ 本日の成果
+1. **履歴データ表示の統一化**
+   - `UnifiedHistoryRenderer`による一元管理
+   - 通常表示とフルスクリーン表示の一貫性確保
 
-## 🎉 最近の成果
+2. **フロー型UI実装** 🆕
+   - `UnifiedHistoryRenderer-Flow.tsx`追加
+   - ブロック感を排除した自然な履歴表示
+   - タイムスタンプの控えめな表示（5分間隔）
 
-### AdvancedFeatureServiceバグ修正完了（2025-09-04確認）
-**結果**: 2025-08-30に報告された未初期化バグは既に修正済み
-**現状**: 要約、語彙抽出、最終レポート機能がすべて動作可能
-**詳細**: [`docs/ADVANCED-FEATURE-SERVICE-VERIFICATION-20250904.md`](docs/ADVANCED-FEATURE-SERVICE-VERIFICATION-20250904.md)
+3. **言語設定の正確化**
+   - Nova-3公式対応言語に基づく並び順
+   - Multilingual表記の簡素化
 
-## 🎯 現在の優先課題
+## 🎯 実装状況サマリー
 
-1. **セッション再開UIの実装**（優先度: 高）
-2. **レポート生成UIの追加**（優先度: 中）
-3. **語彙データのエクスポート機能**（優先度: 低）
+| カテゴリ | 実装率 | 状態 |
+|---------|--------|------|
+| リアルタイム機能（①②） | 100% | ✅ 完璧に動作 |
+| プログレッシブ要約（③④） | 70% | 🟨 UI統合に課題 |
+| 最終成果物（⑤⑥⑦⑧） | 0% | ❌ 未実装 |
 
-## 📊 実装状態マトリックス
+### 詳細な機能別状態
 
-| 機能 | 状態 | 備考 |
-|------|------|------|
-| 基本音声認識 | ✅ | Deepgram Nova-3 |
-| リアルタイム翻訳 | ✅ | GPT-5-nano |
-| パラグラフ履歴 | ❌ | ParagraphBuilder無効化中、文単位表示 |
-| データ永続化 | ✅ | ファイルシステム実装 |
-| 進捗的要約 | ✅ | 400, 800*n語での要約（CJK言語は文字数×4） |
-| 定期要約 | ❌ | 無効化済み（不要のため） |
-| 語彙抽出 | ✅ | 専門用語5-10個抽出 |
-| 最終レポート | ✅ | Markdown形式で生成 |
+| # | 機能 | 実装状態 | 備考 |
+|---|------|----------|------|
+| ① | ソース言語リアルタイム文字起こし | ✅ 100% | Nova-3, 10言語対応 |
+| ② | ターゲット言語への翻訳 | ✅ 100% | 二段階翻訳システム |
+| ③ | プログレッシブ要約（400/800/1600/2400語） | 🟨 70% | バックエンド完成、UI課題 |
+| ④ | 要約のターゲット言語翻訳 | 🟨 70% | 実装済み、表示に問題 |
+| ⑤ | 授業終了後の全体要約 | ❌ 0% | メソッドのみ存在 |
+| ⑥ | 全体要約の翻訳 | ❌ 0% | 未実装 |
+| ⑦ | 重要語句の単語帳 | ❌ 0% | extractVocabulary()は実装済み |
+| ⑧ | Word/PDF/MD出力 | ❌ 0% | コメントアウト状態 |
 
-## 🚀 Quick Start
+## 🚀 推奨される次のステップ
 
-```bash
-# 環境変数設定
-cp .env.example .env
-# APIキーを設定
+### Phase 3-A: 要約機能の完成（1-2日）
+1. **ProgressiveSummarySectionのデバッグ**
+2. **最終要約の統合**
+3. **要約データの永続化**
 
-# 開発環境起動
-npm run dev
-npm run electron
+### Phase 3-B: 語彙機能（1日）
+1. **VocabularySectionの作成**
+2. **語彙抽出のUI統合**
 
-# テスト実行
-npm test
-```
+### Phase 3-C: エクスポート機能（2日）
+1. **exportUtils.tsの実装**
+2. **Word/PDF生成**
 
 ## 📁 プロジェクト構造
 
 ```
 UniVoice/
-├── docs/ACTIVE/          # アクティブな作業状態
-│   ├── STATE.json       # 現在の状態
-│   └── TASKS.json       # タスクリスト
-├── electron/            # バックエンド
-│   └── services/        # Clean Architecture
-├── src/                 # フロントエンド
-└── tests/               # テストスイート
+├── IMPLEMENTATION-STATUS-20250910.md  # 🆕 実装評価レポート
+├── docs/ACTIVE/                       # アクティブな作業状態
+├── electron/                          # バックエンド
+│   └── services/
+│       ├── domain/                    # ビジネスロジック
+│       │   ├── UnifiedPipelineService.ts
+│       │   └── AdvancedFeatureService.ts
+│       └── adapters/                  # 外部サービス
+├── src/                              # フロントエンド
+│   └── components/
+│       ├── UnifiedHistoryRenderer.tsx      # 履歴表示統一
+│       └── UnifiedHistoryRenderer-Flow.tsx # 🆕 フロー型UI
+└── tests/                            # テストスイート
 ```
 
 ## 📚 重要ドキュメント
 
-- [`CLAUDE.md`](CLAUDE.md) - プロジェクト設定と最上位ルール
-- [`docs/ACTIVE/STATE.json`](docs/ACTIVE/STATE.json) - 現在の実装状態
+### 必読
+- [`IMPLEMENTATION-STATUS-20250910.md`](IMPLEMENTATION-STATUS-20250910.md) - 🆕 実装評価レポート
+- [`CLAUDE.md`](CLAUDE.md) - プロジェクト設定
+- [`CRITICAL-FACTS-FOR-NEW-SESSION.md`](CRITICAL-FACTS-FOR-NEW-SESSION.md) - 重要事実集
+
+### アーキテクチャ
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - Clean Architecture設計
+- [`docs/API-CONTRACTS.md`](docs/API-CONTRACTS.md) - IPC契約
+
+### 開発ガイド
 - [`docs/BUILD-GUIDE.md`](docs/BUILD-GUIDE.md) - ビルド手順
+- [`docs/LOGGING-AND-DEBUG-GUIDE.md`](docs/LOGGING-AND-DEBUG-GUIDE.md) - デバッグガイド
 
-## 🎯 次のステップ
+## 🚦 Quick Start
 
-1. **セッション再開UIの実装**（優先度: 高） - データ永続化は完成、UIが未実装
-2. **レポート生成UIの追加**（優先度: 中） - バックエンドは実装済み
-3. **語彙データのエクスポート機能**（優先度: 低）
-4. **パフォーマンス最適化**（優先度: 低）
+```bash
+# 環境変数設定
+cp .env.example .env
+# APIキーを設定（OPENAI_API_KEY, DEEPGRAM_API_KEY）
+
+# 開発環境起動
+npm run dev
+npm run electron
+
+# ビルド
+npm run build
+
+# テスト
+npm test
+```
+
+## 🎉 最近の成果
+
+### 2025-09-10
+- 履歴表示の二重管理を解消
+- フロー型UIで読みやすさ向上
+- Nova-3対応言語の正確な実装
+
+### 2025-09-04
+- AdvancedFeatureServiceバグ修正完了
+- 要約・語彙抽出機能の動作確認
+
+### 2025-08-28
+- データ永続化実装完了
+- 自動保存とセッション管理
 
 ---
-詳細は各ドキュメントを参照してください。
+*UniVoice 2.0 - Clean Architecture による次世代音声認識・翻訳・要約システム*

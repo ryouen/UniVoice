@@ -10,6 +10,7 @@
 import React from 'react';
 import { HistoryBlock } from '../utils/FlexibleHistoryGrouper';
 import { UnifiedHistoryRenderer } from './UnifiedHistoryRenderer';
+import { UnifiedHistoryRendererFlow } from './UnifiedHistoryRenderer-Flow';
 
 interface FlexibleHistoryDisplayProps {
   historyBlocks: HistoryBlock[];
@@ -26,6 +27,23 @@ export const FlexibleHistoryDisplay: React.FC<FlexibleHistoryDisplayProps> = ({
   className = '',
   onBlockClick
 }) => {
+  // フロー型デザインを使用（より自然な表示）
+  const useFlowDesign = true; // 設定で切り替え可能
+  
+  if (useFlowDesign) {
+    return (
+      <UnifiedHistoryRendererFlow
+        historyBlocks={historyBlocks}
+        mode="flow"
+        {...(onBlockClick ? { onBlockClick } : {})}
+        className={`flexible-history-display ${className}`}
+        showTimestamps={true}
+        showSeparators={true}
+      />
+    );
+  }
+  
+  // 従来のブロック型デザイン
   return (
     <UnifiedHistoryRenderer
       historyBlocks={historyBlocks}

@@ -8,6 +8,9 @@ cat CRITICAL-FACTS-FOR-NEW-SESSION.md
 
 # 2. 現在の状況を確認
 cat START-HERE.md
+
+# 3. 実装状況の詳細を確認（2025-09-10追加）
+cat IMPLEMENTATION-STATUS-20250910.md
 ```
 
 📌 **必須ファイル**: [`CRITICAL-FACTS-FOR-NEW-SESSION.md`](CRITICAL-FACTS-FOR-NEW-SESSION.md) - 新セッションで最初に読む

@@ -961,6 +961,52 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       cleanupFunctions.current.push(() => {
         window.electron?.removeListener('current-translation-update', translationUpdateHandler);
       });
+      
+      // プログレッシブ要約イベントのリスナー
+      const progressiveSummaryHandler = (_event: any, summary: any) => {
+        console.log('[useUnifiedPipeline] progressive-summary received:', summary);
+        
+        if (summary.data) {
+          const summaryData: Summary = {
+            id: `progressive-${Date.now()}`,
+            english: summary.data.english,
+            japanese: summary.data.japanese,
+            wordCount: summary.data.wordCount || summary.data.threshold || 0,
+            timestamp: Date.now(),
+            timeRange: {
+              start: summary.data.startTime || 0,
+              end: summary.data.endTime || Date.now()
+            }
+          };
+          
+          setSummaries(prev => {
+            // 同じ閾値の要約を更新（重複を避ける）
+            const existingIndex = prev.findIndex(s => 
+              s.wordCount === summaryData.wordCount
+            );
+            
+            if (existingIndex >= 0) {
+              const updated = [...prev];
+              updated[existingIndex] = summaryData;
+              return updated;
+            }
+            
+            return [...prev, summaryData];
+          });
+          
+          console.log(`[useUnifiedPipeline] Progressive summary added/updated at ${summaryData.wordCount} words`);
+          
+          // コールバックを呼び出す
+          if (onSummary) {
+            onSummary(summaryData);
+          }
+        }
+      };
+      
+      window.electron.on('progressive-summary', progressiveSummaryHandler);
+      cleanupFunctions.current.push(() => {
+        window.electron?.removeListener('progressive-summary', progressiveSummaryHandler);
+      });
     }
 
     // Cleanup on unmount
