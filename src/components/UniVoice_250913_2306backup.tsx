@@ -1834,9 +1834,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // ========== メイン画面 ==========
   return (
     <>
-      {/* Liquid Glass スタイル注入 */}
-      <style>{getLiquidGlassStyles(currentTheme, currentFontScale)}</style>
-      
       {/* アプリコンテナ（フレームレス対応） */}
       <div ref={appContainerRef} className="app-container" style={{
         width: '100%',

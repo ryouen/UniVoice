@@ -566,7 +566,7 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'white',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

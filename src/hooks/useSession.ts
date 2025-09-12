@@ -68,7 +68,7 @@ export function useSession(): UseSessionReturn {
 
   // Generate new correlation ID for this session
   useEffect(() => {
-    correlationId.current = window.univoice?.generateCorrelationId() || 
+    correlationId.current = window.univoice?.generateCorrelationId?.() || 
                            `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }, []);
 
@@ -178,7 +178,7 @@ export function useSession(): UseSessionReturn {
       console.log('[useSession] Correlation ID:', correlationId.current);
       
       // Send command to backend via IPC
-      const result = await window.univoice.startListening({
+      const result = await window.univoice?.startListening?.({
         sourceLanguage: config.sourceLanguage,
         targetLanguage: config.targetLanguage,
         correlationId: correlationId.current
@@ -213,7 +213,7 @@ export function useSession(): UseSessionReturn {
       setError(null);
       
       // For now, we'll stop the pipeline (no separate pause command)
-      const result = await window.univoice?.stopListening({
+      const result = await window.univoice?.stopListening?.({
         correlationId: correlationId.current
       });
 
@@ -238,7 +238,7 @@ export function useSession(): UseSessionReturn {
       setError(null);
       
       // Resume by starting again with same config
-      const result = await window.univoice?.startListening({
+      const result = await window.univoice?.startListening?.({
         sourceLanguage: sessionState.sourceLanguage,
         targetLanguage: sessionState.targetLanguage,
         correlationId: correlationId.current
@@ -264,7 +264,7 @@ export function useSession(): UseSessionReturn {
     try {
       setError(null);
       
-      const result = await window.univoice?.stopListening({
+      const result = await window.univoice?.stopListening?.({
         correlationId: correlationId.current
       });
 

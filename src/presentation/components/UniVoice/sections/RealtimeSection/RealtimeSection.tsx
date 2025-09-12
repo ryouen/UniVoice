@@ -71,6 +71,16 @@ export interface RealtimeSectionProps {
   debug?: boolean;
   
   /**
+   * フォントスケール
+   */
+  fontScale?: number;
+  
+  /**
+   * 表示モード
+   */
+  displayMode?: 'both' | 'source' | 'target';
+  
+  /**
    * カスタムスタイル
    */
   style?: React.CSSProperties;
@@ -87,6 +97,8 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
   volumeLevel = 0,
   isRunning = false,
   debug = false,
+  fontScale = 1,
+  displayMode = 'both',
   style = {}
 }) => {
   // デバッグログ
@@ -107,13 +119,10 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
 
   return (
     <div style={{
-      height: '44vh',
+      height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      background: 'linear-gradient(to bottom, #fafafa, #ffffff)',
-      borderBottom: '2px solid #ddd',
       position: 'relative',
-      padding: '20px 30px',
       ...style
     }}>
       {hasThreeLineContent ? (
@@ -121,40 +130,44 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
         <div style={{ 
           display: 'grid',
           gridTemplateRows: 'repeat(3, auto)',
-          gridTemplateColumns: '1fr 1px 1fr',
-          gap: '12px 0',
+          gridTemplateColumns: displayMode === 'both' ? '1fr 1px 1fr' : '1fr',
+          gap: `${6 * fontScale}px 0`, // 12px→6pxに半減、フォントサイズに連動
           height: '100%',
-          alignContent: 'center'
+          alignContent: 'flex-end' // 下から埋める
         }}>
           {/* Oldest行 */}
           <div style={{
             gridColumn: 1,
             gridRow: 1,
             opacity: displayOpacity?.original?.oldest || 0.3,
-            fontSize: '20px',
+            fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
             color: '#111',
             wordWrap: 'break-word',
             padding: '8px 16px',
-            minHeight: displayContent?.original?.oldest ? 'auto' : '32px'
+            minHeight: displayContent?.original?.oldest ? 'auto' : '32px',
+            display: displayMode === 'target' ? 'none' : 'block'
           }}>
             {displayContent?.original?.oldest || ''}
           </div>
+          {displayMode === 'both' && (
+            <div style={{
+              gridColumn: 2,
+              gridRow: '1 / -1',
+              background: '#e0e0e0'
+            }} />
+          )}
           <div style={{
-            gridColumn: 2,
-            gridRow: '1 / -1',
-            background: '#e0e0e0'
-          }} />
-          <div style={{
-            gridColumn: 3,
+            gridColumn: displayMode === 'both' ? 3 : 1,
             gridRow: 1,
             opacity: displayOpacity?.translation?.oldest || 0.3,
-            fontSize: '20px',
+            fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
             color: '#0066cc',
             wordWrap: 'break-word',
             padding: '8px 16px',
-            minHeight: displayContent?.translation?.oldest ? 'auto' : '32px'
+            minHeight: displayContent?.translation?.oldest ? 'auto' : '32px',
+            display: displayMode === 'source' ? 'none' : 'block'
           }}>
             {displayContent?.translation?.oldest || ''}
           </div>
@@ -164,25 +177,27 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             gridColumn: 1,
             gridRow: 2,
             opacity: displayOpacity?.original?.older || 0.6,
-            fontSize: '20px',
+            fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
             color: '#111',
             wordWrap: 'break-word',
             padding: '8px 16px',
-            minHeight: displayContent?.original?.older ? 'auto' : '32px'
+            minHeight: displayContent?.original?.older ? 'auto' : '32px',
+            display: displayMode === 'target' ? 'none' : 'block'
           }}>
             {displayContent?.original?.older || ''}
           </div>
           <div style={{
-            gridColumn: 3,
+            gridColumn: displayMode === 'both' ? 3 : 1,
             gridRow: 2,
             opacity: displayOpacity?.translation?.older || 0.6,
-            fontSize: '20px',
+            fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
             color: '#0066cc',
             wordWrap: 'break-word',
             padding: '8px 16px',
-            minHeight: displayContent?.translation?.older ? 'auto' : '32px'
+            minHeight: displayContent?.translation?.older ? 'auto' : '32px',
+            display: displayMode === 'source' ? 'none' : 'block'
           }}>
             {displayContent?.translation?.older || ''}
           </div>
@@ -192,27 +207,29 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             gridColumn: 1,
             gridRow: 3,
             opacity: displayOpacity?.original?.recent || 1,
-            fontSize: '20px',
+            fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
             color: '#111',
             fontWeight: 500,
             wordWrap: 'break-word',
             padding: '8px 16px',
-            minHeight: displayContent?.original?.recent ? 'auto' : '32px'
+            minHeight: displayContent?.original?.recent ? 'auto' : '32px',
+            display: displayMode === 'target' ? 'none' : 'block'
           }}>
             {displayContent?.original?.recent || ''}
           </div>
           <div style={{
-            gridColumn: 3,
+            gridColumn: displayMode === 'both' ? 3 : 1,
             gridRow: 3,
             opacity: displayOpacity?.translation?.recent || 1,
-            fontSize: '20px',
+            fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
             color: '#0066cc',
             fontWeight: 500,
             wordWrap: 'break-word',
             padding: '8px 16px',
-            minHeight: displayContent?.translation?.recent ? 'auto' : '32px'
+            minHeight: displayContent?.translation?.recent ? 'auto' : '32px',
+            display: displayMode === 'source' ? 'none' : 'block'
           }}>
             {displayContent?.translation?.recent || ''}
           </div>
@@ -238,7 +255,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
               debug={debug}
               debugLabel="currentOriginal"
               style={{
-                fontSize: '20px',
+                fontSize: `${20 * fontScale}px`,
                 lineHeight: '1.6',
                 color: '#111',
                 fontWeight: 400,
@@ -264,7 +281,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
               debug={debug}
               debugLabel="currentTranslation"
               style={{
-                fontSize: '20px',
+                fontSize: `${20 * fontScale}px`,
                 lineHeight: '1.6',
                 color: '#0066cc',
                 fontWeight: 400,

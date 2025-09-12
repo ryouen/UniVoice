@@ -88,6 +88,22 @@ function createUnifiedEventListener() {
     };
 }
 /**
+ * Create window control API
+ */
+function createWindowAPI() {
+    return {
+        minimize: () => electron_1.ipcRenderer.invoke('window:minimize'),
+        maximize: () => electron_1.ipcRenderer.invoke('window:maximize'),
+        unmaximize: () => electron_1.ipcRenderer.invoke('window:unmaximize'),
+        close: () => electron_1.ipcRenderer.invoke('window:close'),
+        isMaximized: () => electron_1.ipcRenderer.invoke('window:isMaximized'),
+        updateTheme: (theme) => electron_1.ipcRenderer.invoke('window:updateTheme', theme),
+        setAlwaysOnTop: (alwaysOnTop) => electron_1.ipcRenderer.invoke('window:setAlwaysOnTop', alwaysOnTop),
+        isAlwaysOnTop: () => electron_1.ipcRenderer.invoke('window:isAlwaysOnTop'),
+        autoResize: (height) => electron_1.ipcRenderer.invoke('window:autoResize', height)
+    };
+}
+/**
  * Utility functions
  */
 function createUtilities() {
@@ -114,7 +130,8 @@ const univoiceAPI = {
     ...createCommandSender(),
     ...createEventListeners(),
     ...createUtilities(),
-    ...createUnifiedEventListener()
+    ...createUnifiedEventListener(),
+    window: createWindowAPI()
 };
 // Expose the type-safe UniVoice API
 electron_1.contextBridge.exposeInMainWorld('univoice', univoiceAPI);
@@ -152,7 +169,17 @@ const allowedChannels = [
     'final-report-generated', // Final report generation event
     'advanced-feature-error', // Advanced feature error event
     'summary', // Regular summary event
-    'audio-progress' // Audio progress event
+    'audio-progress', // Audio progress event
+    // Window control channels for frameless window
+    'window:minimize', // Window minimize
+    'window:maximize', // Window maximize
+    'window:unmaximize', // Window unmaximize
+    'window:close', // Window close
+    'window:isMaximized', // Check if window is maximized
+    'window:updateTheme', // Update title bar theme
+    'window:setAlwaysOnTop', // Set window always on top
+    'window:isAlwaysOnTop', // Check if window is always on top
+    'window:autoResize' // Auto resize window to content
 ];
 // Legacy Electron API for backward compatibility
 const legacyElectronAPI = {

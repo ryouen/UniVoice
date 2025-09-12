@@ -3,11 +3,18 @@
   box-sizing: border-box;
 }
 
+/**
+ * 🎨 基本的なレイアウト設定
+ * 
+ * 重要：html/bodyに固定高さを設定しない
+ * 理由：Electronウィンドウのサイズはコンテンツに基づいて動的に決定されるため
+ */
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  /* height: 100%; は使用しない - コンテンツベースの高さ管理と競合 */
   overflow: hidden;
+  min-height: 0;
 }
 
 :root {
@@ -17,7 +24,7 @@ html, body {
   
   /* UniVoice Light Theme */
   color: #333;
-  background-color: #f0f0f2;
+  background-color: transparent;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -28,7 +35,7 @@ html, body {
 
 #root {
   width: 100%;
-  height: 100vh;
+  /* height: 100%; は使用しない - アプリケーションコンテナがサイズを決定 */
   overflow: hidden;
   margin: 0;
   padding: 0;

@@ -89,7 +89,13 @@ async function createWindow() {
     mainLogger.info('Creating BrowserWindow...');
     mainWindow = new electron_1.BrowserWindow({
         width: 1200,
-        height: 800,
+        height: 400, // 初期高さを内容に近い値に
+        show: false, // Prevent flash of unstyled window
+        frame: false, // フレームレスウィンドウ（全OS対応）
+        transparent: false, // 透過は無効化（パフォーマンスと互換性のため）
+        minWidth: 800,
+        minHeight: 200, // 最小高さ: ヘッダー(40) + リアルタイムセクション(100) + 余白(60)
+        resizable: true, // ユーザーによるリサイズを許可
         webPreferences: {
             preload: preloadPath,
             contextIsolation: true,
@@ -127,13 +133,14 @@ async function createWindow() {
             if (!connected) {
                 throw new Error('Failed to connect to any dev server port');
             }
-            mainWindow.webContents.openDevTools();
         }
         catch (err) {
             mainLogger.error('Failed to connect to dev server', { error: err });
             console.error('[Main] Failed to connect to dev server:', err);
             await mainWindow.loadFile(path_1.default.join(__dirname, '../dist/index.html'));
         }
+        // Show window immediately in development mode
+        mainWindow.show();
     }
     else {
         console.log('[Main] Loading production build from:', path_1.default.join(__dirname, '../dist/index.html'));
@@ -165,6 +172,16 @@ async function createWindow() {
         mainWindow.webContents.openDevTools();
         mainLogger.info('DevTools enabled - Press F12 to toggle');
     }
+    // Handle ready-to-show event for frameless window
+    mainWindow.once('ready-to-show', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainLogger.info('Window shown after ready-to-show');
+        }
+        else {
+            mainLogger.error('mainWindow is null or destroyed in ready-to-show');
+        }
+    });
     mainLogger.info('createWindow completed successfully');
     // IPC Gateway and Pipeline Service are setup in app.whenReady()
     // Auto-approve media device permissions
@@ -182,6 +199,78 @@ async function createWindow() {
         mainWindow = null;
     });
     mainLogger.info('Main window created successfully');
+}
+/**
+ * Setup window control handlers for frameless window
+ */
+function setupWindowControls() {
+    // Window minimize
+    electron_1.ipcMain.handle('window:minimize', async () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.minimize();
+        }
+    });
+    // Window maximize
+    electron_1.ipcMain.handle('window:maximize', async () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.maximize();
+        }
+    });
+    // Window unmaximize
+    electron_1.ipcMain.handle('window:unmaximize', async () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.unmaximize();
+        }
+    });
+    // Window close
+    electron_1.ipcMain.handle('window:close', async () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.close();
+        }
+    });
+    // Check if window is maximized
+    electron_1.ipcMain.handle('window:isMaximized', async () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            return mainWindow.isMaximized();
+        }
+        return false;
+    });
+    // Update title bar theme
+    electron_1.ipcMain.handle('window:updateTheme', async (_event, theme) => {
+        // Theme is handled in renderer process
+        mainLogger.info('Theme update requested', theme);
+    });
+    // Set always on top
+    electron_1.ipcMain.handle('window:setAlwaysOnTop', async (_event, alwaysOnTop) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setAlwaysOnTop(alwaysOnTop);
+            return mainWindow.isAlwaysOnTop();
+        }
+        return false;
+    });
+    // Check if always on top
+    electron_1.ipcMain.handle('window:isAlwaysOnTop', async () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            return mainWindow.isAlwaysOnTop();
+        }
+        return false;
+    });
+    // Auto resize window to content height
+    electron_1.ipcMain.handle('window:autoResize', async (_event, height) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            const currentBounds = mainWindow.getBounds();
+            mainWindow.setBounds({
+                x: currentBounds.x,
+                y: currentBounds.y,
+                width: currentBounds.width,
+                height: Math.max(200, Math.min(800, height)) // Clamp between min and max
+            });
+            mainLogger.info('Window resized', { newHeight: height });
+            return true;
+        }
+        return false;
+    });
+    mainLogger.info('Window controls setup completed');
 }
 /**
  * Setup IPC Gateway and handlers
@@ -303,6 +392,9 @@ function setupIPCGateway() {
             });
         }
     });
+    // Window control handlers are already registered in setupWindowControls()
+    // Do not duplicate them here to avoid the "second handler" error
+    mainLogger.info('Window control handlers already registered in setupWindowControls()');
     mainLogger.info('IPC Gateway setup completed');
     console.log('[Main] IPC Gateway setup completed - handlers registered');
 }
@@ -783,6 +875,7 @@ electron_1.app.whenReady().then(() => {
     // Initialize services after window is created
     // Wait a bit to ensure window is fully ready
     setTimeout(() => {
+        setupWindowControls();
         setupIPCGateway();
         setupPipelineService();
     }, 100);

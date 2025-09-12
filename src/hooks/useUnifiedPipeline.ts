@@ -391,7 +391,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
 
   // Generate correlation ID
   const generateCorrelationId = useCallback(() => {
-    return window.univoice?.generateCorrelationId() || `hook-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return window.univoice?.generateCorrelationId?.() || `hook-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }, []);
 
   // 履歴に追加済みのセグメントIDを追跡
@@ -932,10 +932,12 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     }
 
     // Subscribe to pipeline events (refを使用)
-    const unsubscribe = window.univoice.onPipelineEvent((event) => {
+    const unsubscribe = window.univoice?.onPipelineEvent?.((event) => {
       handlePipelineEventRef.current(event);
     });
-    cleanupFunctions.current.push(unsubscribe);
+    if (unsubscribe) {
+      cleanupFunctions.current.push(unsubscribe);
+    }
     
     // リアルタイム表示用の直接イベントリスナー
     if (window.electron) {
@@ -1034,13 +1036,13 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       console.log('[useUnifiedPipeline] Starting microphone with correlation:', correlationId);
       console.log('[useUnifiedPipeline] Languages:', { source: currentSourceLanguage, target: currentTargetLanguage });
 
-      const result = await window.univoice.startListening({
+      const result = await window.univoice?.startListening?.({
         sourceLanguage: currentSourceLanguage,
         targetLanguage: currentTargetLanguage,
         correlationId
       });
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to start pipeline');
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to start pipeline');
       }
 
       await startAudioCapture(); // 成功したら音声キャプチャ開始
@@ -1071,10 +1073,10 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
 
     try {
       if (currentCorrelationId.current) {
-        const result = await window.univoice.stopListening({
+        const result = await window.univoice?.stopListening?.({
           correlationId: currentCorrelationId.current
         });
-        if (!result.success) console.warn('[useUnifiedPipeline] Stop warning:', result.error);
+        if (!result?.success) console.warn('[useUnifiedPipeline] Stop warning:', result?.error);
       }
 
       stopAudioCapture();
@@ -1275,7 +1277,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
 
   const clearAll = useCallback(async () => {
     try {
-      await window.univoice.clearHistory();
+      await window.univoice?.clearHistory?.();
       clearHistory();
       clearSummaries();
       clearError();
@@ -1308,12 +1310,12 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       
       console.log('[useUnifiedPipeline] Generating vocabulary...');
       
-      const result = await window.univoice.generateVocabulary({
+      const result = await window.univoice?.generateVocabulary?.({
         correlationId: currentCorrelationId.current
       });
       
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to generate vocabulary');
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to generate vocabulary');
       }
       
       console.log('[useUnifiedPipeline] Vocabulary generation initiated');
@@ -1333,12 +1335,12 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       
       console.log('[useUnifiedPipeline] Generating final report...');
       
-      const result = await window.univoice.generateFinalReport({
+      const result = await window.univoice?.generateFinalReport?.({
         correlationId: currentCorrelationId.current
       });
       
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to generate final report');
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to generate final report');
       }
       
       console.log('[useUnifiedPipeline] Final report generation initiated');

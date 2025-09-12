@@ -17,21 +17,6 @@ import type { UnifiedEvent } from './shared/ipcEvents';
 import { UNIFIED_CHANNEL } from './shared/ipcEvents';
 
 /**
- * Window Control API for frameless window
- */
-interface WindowAPI {
-  minimize: () => Promise<void>;
-  maximize: () => Promise<void>;
-  unmaximize: () => Promise<void>;
-  close: () => Promise<void>;
-  isMaximized: () => Promise<boolean>;
-  updateTheme: (theme: { color: string; symbolColor: string }) => Promise<void>;
-  setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>;
-  isAlwaysOnTop: () => Promise<boolean>;
-  autoResize: (height: number) => Promise<boolean>;
-}
-
-/**
  * UniVoice API - Type-safe interface for renderer
  */
 interface UniVoiceAPI {
@@ -59,9 +44,6 @@ interface UniVoiceAPI {
   
   // Unified event system (Stage 0 - Shadow implementation)
   onUnifiedEvent?: (callback: (event: UnifiedEvent) => void) => () => void;
-  
-  // Window control API
-  window: WindowAPI;
 }
 
 /**
@@ -190,23 +172,6 @@ function createUnifiedEventListener() {
 }
 
 /**
- * Create window control API
- */
-function createWindowAPI(): WindowAPI {
-  return {
-    minimize: () => ipcRenderer.invoke('window:minimize'),
-    maximize: () => ipcRenderer.invoke('window:maximize'),
-    unmaximize: () => ipcRenderer.invoke('window:unmaximize'),
-    close: () => ipcRenderer.invoke('window:close'),
-    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
-    updateTheme: (theme) => ipcRenderer.invoke('window:updateTheme', theme),
-    setAlwaysOnTop: (alwaysOnTop) => ipcRenderer.invoke('window:setAlwaysOnTop', alwaysOnTop),
-    isAlwaysOnTop: () => ipcRenderer.invoke('window:isAlwaysOnTop'),
-    autoResize: (height) => ipcRenderer.invoke('window:autoResize', height)
-  };
-}
-
-/**
  * Utility functions
  */
 function createUtilities() {
@@ -234,8 +199,7 @@ const univoiceAPI: UniVoiceAPI = {
   ...createCommandSender(),
   ...createEventListeners(),
   ...createUtilities(),
-  ...createUnifiedEventListener(),
-  window: createWindowAPI()
+  ...createUnifiedEventListener()
 };
 
 // Expose the type-safe UniVoice API
@@ -275,17 +239,7 @@ const allowedChannels = [
   'final-report-generated',   // Final report generation event
   'advanced-feature-error',   // Advanced feature error event
   'summary',                  // Regular summary event
-  'audio-progress',           // Audio progress event
-  // Window control channels for frameless window
-  'window:minimize',          // Window minimize
-  'window:maximize',          // Window maximize
-  'window:unmaximize',        // Window unmaximize
-  'window:close',             // Window close
-  'window:isMaximized',       // Check if window is maximized
-  'window:updateTheme',       // Update title bar theme
-  'window:setAlwaysOnTop',    // Set window always on top
-  'window:isAlwaysOnTop',     // Check if window is always on top
-  'window:autoResize'         // Auto resize window to content
+  'audio-progress'            // Audio progress event
 ];
 
 // Legacy Electron API for backward compatibility

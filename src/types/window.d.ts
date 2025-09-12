@@ -11,6 +11,21 @@ import type {
 import type { UnifiedEvent } from '../shared/types/ipcEvents';
 
 /**
+ * Window Control API for frameless window
+ */
+interface WindowAPI {
+  minimize: () => Promise<void>;
+  maximize: () => Promise<void>;
+  unmaximize: () => Promise<void>;
+  close: () => Promise<void>;
+  isMaximized: () => Promise<boolean>;
+  updateTheme: (theme: { color: string; symbolColor: string }) => Promise<void>;
+  setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>;
+  isAlwaysOnTop: () => Promise<boolean>;
+  autoResize: (height: number) => Promise<boolean>;
+}
+
+/**
  * Type-safe IPC API for UniVoice 2.0
  * Following Clean Architecture principles
  */
@@ -39,6 +54,9 @@ interface UniVoiceAPI {
   
   // Unified event system (Stage 0 - Shadow implementation)
   onUnifiedEvent?: (callback: (event: UnifiedEvent) => void) => () => void;
+  
+  // Window control API
+  window: WindowAPI;
 }
 
 /**
@@ -54,9 +72,9 @@ interface LegacyElectronAPI {
 
 declare global {
   interface Window {
-    univoice: UniVoiceAPI;
-    electron: LegacyElectronAPI;
-    electronAPI: LegacyElectronAPI;
+    univoice?: UniVoiceAPI;
+    electron?: LegacyElectronAPI;
+    electronAPI?: LegacyElectronAPI;
   }
 }
 

@@ -5,6 +5,23 @@
 import type { PipelineEvent, StartListeningCommand, StopListeningCommand, GetHistoryCommand, GenerateVocabularyCommand, GenerateFinalReportCommand } from './services/ipc/contracts';
 import type { UnifiedEvent } from './shared/ipcEvents';
 /**
+ * Window Control API for frameless window
+ */
+interface WindowAPI {
+    minimize: () => Promise<void>;
+    maximize: () => Promise<void>;
+    unmaximize: () => Promise<void>;
+    close: () => Promise<void>;
+    isMaximized: () => Promise<boolean>;
+    updateTheme: (theme: {
+        color: string;
+        symbolColor: string;
+    }) => Promise<void>;
+    setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>;
+    isAlwaysOnTop: () => Promise<boolean>;
+    autoResize: (height: number) => Promise<boolean>;
+}
+/**
  * UniVoice API - Type-safe interface for renderer
  */
 interface UniVoiceAPI {
@@ -51,6 +68,7 @@ interface UniVoiceAPI {
     generateCorrelationId: () => string;
     getDebugInfo?: () => Promise<any>;
     onUnifiedEvent?: (callback: (event: UnifiedEvent) => void) => () => void;
+    window: WindowAPI;
 }
 /**
  * Legacy Electron API for backward compatibility

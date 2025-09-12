@@ -48,45 +48,6 @@ interface MockUpdate {
   isContinuation: boolean;
 }
 
-/**
- * 🏗️ 高さ管理システムの設計思想
- * 
- * このアプリケーションは「宣言的高さ管理」を採用しています。
- * 
- * 原則：
- * 1. 各セクションは固定の高さを持つ（リアルタイムセクションを除く）
- * 2. ウィンドウの高さ = 表示中のセクションの高さの合計
- * 3. トグル操作でセクションの表示/非表示が切り替わると、ウィンドウ全体がリサイズ
- * 4. リアルタイムセクションは、ユーザーが設定した高さを維持し、圧縮されない
- * 
- * 依存関係：
- * - セクション表示状態（showHeader, showSettings, showQuestionSection）
- *   ↓
- * - 高さ計算（calculateTotalHeight）
- *   ↓
- * - Electronウィンドウリサイズ（window:autoResize）
- */
-
-// Layout Constants - 一元管理されたレイアウト定数
-const LAYOUT_HEIGHTS = {
-  // 固定高さセクション
-  header: 60,              // メインヘッダー
-  minimalControl: 32,      // ヘッダー非表示時のミニマルコントロール
-  settingsBar: 56,         // 設定バー（推定値、将来的にDOM測定に置き換え可能）
-  questionSection: 160,    // 質問セクション
-  
-  // リアルタイムセクション（可変）
-  realtime: {
-    min: 100,              // 最小高さ
-    default: 250,          // デフォルト高さ
-    max: 600               // 最大高さ（将来的な制限用）
-  },
-  
-  // その他
-  resizeHandle: 8,         // リサイズハンドル（現在は使用していない）
-  animationDelay: 450      // CSSアニメーション完了待機時間
-} as const;
-
 interface HistoryEntry {
   id: string;
   original: string;
@@ -123,7 +84,7 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
       height: 60px;
       display: flex;
       align-items: center;
-      padding: 12px 20px; /* Phase 2: 垂直パディング追加で要素の整合性向上 */
+      padding: 0 20px;
       gap: 10px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
       position: relative;
@@ -134,35 +95,25 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
       -webkit-app-region: no-drag; /* ボタンはドラッグ不可 */
     }
 
-    /* 🟢 Light Theme - 白80%不透明度 */
     .glass-light {
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      color: rgba(0, 0, 0, 0.85);
+      color: #333;
     }
 
-    /* 🌙 Dark Theme - 黒80%不透明度 */
     .glass-dark {
-      background: rgba(20, 20, 20, 0.8);
+      background: rgba(20, 20, 20, 0.95);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      color: rgba(255, 255, 255, 0.95);
+      color: white;
     }
 
-    /* 💜 Purple Theme - 紫40%不透明度 */
     .glass-purple {
-      background: rgba(102, 51, 153, 0.4);
+      background: rgba(102, 51, 153, 0.95);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(168, 85, 247, 0.3);
-      box-shadow: 0 8px 32px rgba(102, 51, 153, 0.2);
-      color: rgba(255, 255, 255, 1);
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      color: white;
     }
 
     .spacer {
@@ -170,50 +121,29 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
     }
 
     .icon-btn {
-      width: 36px; /* Phase 4: 固定サイズ追加 */
-      height: 36px; /* Phase 4: 固定サイズ追加 */
-      border-radius: 10px; /* Phase 4: より大きな角丸 */
+      background: none;
       border: none;
-      background: rgba(255, 255, 255, 0.15); /* Phase 4: 半透明背景 */
-      color: white; /* Phase 4: デフォルトテキスト色 */
+      padding: 8px;
       cursor: pointer;
-      display: flex; /* inline-flexから変更 */
+      border-radius: 4px;
+      transition: background 0.2s;
+      position: relative;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s ease; /* Phase 4: より包括的なトランジション */
-      position: relative;
     }
 
     .icon-btn:hover {
       background: rgba(0, 0, 0, 0.1);
-      transform: translateY(-2px); /* Phase 4: ホバー時の上方向移動エフェクト */
-    }
-
-    .glass-light .icon-btn {
-      background: rgba(0, 0, 0, 0.06); /* Phase 4: lightテーマ用の背景色 */
-      color: #333; /* Phase 4: lightテーマ用のテキスト色 */
-    }
-
-    .glass-light .icon-btn:hover {
-      background: rgba(0, 0, 0, 0.1); /* lightテーマのホバー色を維持 */
     }
 
     .glass-dark .icon-btn:hover,
     .glass-purple .icon-btn:hover {
-      background: rgba(255, 255, 255, 0.25); /* Phase 4: より強いホバー効果 */
-      transform: translateY(-2px); /* Phase 4: 統一されたホバー移動 */
+      background: rgba(255, 255, 255, 0.1);
     }
 
-    /* アクティブ状態のボタン */
-    .glass-light .icon-btn.active {
-      background: rgba(102, 126, 234, 0.15);
-      box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
-    }
-    
-    .glass-dark .icon-btn.active,
-    .glass-purple .icon-btn.active {
-      background: rgba(255, 255, 255, 0.35);
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    .icon-btn.active {
+      background: rgba(0, 123, 255, 0.2);
     }
 
     .tooltip {
@@ -230,7 +160,6 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s;
-      z-index: 10000;
     }
 
     .icon-btn:hover .tooltip {
@@ -241,18 +170,8 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 14px; /* Phase 3: 内部余白追加 */
-      background: rgba(76, 175, 80, 0.2); /* Phase 3: 背景色追加 */
-      border-radius: 10px; /* Phase 3: 角丸追加 */
-      color: white; /* Phase 3: デフォルト色（テーマで上書き） */
       font-size: 14px;
       font-weight: 500;
-      height: 36px; /* Phase 3: 高さ固定 */
-    }
-
-    .glass-light .recording-indicator-green {
-      background: rgba(76, 175, 80, 0.15); /* Phase 3: lightテーマ用の背景色 */
-      color: #2e7d32; /* Phase 3: lightテーマ用のテキスト色 */
     }
 
     .recording-dot-green {
@@ -282,20 +201,14 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
     .settings-bar {
       height: 0;
       overflow: hidden;
+      transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
-      z-index: 1000;
+      z-index: 100;
       border: none !important;
-      visibility: hidden;
-      opacity: 0;
-      transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                  visibility 0.3s ease,
-                  opacity 0.3s ease;
     }
 
     .settings-bar.show {
       height: 56px;
-      visibility: visible;
-      opacity: 1;
     }
 
     .settings-inner {
@@ -303,23 +216,7 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 100%;
-      min-height: 56px;
-      overflow: hidden;
-      position: relative;
-    }
-    
-    /* テーマ別の設定バー内部背景 */
-    .glass-light .settings-inner {
       background: rgba(0, 0, 0, 0.03);
-    }
-    
-    .glass-dark .settings-inner {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    
-    .glass-purple .settings-inner {
-      background: rgba(255, 255, 255, 0.08);
     }
 
     .settings-left, .settings-right {
@@ -346,28 +243,6 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
       background: rgba(0, 0, 0, 0.06);
       color: #333;
     }
-    
-    .glass-light .s-btn:hover {
-      background: rgba(0, 0, 0, 0.12);
-    }
-    
-    .glass-dark .s-btn {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-    
-    .glass-dark .s-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    
-    .glass-purple .s-btn {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-    }
-    
-    .glass-purple .s-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
 
     .s-btn.active {
       background: #667eea;
@@ -376,25 +251,23 @@ const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: num
 
     .s-tooltip {
       position: absolute;
-      bottom: -32px;
+      bottom: -28px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.9);
       color: white;
-      padding: 6px 10px;
+      padding: 4px 8px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 11px;
       white-space: nowrap;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s;
       z-index: 10000;
-      visibility: hidden;
     }
 
-    .settings-bar.show .s-btn:hover .s-tooltip {
+    .s-btn:hover .s-tooltip {
       opacity: 1;
-      visibility: visible;
     }
   `;
 
@@ -472,10 +345,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const [showSummaryPanel, setShowSummaryPanel] = useState(false);
   const [showQuestionSection, setShowQuestionSection] = useState(false);
   
-  // ヘッダー表示/非表示とウィンドウ最前面設定
-  const [showHeader, setShowHeader] = useState(true);
-  const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
-  
   // 要約データ
   const [summaryJapanese, setSummaryJapanese] = useState<string>('');
   const [summaryEnglish, setSummaryEnglish] = useState<string>('');
@@ -485,9 +354,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // 自動スクロール用のref
   const realtimeSectionRef = useRef<HTMLDivElement>(null);
-  
-  // アプリコンテナ全体のref（自動リサイズ用）
-  const appContainerRef = useRef<HTMLDivElement>(null);
   
   // 現在の表示テキスト（3行表示用）
   // Phase 2: Override または パイプラインデータを使用
@@ -509,11 +375,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // リサイズ中の状態
   const [isResizing, setIsResizing] = useState(false);
-  const [realtimeSectionHeight, setRealtimeSectionHeight] = useState(() => {
-    // LocalStorageから保存された高さを読み込む
-    const saved = localStorage.getItem('univoice-realtime-height');
-    return saved ? parseInt(saved, 10) : LAYOUT_HEIGHTS.realtime.default;
-  });
   const [resizingSection, setResizingSection] = useState<string | null>(null);
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(0);
@@ -711,103 +572,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // currentDisplayは既に128行目で定義済み
   
-  /**
-   * 🔍 高さ計算の核心ロジック
-   * 
-   * この関数が全ての高さ管理の中心です。
-   * 各セクションの表示状態に基づいて、ウィンドウの総高さを計算します。
-   * 
-   * 重要：DOM測定（scrollHeight等）は使用しません。
-   * 理由：予測不可能で、レイアウトの再計算を引き起こし、パフォーマンスに悪影響があるため。
-   */
-  const calculateTotalHeight = useCallback(() => {
-    let totalHeight = 0;
-    
-    // 1. ヘッダー部分（必ず何かが表示される）
-    if (showHeader) {
-      totalHeight += LAYOUT_HEIGHTS.header;
-    } else {
-      // ヘッダー非表示時でも最小限のコントロールバーを表示
-      totalHeight += LAYOUT_HEIGHTS.minimalControl;
-    }
-    
-    // 2. 設定バー（トグルで表示/非表示）
-    if (showSettings) {
-      totalHeight += LAYOUT_HEIGHTS.settingsBar;
-    }
-    
-    // 3. リアルタイムセクション（常に表示、高さはユーザー設定）
-    // これがメインコンテンツエリア - 絶対に圧縮されない
-    totalHeight += realtimeSectionHeight;
-    
-    // 4. 質問セクション（トグルで表示/非表示）
-    if (showQuestionSection) {
-      totalHeight += LAYOUT_HEIGHTS.questionSection;
-    }
-    
-    return totalHeight;
-  }, [showHeader, showSettings, showQuestionSection, realtimeSectionHeight]);
-
-  /**
-   * 🎯 ウィンドウリサイズの実行
-   * 
-   * 計算された高さに基づいてElectronウィンドウをリサイズします。
-   * この関数は副作用（IPC通信）を含むため、calculateTotalHeightとは分離しています。
-   */
-  const executeWindowResize = useCallback(async () => {
-    const targetHeight = calculateTotalHeight();
-    
-    // デバッグ用ログ（開発時のみ）
-    console.log('[Window Resize] Executing resize:', {
-      sections: {
-        header: showHeader ? LAYOUT_HEIGHTS.header : LAYOUT_HEIGHTS.minimalControl,
-        settings: showSettings ? LAYOUT_HEIGHTS.settingsBar : 0,
-        realtime: realtimeSectionHeight,
-        question: showQuestionSection ? LAYOUT_HEIGHTS.questionSection : 0,
-      },
-      totalHeight: targetHeight
-    });
-    
-    // ウィンドウリサイズをIPCで実行
-    const windowAPI = window.univoice?.window;
-    if (windowAPI?.autoResize) {
-      await windowAPI.autoResize(targetHeight);
-    }
-  }, [calculateTotalHeight, showHeader, showSettings, showQuestionSection, realtimeSectionHeight]);
-  
-  /**
-   * 🔄 セクション表示状態変更時のウィンドウリサイズ
-   * 
-   * 重要な設計判断：
-   * - ResizeObserverは使用しない（予測不可能な動作を避けるため）
-   * - セクションの状態変更を明示的に監視
-   * - CSSアニメーションとの競合を避けるため、適切な遅延を設定
-   */
-  useEffect(() => {
-    // 初回レンダリング時にもリサイズを実行
-    executeWindowResize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 初回のみ - executeWindowResizeは依存関係に含めない（無限ループ防止）
-
-  // セクション表示状態の変更を監視
-  useEffect(() => {
-    // アニメーションとの競合を避けるための遅延時間
-    // 質問セクションは0.4秒のCSSトランジションがあるため、少し長めに待つ
-    const delay = showQuestionSection !== undefined ? LAYOUT_HEIGHTS.animationDelay : 50;
-    
-    const timer = setTimeout(() => {
-      executeWindowResize();
-    }, delay);
-    
-    return () => clearTimeout(timer);
-  }, [showSettings, showQuestionSection, showHeader, executeWindowResize]);
-  
-  // リアルタイムセクションの高さ変更時
-  useEffect(() => {
-    // ユーザーがリサイズハンドルを操作した後
-    executeWindowResize();
-  }, [realtimeSectionHeight, executeWindowResize]);
-  
   // ========== useEffect フック ==========
   
   // Phase 2: リアルタイムセグメントから3行表示を構築（DisplaySegmentインターフェースに対応）
@@ -898,23 +662,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           changeFont(-1);
         }
       }
-      
-      // ヘッダー表示/非表示切り替え（Alt + H）
-      if (e.altKey && !e.ctrlKey && !e.shiftKey && (e.key === 'h' || e.key === 'H')) {
-        e.preventDefault();
-        toggleHeader();
-      }
-      
-      // Escキーでヘッダーを再表示
-      if (e.key === 'Escape' && !showHeader) {
-        e.preventDefault();
-        setShowHeader(true);
-      }
     };
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [showSetup, sourceLanguage, targetLanguage, showHeader, isAlwaysOnTop]);
+  }, [showSetup, sourceLanguage, targetLanguage]);
   
   // タイマー
   useEffect(() => {
@@ -1091,70 +843,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     return undefined;
   }, [showSetup, showBlockGuides]);
   
-  // 録音時間の自動更新
-  useEffect(() => {
-    if (!showSetup && !isPaused && recordingStartTimeRef.current) {
-      timerRef.current = setInterval(() => {
-        const now = new Date();
-        const diff = Math.floor((now.getTime() - recordingStartTimeRef.current!.getTime()) / 1000);
-        setRecordingTime(diff);
-      }, 1000);
-      
-      return () => {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-      };
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      return undefined;
-    }
-  }, [showSetup, isPaused]);
-  
-  // リアルタイムセクションの自動スクロール
-  useEffect(() => {
-    const scrollToBottom = () => {
-      if (realtimeSectionRef.current && !userIsScrollingRef.current) {
-        realtimeSectionRef.current.scrollTop = realtimeSectionRef.current.scrollHeight;
-      }
-    };
-    
-    // 3秒ごとに自動スクロール
-    const scrollInterval = setInterval(scrollToBottom, 3000);
-    
-    // コンテンツが更新されたときもスクロール
-    scrollToBottom();
-    
-    return () => clearInterval(scrollInterval);
-  }, [displayContent, realtimeSegments]);
-  
-  // ユーザーがスクロールしているかどうかを検出
-  useEffect(() => {
-    const handleUserScroll = () => {
-      userIsScrollingRef.current = true;
-      // 5秒後に自動スクロールを再開
-      setTimeout(() => {
-        userIsScrollingRef.current = false;
-      }, 5000);
-    };
-    
-    const section = realtimeSectionRef.current;
-    if (section) {
-      section.addEventListener('wheel', handleUserScroll);
-      section.addEventListener('touchmove', handleUserScroll);
-      
-      return () => {
-        section.removeEventListener('wheel', handleUserScroll);
-        section.removeEventListener('touchmove', handleUserScroll);
-      };
-    }
-    return undefined;
-  }, []);
-  
   // ========== イベントハンドラー ==========
   
   // SetupSectionから呼ばれるコールバック
@@ -1220,13 +908,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   };
   
-  
-  // 時間フォーマット関数
-  const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  // テーマ切り替え関数
+  const cycleTheme = () => {
+    const themes: ('light' | 'dark' | 'purple')[] = ['light', 'dark', 'purple'];
+    const currentIndex = themes.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setCurrentTheme(themes[nextIndex]);
   };
 
   const endSession = async () => {
@@ -1382,13 +1069,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   };
   
   // フォントサイズ変更関数
-  const changeFont = (direction: number) => {
+  const changeFont = (direction: -1 | 0 | 1) => {
     if (direction === 0) {
       setCurrentFontScale(1);
     } else if (direction === 1) {
-      setCurrentFontScale(prev => Math.min(3.0, prev * 1.1)); // 最大3倍まで拡大可能
+      setCurrentFontScale(prev => Math.min(1.5, prev * 1.1));
     } else if (direction === -1) {
-      setCurrentFontScale(prev => Math.max(0.5, prev * 0.9)); // 最小0.5倍まで縮小可能
+      setCurrentFontScale(prev => Math.max(0.7, prev * 0.9));
     }
   };
   
@@ -1402,27 +1089,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       setShowHistoryPanel(false); // 他のパネルを閉じる
     }
   };
-  
-  // ヘッダー表示/非表示切り替え
-  const toggleHeader = () => {
-    setShowHeader(!showHeader);
-  };
-  
-  /**
-   * 🎨 テーマ切り替え関数
-   * light → dark → purple → light の順番で循環
-   */
-  const cycleTheme = () => {
-    setCurrentTheme(prev => {
-      switch(prev) {
-        case 'light': return 'dark';
-        case 'dark': return 'purple';
-        case 'purple': return 'light';
-        default: return 'light';
-      }
-    });
-  };
-  
   
   // 要約データの表示（削除 - summaryEnglish/summaryJapaneseで管理）
   
@@ -1626,6 +1292,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     };
   };
   
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
   const getAlignedHistoryContent = (): string => {
     // フロー型レンダラーを使用（より自然な表示）
     return renderFlowHistoryToHTML(historyBlocks, {
@@ -1715,103 +1388,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     };
   };
   
-  // ========== 自動スクロール制御 ==========
-  const userIsScrollingRef = useRef(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // コンテンツ更新時の自動スクロール
-  useEffect(() => {
-    if (realtimeSectionRef.current && !userIsScrollingRef.current && threeLineDisplay) {
-      // 新しいコンテンツが追加されたら最下部へスクロール
-      const element = realtimeSectionRef.current;
-      element.scrollTop = element.scrollHeight;
-    }
-  }, [threeLineDisplay]);
-  
-  // スクロール操作の検出
-  useEffect(() => {
-    const handleUserScroll = () => {
-      userIsScrollingRef.current = true;
-      
-      // 既存のタイマーをクリア
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      
-      // 5秒後に自動スクロールを再開
-      scrollTimeoutRef.current = setTimeout(() => {
-        userIsScrollingRef.current = false;
-      }, 5000);
-    };
-    
-    const element = realtimeSectionRef.current;
-    if (element) {
-      element.addEventListener('wheel', handleUserScroll);
-      element.addEventListener('touchmove', handleUserScroll);
-      element.addEventListener('mousedown', handleUserScroll); // スクロールバーのドラッグ検出
-      
-      return () => {
-        element.removeEventListener('wheel', handleUserScroll);
-        element.removeEventListener('touchmove', handleUserScroll);
-        element.removeEventListener('mousedown', handleUserScroll);
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
-      };
-    }
-    
-    return undefined;
-  }, []);
-  
-  // ========== キーボードショートカット ==========
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      // Alt + S/T/B: 表示モード切り替え
-      if (e.altKey && !e.ctrlKey && !e.shiftKey) {
-        if (e.key === 's' || e.key === 'S') {
-          e.preventDefault();
-          setDisplay('source');
-        } else if (e.key === 't' || e.key === 'T') {
-          e.preventDefault();
-          setDisplay('target');
-        } else if (e.key === 'b' || e.key === 'B') {
-          e.preventDefault();
-          setDisplay('both');
-        } else if (e.key === 'h' || e.key === 'H') {
-          e.preventDefault();
-          toggleHeader();
-        }
-      }
-      
-      // Ctrl + +/-: フォントサイズ変更
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
-        if (e.key === '+' || e.key === '=') {
-          e.preventDefault();
-          e.stopPropagation();
-          changeFont(1);
-        } else if (e.key === '-' || e.key === '_') {
-          e.preventDefault();
-          e.stopPropagation();
-          changeFont(-1);
-        }
-      }
-      
-      // Escape: ヘッダー再表示
-      if (e.key === 'Escape' && !showHeader) {
-        e.preventDefault();
-        setShowHeader(true);
-      }
-    };
-    
-    // キャプチャフェーズでも登録してブラウザのズーム機能を確実に防ぐ
-    window.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('keydown', handleKeyDown, false);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('keydown', handleKeyDown, false);
-    };
-  }, [showHeader]);
-  
   // ========== セットアップ画面 ==========
   if (showSetup) {
     return (
@@ -1837,37 +1413,28 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       {/* Liquid Glass スタイル注入 */}
       <style>{getLiquidGlassStyles(currentTheme, currentFontScale)}</style>
       
-      {/* アプリコンテナ（フレームレス対応） */}
-      <div ref={appContainerRef} className="app-container" style={{
-        width: '100%',
-        height: 'auto', // コンテンツに合わせて高さを決定
+      {/* アプリコンテナ（理想UIのレイアウト） */}
+      <div className="app-container" style={{
+        padding: '20px',
+        paddingTop: '20px', // 余白のみ
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
-        // グラスモーフィズム効果を強調するための背景グラデーション
-        background: currentTheme === 'light' 
-          ? 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' 
-          : currentTheme === 'dark'
-          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'
-          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: '#f0f0f2'
       }}>
-        {/* メインウィンドウ */}
+        {/* メインウィンドウ（最大幅1200px） */}
         <div className="main-window" style={{
-          width: '100%',
-          height: 'auto', // コンテンツに合わせて高さを自動調整
+          width: '90%',
+          maxWidth: '1200px',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          borderRadius: '8px',
+          overflow: 'hidden',
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)'
         }}>
         {/* ヘッダー */}
-        {showHeader && (
-        <div className={`header glass-${currentTheme}`} style={{
-          WebkitAppRegion: 'drag' as any,
-          position: 'relative',
-          userSelect: 'none',
-          flexShrink: 0,
-          zIndex: 10002
-        }}>
+        <div className={`header glass-${currentTheme}`}>
           {/* 録音インジケーター */}
           <div className={`recording-indicator-green ${isPaused ? 'paused' : ''}`}>
             <div className={`recording-dot-green ${isPaused ? 'paused' : ''}`} />
@@ -1875,7 +1442,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </div>
           
           {/* 一時停止ボタン */}
-          <button className="icon-btn" onClick={togglePause} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className="icon-btn" onClick={togglePause}>
             {isPaused ? (
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M4 2 L4 14 L12 8 Z"/>
@@ -1888,20 +1455,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <span className="tooltip">{isPaused ? '再開' : '一時停止'}</span>
           </button>
           
-          {/* 授業終了ボタン */}
-          <button className="icon-btn" onClick={endSession} style={{WebkitAppRegion: 'no-drag' as any}}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-              <rect x="2" y="2" width="10" height="10" rx="1"/>
+          {/* テーマ切り替えボタン */}
+          <button className="icon-btn" onClick={cycleTheme}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+              <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
             </svg>
-            <span className="tooltip">授業終了</span>
-          </button>
-          
-          {/* 次の授業へボタン */}
-          <button className="icon-btn" onClick={nextClass} style={{WebkitAppRegion: 'no-drag' as any}}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 7h8m0 0L7 3m4 4L7 11"/>
-            </svg>
-            <span className="tooltip">次の授業へ</span>
+            <span className="tooltip">テーマ</span>
           </button>
           
           {/* メモカウンター */}
@@ -1958,9 +1518,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           {/* 質問ボタン */}
           <button 
             className={`icon-btn ${showQuestionSection ? 'active' : ''}`}
-            onClick={() => {
-              setShowQuestionSection(!showQuestionSection);
-            }}
+            onClick={() => setShowQuestionSection(!showQuestionSection)}
           >
             <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M3 12 L3 7 Q3 4 6 4 L12 4 Q15 4 15 7 L15 12 L10 12 L6 15 L6 12 Z"/>
@@ -1983,21 +1541,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             )}
           </button>
           
-          <div className="spacer" />
-          
-          {/* テーマ切り替えボタン */}
-          <button className="icon-btn" onClick={cycleTheme} style={{WebkitAppRegion: 'no-drag' as any}}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-              <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
-            </svg>
-            <span className="tooltip">テーマ</span>
-          </button>
+          <div style={{ width: '20px' }} />
           
           {/* 設定ボタン */}
-          <button className="icon-btn" onClick={() => {
-            setShowSettings(!showSettings);
-          }} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className="icon-btn" onClick={() => setShowSettings(!showSettings)}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
               <path d="M10 3.5v-2m0 17v-2m6.5-6.5h2m-17 0h2m12.02-4.52l1.41-1.41M4.93 15.07l1.41-1.41m0-7.32L4.93 4.93m11.14 11.14l1.41 1.41"/>
@@ -2005,61 +1552,29 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <span className="tooltip">設定</span>
           </button>
           
-          <div style={{ flex: 1 }} />
-          
-          {/* 最前面固定ボタン */}
-          <button 
-            className={`icon-btn ${isAlwaysOnTop ? 'active' : ''}`}
-            onClick={async () => {
-              const newState = !isAlwaysOnTop;
-              const windowAPI = window.univoice?.window;
-              if (windowAPI?.setAlwaysOnTop) {
-                await windowAPI.setAlwaysOnTop(newState);
-                setIsAlwaysOnTop(newState);
-              }
-            }}
-            style={{ WebkitAppRegion: 'no-drag' as any }}
-          >
-            <svg width="16" height="16" viewBox="0 0 18 18" 
-              fill={isAlwaysOnTop ? "currentColor" : "none"} 
-              stroke="currentColor" 
-              strokeWidth="1.5"
-            >
-              <path d="M7 3 L11 3 L11 9 L13 11 L9 15 L5 11 L7 9 Z" 
-                fill={isAlwaysOnTop ? "currentColor" : "none"} 
-                opacity={isAlwaysOnTop ? "0.3" : "1"}
-              />
-              <line x1="9" y1="15" x2="9" y2="18"/>
+          {/* 授業終了ボタン */}
+          <button className="icon-btn" onClick={endSession}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+              <rect x="2" y="2" width="10" height="10" rx="1"/>
             </svg>
-            <span className="tooltip">最前面に固定</span>
+            <span className="tooltip">授業終了</span>
           </button>
           
-          {/* メニューを隠すボタン */}
-          <button 
-            className="icon-btn"
-            onClick={() => {
-              setShowHeader(false);
-            }}
-            style={{ WebkitAppRegion: 'no-drag' as any }}
-          >
-            <svg width="16" height="16" viewBox="0 0 18 18" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="1.5"
-            >
-              <rect x="3" y="3" width="12" height="12" rx="1"/>
-              <path d="M6 7 L9 10 L12 7" strokeLinecap="round"/>
+          {/* 次の授業へボタン */}
+          <button className="icon-btn" onClick={nextClass}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 7h8m0 0L7 3m4 4L7 11"/>
             </svg>
-            <span className="tooltip">メニューを隠す (Esc で戻る)</span>
+            <span className="tooltip">次の授業へ</span>
           </button>
           
-          <div style={{ width: '10px' }} />
+          <div style={{ width: '40px' }} />
           
           {/* 閉じるボタン */}
           <button 
             className="icon-btn" 
             onClick={() => window.univoice?.window?.close()}
-            style={{ marginRight: '30px', marginLeft: '20px', WebkitAppRegion: 'no-drag' as any }}
+            style={{ marginRight: '10px' }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
@@ -2067,13 +1582,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <span className="tooltip">閉じる</span>
           </button>
         </div>
-        )}
-        
         
         {/* 設定バー (Liquid Glass) */}
-        <div className={`settings-bar glass-${currentTheme} ${showSettings ? 'show' : ''}`} style={{
-          zIndex: 1000
-        }}>
+        <div className={`settings-bar glass-${currentTheme} ${showSettings ? 'show' : ''}`}>
           <div className="settings-inner">
             <div className="settings-left">
               <button 
@@ -2124,92 +1635,20 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 </svg>
                 <span className="s-tooltip">Ctrl++</span>
               </button>
-              <div style={{ width: '1px', height: '20px', background: 'rgba(0,0,0,0.1)', margin: '0 8px' }} />
-              <button 
-                className={`s-btn ${!showHeader ? 'active' : ''}`}
-                onClick={toggleHeader}
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <rect x="3" y="3" width="12" height="2" fill="currentColor" opacity={showHeader ? 1 : 0.3}/>
-                  <rect x="3" y="7" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                  <circle cx="9" cy="11" r="2" fill="currentColor" opacity="0.6"/>
-                </svg>
-                <span className="s-tooltip">ヘッダー表示/非表示 (Alt+H)</span>
-              </button>
             </div>
           </div>
         </div>
         
-        {/* ヘッダー非表示時のミニマルコントロール */}
-        {!showHeader && (
-          <div className={`minimal-control glass-${currentTheme}`} style={{
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 16px',
-            gap: '8px',
-            borderBottom: `1px solid ${currentTheme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`,
-            flexShrink: 0,
-            WebkitAppRegion: 'drag' as any
-          }}>
-            {/* 録音状態 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: isPaused ? '#FFA500' : '#4CAF50' }}>
-              <div style={{ 
-                width: '6px', 
-                height: '6px', 
-                borderRadius: '50%', 
-                background: isPaused ? '#FFA500' : '#4CAF50',
-                animation: isPaused ? 'none' : 'pulse 2s infinite'
-              }} />
-              <span>{formatTime(recordingTime)}</span>
-            </div>
-            
-            <div style={{ flex: 1 }} />
-            
-            
-            {/* ヘッダー復元ボタン */}
-            <button 
-              onClick={toggleHeader}
-              style={{
-                width: '24px',
-                height: '24px',
-                border: 'none',
-                background: 'rgba(0, 0, 0, 0.05)',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                WebkitAppRegion: 'no-drag' as any
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.05)';
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" opacity="0.6">
-                <path d="M8 11L12 7H4L8 11Z"/>
-              </svg>
-            </button>
-          </div>
-        )}
-        
-        {/* リアルタイムセクション（固定高さ） */}
+        {/* リアルタイムセクション（固定高さ280px） */}
         <div 
           ref={realtimeSectionRef}
           className={`realtime-section glass-${currentTheme}`} 
           style={{
-          height: `${realtimeSectionHeight}px`, // 固定高さ
+          height: '280px',
           overflowY: 'auto',
           padding: '20px 30px',
           position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          boxSizing: 'border-box',
-          zIndex: 1,
-          flexShrink: 0 // 圧縮されないように
+          marginTop: '-1px'
         }}>
             <RealtimeSection
               {...(displayContent.original.recent || displayContent.original.older || displayContent.original.oldest 
@@ -2227,22 +1666,25 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               volumeLevel={0} // TODO: 音声レベルの実装
               isRunning={isRunning}
               debug={true} // デバッグを有効化
-              fontScale={currentFontScale}
-              displayMode={displayMode}
             />
             
-            {/* 表示モード制御は RealtimeSection 内で実装 */}
+            {/* 表示モード制御オーバーレイ */}
+            {displayMode !== 'both' && (
+              <style>{`
+                .realtime-section .text-row > div:${displayMode === 'source' ? 'last-child' : 'first-child'} {
+                  display: none !important;
+                }
+              `}</style>
+            )}
           </div>
-          
-          {/* リサイズハンドルを削除 - Electronウィンドウのリサイズのみを使用 */}
           
           {/* 質問セクション（折りたたみ可能） */}
           <div className={`question-section glass-${currentTheme} ${showQuestionSection ? 'open' : ''}`} style={{
             height: showQuestionSection ? '160px' : '0',
-            overflow: showQuestionSection ? 'visible' : 'hidden',
+            overflow: 'hidden',
             transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             position: 'relative',
-            flexShrink: 0
+            marginTop: '-1px'
           }}>
             <div className="question-inner" style={{
               padding: '20px 30px',
@@ -2380,131 +1822,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           50% { opacity: 0.5; }
         }
         
-        /* Glassmorphism Base Styles */
-        .glass-light {
-          background: rgba(255, 255, 255, 0.8) !important;
-          backdrop-filter: blur(20px) saturate(180%);
-          -webkit-backdrop-filter: blur(20px) saturate(180%);
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-        }
-        
-        .glass-dark {
-          background: rgba(30, 30, 30, 0.8) !important;
-          backdrop-filter: blur(20px) saturate(180%);
-          -webkit-backdrop-filter: blur(20px) saturate(180%);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-          color: #fff;
-        }
-        
-        .glass-purple {
-          background: rgba(102, 51, 153, 0.4) !important;
-          backdrop-filter: blur(20px) saturate(180%);
-          -webkit-backdrop-filter: blur(20px) saturate(180%);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 8px 32px 0 rgba(102, 51, 153, 0.3);
-          color: #fff;
-        }
-        
-        /* Header specific glassmorphism */
-        .header.glass-light {
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(240, 240, 240, 0.8)) !important;
-        }
-        
-        .header.glass-dark {
-          background: linear-gradient(135deg, rgba(40, 40, 40, 0.9), rgba(20, 20, 20, 0.8)) !important;
-        }
-        
-        .header.glass-purple {
-          background: linear-gradient(135deg, rgba(120, 70, 180, 0.5), rgba(80, 40, 140, 0.4)) !important;
-        }
-        
-        /* Settings bar glassmorphism */
-        .settings-bar.glass-light {
-          background: rgba(248, 248, 248, 0.85) !important;
-        }
-        
-        .settings-bar.glass-dark {
-          background: rgba(40, 40, 40, 0.85) !important;
-        }
-        
-        .settings-bar.glass-purple {
-          background: rgba(110, 60, 160, 0.45) !important;
-        }
-        
-        /* Realtime section glassmorphism */
-        .realtime-section.glass-light {
-          background: rgba(255, 255, 255, 0.75) !important;
-        }
-        
-        .realtime-section.glass-dark {
-          background: rgba(25, 25, 25, 0.75) !important;
-        }
-        
-        .realtime-section.glass-purple {
-          background: rgba(90, 45, 145, 0.35) !important;
-        }
-        
-        /* Question section glassmorphism */
-        .question-section.glass-light {
-          background: rgba(252, 252, 252, 0.85) !important;
-        }
-        
-        .question-section.glass-dark {
-          background: rgba(35, 35, 35, 0.85) !important;
-        }
-        
-        .question-section.glass-purple {
-          background: rgba(100, 50, 150, 0.4) !important;
-        }
-        
-        /* Button adjustments for glass themes */
-        .glass-dark .icon-btn,
-        .glass-purple .icon-btn {
-          color: rgba(255, 255, 255, 0.9);
-        }
-        
-        .glass-dark .icon-btn:hover,
-        .glass-purple .icon-btn:hover {
-          background: rgba(255, 255, 255, 0.1) !important;
-        }
-        
-        .glass-dark .s-btn,
-        .glass-purple .s-btn {
-          color: rgba(255, 255, 255, 0.9);
-          background: rgba(255, 255, 255, 0.05);
-        }
-        
-        .glass-dark .s-btn:hover,
-        .glass-purple .s-btn:hover {
-          background: rgba(255, 255, 255, 0.15) !important;
-        }
-        
-        .glass-dark .s-btn.active,
-        .glass-purple .s-btn.active {
-          background: rgba(255, 255, 255, 0.2) !important;
-        }
-        
-        /* Input adjustments for dark/purple themes */
-        .glass-dark .question-input,
-        .glass-purple .question-input {
-          background: rgba(255, 255, 255, 0.1) !important;
-          color: #fff !important;
-          border-color: rgba(255, 255, 255, 0.3) !important;
-        }
-        
-        .glass-dark .question-input::placeholder,
-        .glass-purple .question-input::placeholder {
-          color: rgba(255, 255, 255, 0.6);
-        }
-        
-        .glass-dark .question-input:focus,
-        .glass-purple .question-input:focus {
-          background: rgba(255, 255, 255, 0.15) !important;
-          border-color: rgba(255, 255, 255, 0.5) !important;
-        }
-        
         .resize-handle:hover {
           background: rgba(102, 126, 234, 0.3) !important;
         }
@@ -2556,5 +1873,168 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     </>
   );
 };
+
+export default UniVoice;
+  
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-radius: 20px 20px 0 0;
+  }
+  
+  .recording-indicator-green {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(76, 175, 80, 0.2);
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    height: 36px;
+  }
+  
+  .glass-light .recording-indicator-green {
+    background: rgba(76, 175, 80, 0.15);
+    color: #2e7d32;
+  }
+  
+  .recording-dot-green {
+    width: 8px;
+    height: 8px;
+    background: #4caf50;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  
+  .recording-dot-green.paused {
+    background: #999;
+    animation: none;
+  }
+  
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .glass-light .icon-btn {
+    background: rgba(0, 0, 0, 0.06);
+    color: #333;
+  }
+  
+  .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+  }
+  
+  .tooltip {
+    position: absolute;
+    top: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 10000;
+  }
+  
+  .icon-btn:hover .tooltip {
+    opacity: 1;
+  }
+  
+  .spacer {
+    margin-left: auto;
+  }
+  
+  .settings-bar {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 100;
+    border: none !important;
+  }
+  
+  .settings-bar.show {
+    height: 56px;
+  }
+  
+  .settings-inner {
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.03);
+  }
+  
+  .settings-left, .settings-right {
+    display: flex;
+    gap: 6px;
+  }
+  
+  .s-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  
+  .glass-light .s-btn {
+    background: rgba(0, 0, 0, 0.06);
+    color: #333;
+  }
+  
+  .s-btn.active {
+    background: #667eea;
+    color: white;
+  }
+  
+  .s-tooltip {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 10000;
+  }
+  
+  .s-btn:hover .s-tooltip {
+    opacity: 1;
+  }
+`;
 
 export default UniVoice;
