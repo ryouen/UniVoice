@@ -51,42 +51,145 @@ interface MockUpdate {
 }
 
 /**
- * 🏗️ 高さ管理システムの設計思想
+ * 🏗️ 高度なウィンドウリサイズ管理システム（2025-09-13 更新）
  * 
- * このアプリケーションは「宣言的高さ管理」を採用しています。
+ * このアプリケーションは「宣言的高さ管理」と「リアクティブリサイズ」を組み合わせた
+ * ハイブリッドアプローチを採用しています。
  * 
- * 原則：
- * 1. 各セクションは固定の高さを持つ（リアルタイムセクションを除く）
+ * ## 基本原則：
+ * 
+ * 1. 各セクションは固定の高さを持つ
+ *    - メニューバー: 60px（固定）
+ *    - コンパクトメニュー: 32px（固定）
+ *    - 設定バー: 56px（固定・トグル可能）
+ *    - 質問エリア: 160px（固定・トグル可能）
+ *    - リアルタイムエリア: 250px（デフォルト・ユーザーリサイズ可能）
+ * 
  * 2. ウィンドウの高さ = 表示中のセクションの高さの合計
- * 3. トグル操作でセクションの表示/非表示が切り替わると、ウィンドウ全体がリサイズ
- * 4. リアルタイムセクションは、ユーザーが設定した高さを維持し、圧縮されない
  * 
- * 依存関係：
- * - セクション表示状態（showHeader, showSettings, showQuestionSection）
- *   ↓
- * - 高さ計算（calculateTotalHeight）
- *   ↓
- * - Electronウィンドウリサイズ（window:autoResize）
+ * ## リサイズモード：
+ * 
+ * ### 1. セクショントグルモード（Section Toggle Mode）
+ *    - トリガー: セクションの表示/非表示切り替え
+ *    - 動作: リアルタイムエリアは固定、ウィンドウ全体がリサイズ
+ *    - 実装: executeWindowResize() → Electron IPC → ウィンドウリサイズ
+ * 
+ * ### 2. ユーザードラッグモード（User Drag Mode）
+ *    - トリガー: ユーザーがウィンドウ境界をドラッグ
+ *    - 動作: リアルタイムエリアのみリサイズ、他セクションは固定
+ *    - 実装: window resize イベント → リアルタイム高さ再計算 → UI更新
+ * 
+ * ## 技術的詳細：
+ * 
+ * 1. 無限ループ防止メカニズム
+ *    - ResizeModeEnum でモードを管理
+ *    - セクショントグル中はウィンドウリサイズイベントを無視
+ *    - デバウンス処理（100ms）でイベントの乱発を防止
+ * 
+ * 2. パフォーマンス最適化
+ *    - 有意な変化（5px以上）のみ処理
+ *    - LocalStorage への書き込みは必要時のみ
+ *    - React の再レンダリングを最小化
+ * 
+ * 3. 将来の拡張性
+ *    - 新セクション追加: LAYOUT_HEIGHTS と calculateFixedSectionsHeight を更新
+ *    - リサイズ挙動のカスタマイズ: ResizeMode を拡張
+ *    - アニメーション: CSS transition と連携可能な設計
+ * 
+ * ## 依存関係フロー：
+ * ```
+ * [トグル操作] → executeWindowResize() → [Electron IPC] → [ウィンドウリサイズ]
+ *                                                              ↓
+ * [UI更新] ← [リアルタイム高さ計算] ← [resize イベント] ← [ユーザードラッグ]
+ * ```
  */
 
-// Layout Constants - 一元管理されたレイアウト定数
-const LAYOUT_HEIGHTS = {
-  // 固定高さセクション
-  header: 60,              // メインヘッダー
-  minimalControl: 32,      // ヘッダー非表示時のミニマルコントロール
-  settingsBar: 56,         // 設定バー（推定値、将来的にDOM測定に置き換え可能）
-  questionSection: 160,    // 質問セクション
-  
-  // リアルタイムセクション（可変）
-  realtime: {
-    min: 100,              // 最小高さ
-    default: 250,          // デフォルト高さ
-    max: 600               // 最大高さ（将来的な制限用）
+
+/**
+ * 📐 セクション定義インターフェース
+ * 新しいセクションを追加する際は、この形式に従って定義する
+ */
+interface SectionDefinition {
+  id: string;                // セクションの一意識別子
+  height: number;            // 固定高さ（px）
+  resizable: boolean;        // ユーザーリサイズ可能かどうか
+  toggleable: boolean;       // 表示/非表示の切り替え可能かどうか
+  displayName: string;       // UI表示用の名前
+  minHeight?: number;        // リサイズ可能な場合の最小高さ
+  maxHeight?: number;        // リサイズ可能な場合の最大高さ
+}
+
+/**
+ * 📋 セクション定義マップ
+ * 
+ * 新しいセクションを追加する手順：
+ * 1. このマップに定義を追加
+ * 2. 対応する表示状態（useState）を追加
+ * 3. UIにトグルボタンを実装
+ * 4. レンダリング部分に条件付き表示を実装
+ * 
+ * 例：
+ * newSection: {
+ *   id: 'newSection',
+ *   height: 80,
+ *   resizable: false,
+ *   toggleable: true,
+ *   displayName: '新規セクション'
+ * }
+ */
+const SECTION_DEFINITIONS: Record<string, SectionDefinition> = {
+  header: {
+    id: 'header',
+    height: 60,
+    resizable: false,
+    toggleable: true,
+    displayName: 'メインヘッダー'
   },
-  
-  // その他
-  resizeHandle: 8,         // リサイズハンドル（現在は使用していない）
-  animationDelay: 450      // CSSアニメーション完了待機時間
+  minimalControl: {
+    id: 'minimalControl',
+    height: 32,
+    resizable: false,
+    toggleable: false,
+    displayName: 'ミニマルコントロール'
+  },
+  settingsBar: {
+    id: 'settingsBar',
+    height: 56,
+    resizable: false,
+    toggleable: true,
+    displayName: '設定バー'
+  },
+  questionSection: {
+    id: 'questionSection',
+    height: 160,
+    resizable: false,
+    toggleable: true,
+    displayName: '質問エリア'
+  },
+  realtimeSection: {
+    id: 'realtimeSection',
+    height: 250,  // デフォルト値
+    resizable: true,
+    toggleable: false,
+    displayName: 'リアルタイムエリア',
+    minHeight: 100,
+    maxHeight: 600
+  }
+} as const;
+
+// 後方互換性のためのエイリアス
+const LAYOUT_HEIGHTS = {
+  header: SECTION_DEFINITIONS.header.height,
+  minimalControl: SECTION_DEFINITIONS.minimalControl.height,
+  settingsBar: SECTION_DEFINITIONS.settingsBar.height,
+  questionSection: SECTION_DEFINITIONS.questionSection.height,
+  realtime: {
+    min: SECTION_DEFINITIONS.realtimeSection.minHeight!,
+    default: SECTION_DEFINITIONS.realtimeSection.height,
+    max: SECTION_DEFINITIONS.realtimeSection.maxHeight!
+  },
+  resizeHandle: 8,
+  animationDelay: 450
 } as const;
 
 interface HistoryEntry {
@@ -139,7 +242,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'purple'>('light');
   const [displayMode, setDisplayMode] = useState<'both' | 'source' | 'target'>('both');
   const [currentFontScale, setCurrentFontScale] = useState(1);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(true);
   
   // LocalStorageから言語設定を復元（propsでオーバーライド可能）
   const [sourceLanguage, setSourceLanguage] = useState(() => 
@@ -193,6 +296,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const [showHeader, setShowHeader] = useState(true);
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
   
+  // 設定バーの表示/非表示はすでに142行目で宣言済み
+  
   // 要約データ
   const [summaryJapanese, setSummaryJapanese] = useState<string>('');
   const [summaryEnglish, setSummaryEnglish] = useState<string>('');
@@ -234,6 +339,18 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const [resizingSection, setResizingSection] = useState<string | null>(null);
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(0);
+  
+  // 🆕 リサイズモード管理（将来の拡張性のためenum化）
+  enum ResizeMode {
+    NONE = 'none',
+    SECTION_TOGGLE = 'section_toggle',  // セクション表示/非表示によるリサイズ
+    USER_DRAG = 'user_drag'             // ユーザーのドラッグによるリサイズ
+  }
+  const [currentResizeMode, setCurrentResizeMode] = useState<ResizeMode>(ResizeMode.NONE);
+  
+  // 🆕 ウィンドウリサイズのデバウンス管理
+  const windowResizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const WINDOW_RESIZE_DEBOUNCE_MS = 100;  // 将来的に設定可能にできる
   
   // 音声キャプチャ（コメントアウト - 新実装では不要）
   // const { state: audioState, startCapture, stopCapture } = useAudioCapture();
@@ -429,6 +546,45 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // currentDisplayは既に128行目で定義済み
   
   /**
+   * 🆕 固定セクションの高さ計算
+   * 
+   * リアルタイムエリア以外の全ての固定セクションの高さを計算します。
+   * この関数は、ユーザードラッグモードでリアルタイムエリアの高さを
+   * 計算する際に使用されます。
+   * 
+   * 将来の拡張性：
+   * - 新しいセクションを追加する場合は、この関数に追加してください
+   * - セクションの高さが動的に変わる場合は、パラメータ化を検討してください
+   */
+  const calculateFixedSectionsHeight = useCallback(() => {
+    let fixedHeight = 0;
+    
+    // 1. ヘッダー部分
+    if (showHeader) {
+      fixedHeight += LAYOUT_HEIGHTS.header;
+    } else {
+      fixedHeight += LAYOUT_HEIGHTS.minimalControl;
+    }
+    
+    // 2. 設定バー
+    if (showSettings) {
+      fixedHeight += LAYOUT_HEIGHTS.settingsBar;
+    }
+    
+    // 3. 質問セクション
+    if (showQuestionSection) {
+      fixedHeight += LAYOUT_HEIGHTS.questionSection;
+    }
+    
+    // 将来的な拡張ポイント：
+    // if (showNewSection) {
+    //   fixedHeight += LAYOUT_HEIGHTS.newSection;
+    // }
+    
+    return fixedHeight;
+  }, [showHeader, showSettings, showQuestionSection]);
+
+  /**
    * 🔍 高さ計算の核心ロジック
    * 
    * この関数が全ての高さ管理の中心です。
@@ -436,6 +592,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
    * 
    * 重要：DOM測定（scrollHeight等）は使用しません。
    * 理由：予測不可能で、レイアウトの再計算を引き起こし、パフォーマンスに悪影響があるため。
+   * 
+   * 2025-09-13 更新：calculateFixedSectionsHeight と連携して使用
    */
   const calculateTotalHeight = useCallback(() => {
     let totalHeight = 0;
@@ -470,12 +628,20 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
    * 
    * 計算された高さに基づいてElectronウィンドウをリサイズします。
    * この関数は副作用（IPC通信）を含むため、calculateTotalHeightとは分離しています。
+   * 
+   * 2025-09-13 更新：
+   * - リサイズモードを設定して無限ループを防止
+   * - セクショントグルモードでのみ実行されることを保証
    */
   const executeWindowResize = useCallback(async () => {
+    // セクショントグルモードを設定
+    setCurrentResizeMode(ResizeMode.SECTION_TOGGLE);
+    
     const targetHeight = calculateTotalHeight();
     
     // デバッグ用ログ（開発時のみ）
     console.log('[Window Resize] Executing resize:', {
+      mode: ResizeMode.SECTION_TOGGLE,
       sections: {
         header: showHeader ? LAYOUT_HEIGHTS.header : LAYOUT_HEIGHTS.minimalControl,
         settings: showSettings ? LAYOUT_HEIGHTS.settingsBar : 0,
@@ -489,6 +655,14 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     const windowAPI = window.univoice?.window;
     if (windowAPI?.autoResize) {
       await windowAPI.autoResize(targetHeight);
+      
+      // リサイズ完了後、モードをリセット（遅延を入れて安定性を確保）
+      setTimeout(() => {
+        setCurrentResizeMode(ResizeMode.NONE);
+      }, 200);
+    } else {
+      // APIが利用できない場合は即座にリセット
+      setCurrentResizeMode(ResizeMode.NONE);
     }
   }, [calculateTotalHeight, showHeader, showSettings, showQuestionSection, realtimeSectionHeight]);
   
@@ -521,9 +695,101 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // リアルタイムセクションの高さ変更時
   useEffect(() => {
+    // ユーザードラッグモードの場合はスキップ（無限ループ防止）
+    if (currentResizeMode === ResizeMode.USER_DRAG) {
+      console.log('[Realtime Height Change] Skipping resize - in user drag mode');
+      return;
+    }
     // ユーザーがリサイズハンドルを操作した後
     executeWindowResize();
-  }, [realtimeSectionHeight, executeWindowResize]);
+  }, [realtimeSectionHeight, executeWindowResize, currentResizeMode]);
+  
+  /**
+   * 🆕 ウィンドウリサイズ検知システム
+   * 
+   * ユーザーがウィンドウ境界をドラッグした時の処理を管理します。
+   * セクショントグルモードとの競合を防ぐため、現在のリサイズモードを確認します。
+   * 
+   * 動作原理：
+   * 1. ウィンドウのresizeイベントを監視
+   * 2. セクショントグルモード中は無視（無限ループ防止）
+   * 3. それ以外の場合、リアルタイムエリアの高さを再計算
+   * 4. デバウンス処理でパフォーマンスを最適化
+   * 
+   * 将来の拡張性：
+   * - WINDOW_RESIZE_DEBOUNCE_MS を設定可能にする
+   * - 最小/最大高さの制限をより柔軟に設定可能にする
+   * - リサイズ時のアニメーション効果を追加可能
+   */
+  useEffect(() => {
+    const handleWindowResize = () => {
+      // セクショントグルモード中は処理をスキップ
+      if (currentResizeMode === ResizeMode.SECTION_TOGGLE) {
+        console.log('[Window Resize] Skipping - in section toggle mode');
+        return;
+      }
+      
+      // 既存のデバウンスタイマーをクリア
+      if (windowResizeTimeoutRef.current) {
+        clearTimeout(windowResizeTimeoutRef.current);
+      }
+      
+      // デバウンス処理
+      windowResizeTimeoutRef.current = setTimeout(() => {
+        // ユーザードラッグモードを設定
+        setCurrentResizeMode(ResizeMode.USER_DRAG);
+        
+        // 現在のウィンドウ高さを取得
+        const windowHeight = window.innerHeight;
+        
+        // 固定セクションの高さを計算
+        const fixedHeight = calculateFixedSectionsHeight();
+        
+        // リアルタイムエリアの新しい高さを計算
+        const newRealtimeHeight = Math.max(
+          LAYOUT_HEIGHTS.realtime.min,
+          Math.min(
+            windowHeight - fixedHeight,
+            LAYOUT_HEIGHTS.realtime.max
+          )
+        );
+        
+        // 有意な変化がある場合のみ更新（ちらつき防止）
+        const heightDifference = Math.abs(newRealtimeHeight - realtimeSectionHeight);
+        if (heightDifference > 5) {
+          console.log('[Window Resize] User drag detected:', {
+            windowHeight,
+            fixedHeight,
+            oldRealtimeHeight: realtimeSectionHeight,
+            newRealtimeHeight,
+            difference: heightDifference
+          });
+          
+          // 高さを更新
+          setRealtimeSectionHeight(newRealtimeHeight);
+          
+          // LocalStorageに保存
+          localStorage.setItem('univoice-realtime-height', newRealtimeHeight.toString());
+        }
+        
+        // モードをリセット
+        setTimeout(() => {
+          setCurrentResizeMode(ResizeMode.NONE);
+        }, 100);
+      }, WINDOW_RESIZE_DEBOUNCE_MS);
+    };
+    
+    // イベントリスナーを登録
+    window.addEventListener('resize', handleWindowResize);
+    
+    // クリーンアップ
+    return () => {
+      window.removeEventListener('resize', handleWindowResize);
+      if (windowResizeTimeoutRef.current) {
+        clearTimeout(windowResizeTimeoutRef.current);
+      }
+    };
+  }, [currentResizeMode, realtimeSectionHeight, calculateFixedSectionsHeight]);
   
   // ========== useEffect フック ==========
   
@@ -1594,7 +1860,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       {/* アプリコンテナ（フレームレス対応） */}
       <div ref={appContainerRef} className={classNames(styles.app, getThemeClass('theme', false))} style={{
         width: '100%',
-        height: 'auto', // コンテンツに合わせて高さを決定
+        height: '100%', // ビューポート全体の高さを使用
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -1605,7 +1871,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         {/* メインウィンドウ */}
         <div className={styles.mainWindow} style={{
           width: '100%',
-          height: 'auto', // コンテンツに合わせて高さを自動調整
+          height: '100%', // 親要素の高さに従う
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden'
@@ -1617,7 +1883,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           position: 'relative',
           userSelect: 'none',
           flexShrink: 0,
-          zIndex: 10002
+          zIndex: 10002,
+          display: 'flex',
+          alignItems: 'center'
         }}>
           {/* 録音インジケーター */}
           <div className={getThemeClass('recordingIndicator')}>
@@ -1677,89 +1945,95 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             </span>
           )}
           
-          {/* スペーサー */}
-          <div className={styles.spacer} />
+          {/* 中央のボタン群 - 固定位置 */}
+          <div style={{
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            {/* 履歴ボタン（フローティングパネル用） */}
+            <button 
+              className={classNames(getThemeClass('controlButton'), showHistoryPanel && styles.controlButtonActive)}
+              onClick={() => togglePanel('history')}
+              style={{WebkitAppRegion: 'no-drag' as any}}
+            >
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="4" width="12" height="10" rx="1"/>
+                <line x1="6" y1="7" x2="12" y2="7"/>
+                <line x1="6" y1="10" x2="12" y2="10"/>
+              </svg>
+              <span className={styles.tooltip}>履歴</span>
+            </button>
+            
+            {/* 要約ボタン（フローティングパネル用） */}
+            <button 
+              className={classNames(getThemeClass('controlButton'), showSummaryPanel && styles.controlButtonActive)}
+              onClick={() => togglePanel('summary')}
+              style={{WebkitAppRegion: 'no-drag' as any}}
+            >
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="10" width="3" height="5" fill="currentColor" opacity="0.3"/>
+                <rect x="8" y="7" width="3" height="8" fill="currentColor" opacity="0.5"/>
+                <rect x="13" y="4" width="3" height="11" fill="currentColor" opacity="0.7"/>
+              </svg>
+              <span className={styles.tooltip}>要約</span>
+            </button>
+            
+            {/* 質問ボタン */}
+            <button 
+              className={classNames(getThemeClass('controlButton'), showQuestionSection && styles.controlButtonActive)}
+              onClick={() => {
+                setShowQuestionSection(!showQuestionSection);
+              }}
+              style={{WebkitAppRegion: 'no-drag' as any}}
+            >
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M3 12 L3 7 Q3 4 6 4 L12 4 Q15 4 15 7 L15 12 L10 12 L6 15 L6 12 Z"/>
+              </svg>
+              <span className={styles.tooltip}>質問</span>
+              {memoList.length > 0 && (
+                <span className={styles.badge} style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+                  color: 'white',
+                  fontSize: '10px',
+                  padding: '2px 5px',
+                  borderRadius: '6px',
+                  fontWeight: '700'
+                }}>
+                  {memoList.length}
+                </span>
+              )}
+            </button>
+            
+          </div>
           
-          {/* 履歴ボタン（フローティングパネル用） */}
-          <button 
-            className={classNames(getThemeClass('controlButton'), showHistoryPanel && styles.controlButtonActive)}
-            onClick={() => togglePanel('history')}
-          >
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="4" width="12" height="10" rx="1"/>
-              <line x1="6" y1="7" x2="12" y2="7"/>
-              <line x1="6" y1="10" x2="12" y2="10"/>
-            </svg>
-            <span className={styles.tooltip}>履歴</span>
-          </button>
-          
-          {/* 要約ボタン（フローティングパネル用） */}
-          <button 
-            className={classNames(getThemeClass('controlButton'), showSummaryPanel && styles.controlButtonActive)}
-            onClick={() => togglePanel('summary')}
-          >
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="10" width="3" height="5" fill="currentColor" opacity="0.3"/>
-              <rect x="8" y="7" width="3" height="8" fill="currentColor" opacity="0.5"/>
-              <rect x="13" y="4" width="3" height="11" fill="currentColor" opacity="0.7"/>
-            </svg>
-            <span className={styles.tooltip}>要約</span>
-          </button>
-          
-          {/* 質問ボタン */}
-          <button 
-            className={classNames(getThemeClass('controlButton'), showQuestionSection && styles.controlButtonActive)}
-            onClick={() => {
-              setShowQuestionSection(!showQuestionSection);
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M3 12 L3 7 Q3 4 6 4 L12 4 Q15 4 15 7 L15 12 L10 12 L6 15 L6 12 Z"/>
-            </svg>
-            <span className={styles.tooltip}>質問</span>
-            {memoList.length > 0 && (
-              <span className={styles.badge} style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-4px',
-                background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
-                color: 'white',
-                fontSize: '10px',
-                padding: '2px 5px',
-                borderRadius: '6px',
-                fontWeight: '700'
-              }}>
-                {memoList.length}
-              </span>
-            )}
-          </button>
-          
-          <div className={styles.spacer} />
-          
-          {/* テーマ切り替えボタン */}
-          <button className={getThemeClass('controlButton')} onClick={cycleTheme} style={{WebkitAppRegion: 'no-drag' as any}}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-              <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
-            </svg>
-            <span className={styles.tooltip}>テーマ</span>
-          </button>
-          
-          {/* 設定ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={() => {
-            setShowSettings(!showSettings);
-          }} style={{WebkitAppRegion: 'no-drag' as any}}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
-              <path d="M10 3.5v-2m0 17v-2m6.5-6.5h2m-17 0h2m12.02-4.52l1.41-1.41M4.93 15.07l1.41-1.41m0-7.32L4.93 4.93m11.14 11.14l1.41 1.41"/>
-            </svg>
-            <span className={styles.tooltip}>設定</span>
-          </button>
-          
-          <div style={{ flex: 1 }} />
-          
-          {/* 最前面固定ボタン */}
-          <button 
+          {/* 右側のボタン群 - 固定位置 */}
+          <div style={{ 
+            position: 'absolute',
+            right: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            {/* 設定ボタン - 設定バーの[-]の真上 */}
+            <button className={getThemeClass('controlButton')} onClick={() => {
+              setShowSettings(!showSettings);
+            }} style={{WebkitAppRegion: 'no-drag' as any}}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
+                <path d="M10 3.5v-2m0 17v-2m6.5-6.5h2m-17 0h2m12.02-4.52l1.41-1.41M4.93 15.07l1.41-1.41m0-7.32L4.93 4.93m11.14 11.14l1.41 1.41"/>
+              </svg>
+              <span className={styles.tooltip}>設定</span>
+            </button>
+            
+            {/* 最前面固定ボタン - 設定バーの[+]の真上 */}
+            <button 
             className={classNames(getThemeClass('controlButton'), isAlwaysOnTop && styles.controlButtonActive)}
             onClick={async () => {
               const newState = !isAlwaysOnTop;
@@ -1801,22 +2075,23 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               <rect x="3" y="3" width="12" height="12" rx="1"/>
               <path d="M6 7 L9 10 L12 7" strokeLinecap="round"/>
             </svg>
-            <span className={styles.tooltip}>メニューを隠す (Esc で戻る)</span>
-          </button>
-          
-          <div style={{ width: '10px' }} />
-          
-          {/* 閉じるボタン */}
-          <button 
-            className={getThemeClass('controlButton')} 
-            onClick={() => window.univoice?.window?.close()}
-            style={{ marginRight: '30px', marginLeft: '20px', WebkitAppRegion: 'no-drag' as any }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-            </svg>
-            <span className={styles.tooltip}>閉じる</span>
-          </button>
+              <span className={styles.tooltip}>メニューを隠す (Esc で戻る)</span>
+            </button>
+            
+            <div style={{ width: '20px' }} />
+            
+            {/* 閉じるボタン */}
+            <button 
+              className={getThemeClass('controlButton')} 
+              onClick={() => window.univoice?.window?.close()}
+              style={{ WebkitAppRegion: 'no-drag' as any }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+              <span className={styles.tooltip}>閉じる</span>
+            </button>
+          </div>
         </div>
         )}
         
@@ -1827,9 +2102,17 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           getThemeClass('settingsBar', false),
           showSettings && styles.settingsVisible
         )} style={{
-          zIndex: 1000
+          zIndex: 1000,
+          position: 'relative'
         }}>
-          <div className={styles.settingsContent}>
+          <div className={styles.settingsContent} style={{
+            display: 'flex',
+            alignItems: 'center',
+            height: '100%',
+            padding: '0 20px',
+            position: 'relative'
+          }}>
+            {/* 左側のグループ */}
             <div className={styles.settingsGroupLeft}>
               <button 
                 className={classNames(
@@ -1871,24 +2154,53 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 <span className={styles.sTooltip}>Alt+T</span>
               </button>
             </div>
-            <div className={styles.settingsGroupRight}>
+            
+            {/* 右側のボタン群 - ヘッダーと垂直に揃える */}
+            <div style={{
+              position: 'absolute',
+              right: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              {/* テーマ切り替えボタン - 最初 */}
+              <button className={getThemeClass('settingButton', false)} onClick={cycleTheme}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
+                </svg>
+                <span className={styles.sTooltip}>テーマ</span>
+              </button>
+              
+              {/* スペース - テーマと[-]の間 */}
+              <div style={{ width: '10px' }} />
+              
+              {/* 設定ボタンの下にフォント- */}
               <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(-1)}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
                 <span className={styles.sTooltip}>Ctrl+-</span>
               </button>
+              
+              {/* メニュー隠すボタンの下にT */}
               <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(0)}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>T</span>
                 <span className={styles.sTooltip}>リセット</span>
               </button>
+              
+              {/* 最前面ボタンの下にフォント+ */}
               <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(1)}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
                 <span className={styles.sTooltip}>Ctrl++</span>
               </button>
-              <div style={{ width: '1px', height: '20px', background: 'rgba(0,0,0,0.1)', margin: '0 8px' }} />
+              
+              {/* スペース - [+]とヘッダー表示/非表示の間 */}
+              <div style={{ width: '20px' }} />
+              
+              {/* ヘッダー表示/非表示 - 閉じるボタンの真下 */}
               <button 
                 className={classNames(
                   getThemeClass('settingButton', false),
@@ -1963,7 +2275,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </div>
         )}
         
-        {/* リアルタイムセクション（固定高さ） */}
+        {/* リアルタイムセクション（ユーザー設定可能な高さ） */}
         <div 
           ref={realtimeSectionRef}
           className={getThemeClass('realtimeArea')} 
