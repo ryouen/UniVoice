@@ -157,7 +157,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
           gridTemplateColumns: displayMode === 'both' ? '1fr 1px 1fr' : '1fr',
           gap: `${6 * fontScale}px 0`, // 12px→6pxに半減、フォントサイズに連動
           height: '100%',
-          alignContent: 'flex-end' // 下から埋める
+          alignContent: 'flex-start' // 上から埋める
         }}>
           {/* Oldest行 */}
           <div style={{
@@ -266,7 +266,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
             borderRight: '1px solid #e0e0e0',
             paddingRight: '30px'
           }}>
@@ -293,7 +293,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
             paddingLeft: '30px'
           }}>
             <ThreeLineDisplay

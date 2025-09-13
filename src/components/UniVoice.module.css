@@ -480,8 +480,9 @@
 }
 
 .realtimeAreaThemeLight {
-  composes: realtimeArea themeLight;
+  composes: realtimeArea;
   background: rgba(255, 255, 255, 0.4);  /* 透過度を0.75→0.4に */
+  color: var(--theme-light-text);
 }
 
 /* リアルタイムエリア内のテキストカラー（ライトテーマ） */
@@ -495,8 +496,9 @@
 }
 
 .realtimeAreaThemeDark {
-  composes: realtimeArea themeDark;
+  composes: realtimeArea;
   background: rgba(25, 25, 25, 0.4);  /* 透過度を0.75→0.4に */
+  color: var(--theme-dark-text);
 }
 
 /* リアルタイムエリア内のテキストカラー（ダークテーマ） */
@@ -510,8 +512,9 @@
 }
 
 .realtimeAreaThemePurple {
-  composes: realtimeArea themePurple;
+  composes: realtimeArea;
   background: rgba(90, 45, 145, 0.2);  /* 透過度を0.35→0.2に */
+  color: var(--theme-purple-text);
 }
 
 /* リアルタイムエリア内のテキストカラー（パープルテーマ） */

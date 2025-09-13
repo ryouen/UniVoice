@@ -1968,7 +1968,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           ref={realtimeSectionRef}
           className={getThemeClass('realtimeArea')} 
           style={{
-          height: `${realtimeSectionHeight}px`, // 固定高さ
+          height: `${realtimeSectionHeight}px`, // ユーザー設定可能な高さ
           overflowY: 'auto',
           padding: '20px 30px',
           position: 'relative',
