@@ -1762,11 +1762,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   return (
     <>
       {/* アプリコンテナ（フレームレス対応） */}
-      <div ref={appContainerRef} className={classNames(styles.app, getThemeClass('theme', false))} style={{
+      <div ref={appContainerRef} className={styles.app} style={{
         width: '100%',
         height: '100%', // ビューポート全体の高さを使用
         display: 'flex',
         flexDirection: 'column',
+        background: 'transparent', // 最上位は完全透明
         overflow: 'hidden',
         // フォントスケールをCSS変数として設定
         '--font-scale': currentFontScale,
@@ -2197,7 +2198,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               debug={true} // デバッグを有効化
               fontScale={currentFontScale}
               displayMode={displayMode}
-              theme={currentTheme}
             />
             
             {/* 表示モード制御は RealtimeSection 内で実装 */}

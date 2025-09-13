@@ -101,12 +101,12 @@ const THEME_COLORS = {
     target: '#0044cc'
   },
   dark: {
-    source: '#e0e0e0',
-    target: '#66b3ff'
+    source: '#ffffff',
+    target: '#ffffff'
   },
   purple: {
     source: '#ffffff',
-    target: '#b3d9ff'
+    target: '#ffffff'
   }
 };
 
@@ -178,7 +178,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             <div style={{
               gridColumn: 2,
               gridRow: '1 / -1',
-              background: '#e0e0e0'
+              background: theme === 'light' ? '#333333' : '#e0e0e0'
             }} />
           )}
           <div style={{
@@ -267,7 +267,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-start',
-            borderRight: '1px solid #e0e0e0',
+            borderRight: theme === 'light' ? '1px solid #333333' : '1px solid #e0e0e0',
             paddingRight: '30px'
           }}>
             <ThreeLineDisplay

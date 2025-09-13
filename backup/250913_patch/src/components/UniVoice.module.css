@@ -16,7 +16,7 @@
 
 :root {
   /* Light Theme Variables */
-  --theme-light-bg: rgba(255, 255, 255, 0);  /* 基本背景を完全透明に */
+  --theme-light-bg: rgba(255, 255, 255, 0.8);  /* 内側パネル用の半透明背景 */
   --theme-light-border: rgba(255, 255, 255, 0.3);
   --theme-light-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
   --theme-light-text: rgba(0, 0, 0, 0.85);
@@ -24,7 +24,7 @@
   --theme-light-button-hover: rgba(0, 0, 0, 0.1);
   
   /* Dark Theme Variables */
-  --theme-dark-bg: rgba(30, 30, 30, 0);  /* 基本背景を完全透明に */
+  --theme-dark-bg: rgba(30, 30, 30, 0.8);  /* 内側パネル用の半透明背景 */
   --theme-dark-border: rgba(255, 255, 255, 0.1);
   --theme-dark-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
   --theme-dark-text: rgba(255, 255, 255, 0.95);
@@ -32,7 +32,7 @@
   --theme-dark-button-hover: rgba(255, 255, 255, 0.25);
   
   /* Purple Theme Variables */
-  --theme-purple-bg: rgba(102, 51, 153, 0);  /* 基本背景を完全透明に */
+  --theme-purple-bg: rgba(102, 51, 153, 0.4);  /* 内側パネル用の半透明背景 */
   --theme-purple-border: rgba(255, 255, 255, 0.2);
   --theme-purple-shadow: 0 8px 32px 0 rgba(102, 51, 153, 0.3);
   --theme-purple-text: rgba(255, 255, 255, 1);
@@ -79,10 +79,9 @@
   overflow: hidden; /* 角丸の内側に収める */
 }
 
-/* グラスモーフィズムの基本効果 */
+/* グラスモーフィズムの基本効果（backdrop-filterなし - OS側のAcrylicを使用） */
 .glassmorphism {
-  backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
-  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  /* backdrop-filterは削除 - アプリ内ぼかしは不要 */
   transition: var(--transition-default);
   /* 透過ウィンドウでもグラス効果を見せるための追加スタイル */
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -162,17 +161,17 @@
 /* Header with Gradient Background */
 .headerThemeLight {
   composes: header themeLight;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 240, 240, 0.95));  /* Opacity 0.95に設定 */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(240, 240, 240, 0.4));  /* 透過度を0.9→0.5に */
 }
 
 .headerThemeDark {
   composes: header themeDark;
-  background: linear-gradient(135deg, rgba(40, 40, 40, 0.95), rgba(20, 20, 20, 0.95));  /* Opacity 0.95に設定 */
+  background: linear-gradient(135deg, rgba(40, 40, 40, 0.5), rgba(20, 20, 20, 0.4));  /* 透過度を0.9→0.5に */
 }
 
 .headerThemePurple {
   composes: header themePurple;
-  background: linear-gradient(135deg, rgba(120, 70, 180, 0.95), rgba(80, 40, 140, 0.95));  /* Opacity 0.95に設定 */
+  background: linear-gradient(135deg, rgba(120, 70, 180, 0.3), rgba(80, 40, 140, 0.25));  /* 透過度を0.5→0.3に */
 }
 
 /* ========================================
@@ -357,17 +356,17 @@
 
 .settingsBarThemeLight {
   composes: settingsBar themeLight;
-  background: rgba(248, 248, 248, 0.95);  /* Opacity 0.95に設定 */
+  background: rgba(248, 248, 248, 0.5);  /* 透過度を0.85→0.5に */
 }
 
 .settingsBarThemeDark {
   composes: settingsBar themeDark;
-  background: rgba(40, 40, 40, 0.95);  /* Opacity 0.95に設定 */
+  background: rgba(40, 40, 40, 0.5);  /* 透過度を0.85→0.5に */
 }
 
 .settingsBarThemePurple {
   composes: settingsBar themePurple;
-  background: rgba(110, 60, 160, 0.95);  /* Opacity 0.95に設定 */
+  background: rgba(110, 60, 160, 0.3);  /* 透過度を0.45→0.3に */
 }
 
 /* Settings Bar Layout */
@@ -481,7 +480,7 @@
 
 .realtimeAreaThemeLight {
   composes: realtimeArea;
-  background: rgba(255, 255, 255, 0.85);  /* Opacity 0.85に設定 */
+  background: rgba(255, 255, 255, 0.4);  /* 透過度を0.75→0.4に */
   color: var(--theme-light-text);
 }
 
@@ -497,7 +496,7 @@
 
 .realtimeAreaThemeDark {
   composes: realtimeArea;
-  background: rgba(25, 25, 25, 0.85);  /* Opacity 0.85に設定 */
+  background: rgba(25, 25, 25, 0.4);  /* 透過度を0.75→0.4に */
   color: var(--theme-dark-text);
 }
 
@@ -513,7 +512,7 @@
 
 .realtimeAreaThemePurple {
   composes: realtimeArea;
-  background: rgba(90, 45, 145, 0.85);  /* Opacity 0.85に設定 */
+  background: rgba(90, 45, 145, 0.2);  /* 透過度を0.35→0.2に */
   color: var(--theme-purple-text);
 }
 
@@ -544,17 +543,17 @@
 
 .questionAreaThemeLight {
   composes: questionArea themeLight;
-  background: rgba(252, 252, 252, 0.9);  /* Opacity 0.9に設定 */
+  background: rgba(252, 252, 252, 0.5);  /* 透過度を0.85→0.5に */
 }
 
 .questionAreaThemeDark {
   composes: questionArea themeDark;
-  background: rgba(35, 35, 35, 0.9);  /* Opacity 0.9に設定 */
+  background: rgba(35, 35, 35, 0.5);  /* 透過度を0.85→0.5に */
 }
 
 .questionAreaThemePurple {
   composes: questionArea themePurple;
-  background: rgba(100, 50, 150, 0.9);  /* Opacity 0.9に設定 */
+  background: rgba(100, 50, 150, 0.25);  /* 透過度を0.4→0.25に */
 }
 
 /* Question Area States */
@@ -581,19 +580,16 @@
 
 .headerCompactThemeLight {
   composes: headerCompact themeLight;
-  background: rgba(255, 255, 255, 0.5);  /* コンパクトメニュー Opacity 0.5 */
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .headerCompactThemeDark {
   composes: headerCompact themeDark;
-  background: rgba(30, 30, 30, 0.5);  /* コンパクトメニュー Opacity 0.5 */
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .headerCompactThemePurple {
   composes: headerCompact themePurple;
-  background: rgba(102, 51, 153, 0.5);  /* コンパクトメニュー Opacity 0.5 */
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
