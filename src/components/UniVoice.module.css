@@ -1,0 +1,781 @@
+/**
+ * UniVoice Component CSS Modules
+ * 
+ * 命名規則:
+ * - セマンティックな役割ベースの命名
+ * - テーマとレイアウトの分離
+ * - 状態管理の一貫性
+ * 
+ * @author Claude
+ * @since 2025-09-13
+ */
+
+/* ========================================
+   CSS Variables & Theme Definitions
+   ======================================== */
+
+:root {
+  /* Light Theme Variables */
+  --theme-light-bg: rgba(255, 255, 255, 0.5);  /* 透過度を0.8→0.5に */
+  --theme-light-border: rgba(255, 255, 255, 0.3);
+  --theme-light-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --theme-light-text: rgba(0, 0, 0, 0.85);
+  --theme-light-button-bg: rgba(0, 0, 0, 0.06);
+  --theme-light-button-hover: rgba(0, 0, 0, 0.1);
+  
+  /* Dark Theme Variables */
+  --theme-dark-bg: rgba(30, 30, 30, 0.5);  /* 透過度を0.8→0.5に */
+  --theme-dark-border: rgba(255, 255, 255, 0.1);
+  --theme-dark-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --theme-dark-text: rgba(255, 255, 255, 0.95);
+  --theme-dark-button-bg: rgba(255, 255, 255, 0.15);
+  --theme-dark-button-hover: rgba(255, 255, 255, 0.25);
+  
+  /* Purple Theme Variables */
+  --theme-purple-bg: rgba(102, 51, 153, 0.25);  /* 透過度を0.4→0.25に */
+  --theme-purple-border: rgba(255, 255, 255, 0.2);
+  --theme-purple-shadow: 0 8px 32px 0 rgba(102, 51, 153, 0.3);
+  --theme-purple-text: rgba(255, 255, 255, 1);
+  --theme-purple-button-bg: rgba(255, 255, 255, 0.2);
+  --theme-purple-button-hover: rgba(255, 255, 255, 0.3);
+  
+  /* Common Variables */
+  --blur-amount: 10px;  /* blur効果を10pxに設定 */
+  --saturate-amount: 200%;  /* 彩度を180%→200%に強化 */
+  --transition-default: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Layout Variables */
+  --header-height: 60px;
+  --header-compact-height: 32px;
+  --settings-bar-height: 56px;
+  --control-button-size: 36px;
+  --setting-button-height: 32px;
+}
+
+/* ========================================
+   Base Styles & Glassmorphism Effects
+   ======================================== */
+
+/* Background Layer for blur effect */
+.backgroundLayer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* App Container */
+.app {
+  --font-scale: 1; /* デフォルトのフォントスケール */
+  font-size: calc(16px * var(--font-scale));
+  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  position: relative;
+  min-height: 100vh;
+  border-radius: 12px; /* 四隅の角丸 */
+  overflow: hidden; /* 角丸の内側に収める */
+}
+
+/* グラスモーフィズムの基本効果 */
+.glassmorphism {
+  backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  transition: var(--transition-default);
+  /* 透過ウィンドウでもグラス効果を見せるための追加スタイル */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* ========================================
+   Theme Variants
+   ======================================== */
+
+/* Light Theme */
+.themeLight {
+  composes: glassmorphism;
+  background: var(--theme-light-bg);
+  border: 1px solid var(--theme-light-border);
+  box-shadow: var(--theme-light-shadow);
+  color: var(--theme-light-text);
+  /* Fallback: backdrop-filterが効かない場合のグラスモーフィズム風効果 */
+  background-image: 
+    linear-gradient(to bottom right, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      rgba(255, 255, 255, 0.05) 100%);
+}
+
+/* Dark Theme */
+.themeDark {
+  composes: glassmorphism;
+  background: var(--theme-dark-bg);
+  border: 1px solid var(--theme-dark-border);
+  box-shadow: var(--theme-dark-shadow);
+  color: var(--theme-dark-text);
+}
+
+/* Purple Theme */
+.themePurple {
+  composes: glassmorphism;
+  background: var(--theme-purple-bg);
+  border: 1px solid var(--theme-purple-border);
+  box-shadow: var(--theme-purple-shadow);
+  color: var(--theme-purple-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   Layout Components
+   ======================================== */
+
+/* Application Container */
+.app {
+  width: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Main Header */
+.header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  gap: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
+  -webkit-app-region: drag;
+}
+
+.header button {
+  -webkit-app-region: no-drag;
+}
+
+/* Header with Gradient Background */
+.headerThemeLight {
+  composes: header themeLight;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(240, 240, 240, 0.4));  /* 透過度を0.9→0.5に */
+}
+
+.headerThemeDark {
+  composes: header themeDark;
+  background: linear-gradient(135deg, rgba(40, 40, 40, 0.5), rgba(20, 20, 20, 0.4));  /* 透過度を0.9→0.5に */
+}
+
+.headerThemePurple {
+  composes: header themePurple;
+  background: linear-gradient(135deg, rgba(120, 70, 180, 0.3), rgba(80, 40, 140, 0.25));  /* 透過度を0.5→0.3に */
+}
+
+/* ========================================
+   Interactive Elements
+   ======================================== */
+
+/* Control Button Base */
+.controlButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-default);
+  position: relative;
+}
+
+.controlButtonLight {
+  composes: controlButton;
+  background: var(--theme-light-button-bg);
+  color: #333;
+}
+
+.controlButtonLight:hover {
+  background: var(--theme-light-button-hover);
+  transform: translateY(-2px);
+}
+
+.controlButtonDark {
+  composes: controlButton;
+  background: var(--theme-dark-button-bg);
+  color: white;
+}
+
+.controlButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+  transform: translateY(-2px);
+}
+
+.controlButtonPurple {
+  composes: controlButton;
+  background: var(--theme-purple-button-bg);
+  color: white;
+}
+
+.controlButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+  transform: translateY(-2px);
+}
+
+/* Active State */
+.controlButtonActive {
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.controlButtonLight.controlButtonActive {
+  background: rgba(102, 126, 234, 0.15);
+}
+
+.controlButtonDark.controlButtonActive,
+.controlButtonPurple.controlButtonActive {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* ツールチップ */
+.tooltip {
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 10000;
+  visibility: hidden;
+}
+
+.controlButton:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Status Indicator */
+.statusIndicator {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  border-radius: 50%;
+  background: #e74c3c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 1.5s infinite;
+}
+
+.statusActive {
+  composes: statusIndicator;
+  background: #27ae60;
+}
+
+/* Recording Indicator - 録音時間表示用 */
+.recordingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(76, 175, 80, 0.2);
+  border-radius: 10px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  height: var(--control-button-size);
+  box-sizing: border-box;
+}
+
+.recordingIndicatorLight {
+  composes: recordingIndicator;
+  background: rgba(76, 175, 80, 0.15);
+  color: #2e7d32;
+}
+
+.recordingIndicatorDark {
+  composes: recordingIndicator;
+  background: rgba(76, 175, 80, 0.25);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.recordingIndicatorPurple {
+  composes: recordingIndicator;
+  background: rgba(76, 175, 80, 0.3);
+  color: white;
+}
+
+/* Recording Dot - 録音状態インジケーター */
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4CAF50;
+  animation: pulse 2s infinite;
+}
+
+.recordingDotPaused {
+  composes: recordingDot;
+  background: #FFA500;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+}
+
+/* ========================================
+   Settings Bar
+   ======================================== */
+
+.settingsBar {
+  height: 0;
+  overflow: hidden;
+  transition: height 0.3s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.settingsVisible {
+  height: var(--settings-bar-height);
+}
+
+.settingsBarThemeLight {
+  composes: settingsBar themeLight;
+  background: rgba(248, 248, 248, 0.5);  /* 透過度を0.85→0.5に */
+}
+
+.settingsBarThemeDark {
+  composes: settingsBar themeDark;
+  background: rgba(40, 40, 40, 0.5);  /* 透過度を0.85→0.5に */
+}
+
+.settingsBarThemePurple {
+  composes: settingsBar themePurple;
+  background: rgba(110, 60, 160, 0.3);  /* 透過度を0.45→0.3に */
+}
+
+/* Settings Bar Layout */
+.settingsContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 20px;
+}
+
+.settingsGroupLeft,
+.settingsGroupRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Setting Button */
+.settingButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settingButtonLight {
+  composes: settingButton;
+}
+
+.settingButtonDark {
+  composes: settingButton;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.settingButtonPurple {
+  composes: settingButton;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.settingButton:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.settingButtonDark:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.settingButtonPurple:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.settingActive {
+  background: #667eea;
+  color: white;
+}
+
+/* Setting Tooltip */
+.sTooltip {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 10000;
+  visibility: hidden;
+}
+
+.settingButton:hover .sTooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ========================================
+   Content Areas
+   ======================================== */
+
+/* Realtime Translation Area */
+.realtimeArea {
+  overflow-y: auto;
+  padding: 20px 30px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.realtimeAreaThemeLight {
+  composes: realtimeArea themeLight;
+  background: rgba(255, 255, 255, 0.4);  /* 透過度を0.75→0.4に */
+}
+
+/* リアルタイムエリア内のテキストカラー（ライトテーマ） */
+.realtimeAreaThemeLight .sourceText {
+  color: #333;  /* 黒 */
+}
+
+.realtimeAreaThemeLight .targetText {
+  color: #0044cc;  /* 青 */
+  font-weight: 600;
+}
+
+.realtimeAreaThemeDark {
+  composes: realtimeArea themeDark;
+  background: rgba(25, 25, 25, 0.4);  /* 透過度を0.75→0.4に */
+}
+
+/* リアルタイムエリア内のテキストカラー（ダークテーマ） */
+.realtimeAreaThemeDark .sourceText {
+  color: #e0e0e0;  /* 明るいグレー */
+}
+
+.realtimeAreaThemeDark .targetText {
+  color: #66b3ff;  /* 明るい青 */
+  font-weight: 600;
+}
+
+.realtimeAreaThemePurple {
+  composes: realtimeArea themePurple;
+  background: rgba(90, 45, 145, 0.2);  /* 透過度を0.35→0.2に */
+}
+
+/* リアルタイムエリア内のテキストカラー（パープルテーマ） */
+.realtimeAreaThemePurple .sourceText {
+  color: #ffffff;  /* 白 */
+}
+
+.realtimeAreaThemePurple .targetText {
+  color: #b3d9ff;  /* 薄い青白 */
+  font-weight: 600;
+}
+
+/* リアルタイムテキスト基本スタイル */
+.sourceText, .targetText {
+  display: block;
+  line-height: 1.6;
+  margin: 4px 0;
+}
+
+/* Question Input Area */
+.questionArea {
+  overflow: hidden;
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.questionAreaThemeLight {
+  composes: questionArea themeLight;
+  background: rgba(252, 252, 252, 0.5);  /* 透過度を0.85→0.5に */
+}
+
+.questionAreaThemeDark {
+  composes: questionArea themeDark;
+  background: rgba(35, 35, 35, 0.5);  /* 透過度を0.85→0.5に */
+}
+
+.questionAreaThemePurple {
+  composes: questionArea themePurple;
+  background: rgba(100, 50, 150, 0.25);  /* 透過度を0.4→0.25に */
+}
+
+/* Question Area States */
+.questionVisible {
+  height: 160px;
+  overflow: visible;
+}
+
+.questionHidden {
+  height: 0;
+  overflow: hidden;
+}
+
+/* Compact Header (when main header is hidden) */
+.headerCompact {
+  height: var(--header-compact-height);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 8px;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+.headerCompactThemeLight {
+  composes: headerCompact themeLight;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.headerCompactThemeDark {
+  composes: headerCompact themeDark;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.headerCompactThemePurple {
+  composes: headerCompact themePurple;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   Question Input & Actions
+   ======================================== */
+
+.questionInput {
+  flex: 1;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  font-size: 15px;
+  color: #333;
+  resize: none;
+  height: calc(100% - 8px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  transition: all 0.2s;
+}
+
+.questionInputDark {
+  composes: questionInput;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.questionInputPurple {
+  composes: questionInput;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.questionActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.qBtnPrimary {
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.qBtnSecondary {
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.05);
+  color: #666;
+}
+
+.qBtnSecondaryDark {
+  composes: qBtnSecondary;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.qBtnSecondaryPurple {
+  composes: qBtnSecondary;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.questionInner {
+  padding: 20px 30px;
+  display: flex;
+  gap: 20px;
+  height: 100%;
+}
+
+/* ========================================
+   Utilities
+   ======================================== */
+
+.spacer {
+  flex: 1;
+}
+
+/* Main Window Container */
+.mainWindow {
+  width: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Badge for notification counts */
+.badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e74c3c;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Settings Inner Container */
+.settingsInner {
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  min-height: 56px;
+  overflow: hidden;
+  position: relative;
+}
+
+.settingsInnerThemeLight {
+  composes: settingsInner;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.settingsInnerThemeDark {
+  composes: settingsInner;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settingsInnerThemePurple {
+  composes: settingsInner;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Settings sections */
+.settingsLeft, .settingsRight {
+  display: flex;
+  gap: 6px;
+}
+
+/* Settings Right Section - 重複定義を削除 */
+.settingsBarVisible .settingButton:hover .sTooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Settings Button - settingButtonクラスを使用（365-410行目）のため削除 */
+
+/* 重複定義を削除（535-613行目の定義を使用） */
+
+/* Visibility States */
+.hidden {
+  display: none;
+}
+
+.visible {
+  display: block;
+}
+
+/* Animation States */
+.fadeIn {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.fadeOut {
+  animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}

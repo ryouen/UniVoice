@@ -11,7 +11,27 @@
 import React from 'react';
 import type { HistoryBlock } from '../utils/FlexibleHistoryGrouper';
 
+/**
+ * テーマ別の色定義
+ * UniVoice.module.cssの定義と一致
+ */
+const THEME_COLORS = {
+  light: {
+    sourceText: '#333',
+    targetText: '#0044cc'
+  },
+  dark: {
+    sourceText: '#e0e0e0',
+    targetText: '#66b3ff'
+  },
+  purple: {
+    sourceText: '#ffffff',
+    targetText: '#b3d9ff'
+  }
+} as const;
+
 export type DisplayMode = 'inline' | 'fullscreen' | 'export';
+export type ThemeType = 'light' | 'dark' | 'purple';
 
 export interface UnifiedHistoryRendererProps {
   /** 表示する履歴ブロック */
@@ -19,6 +39,9 @@ export interface UnifiedHistoryRendererProps {
   
   /** 表示モード */
   mode: DisplayMode;
+  
+  /** テーマ */
+  theme?: ThemeType;
   
   /** ブロッククリック時のハンドラー（inlineモードのみ） */
   onBlockClick?: (block: HistoryBlock) => void | undefined;
@@ -36,7 +59,7 @@ export interface UnifiedHistoryRendererProps {
 /**
  * 表示モードごとのスタイル定義
  */
-const getModeStyles = (mode: DisplayMode) => {
+const getModeStyles = (mode: DisplayMode, theme: ThemeType = 'light') => {
   const baseStyles = {
     container: {
       width: '100%',
@@ -63,11 +86,11 @@ const getModeStyles = (mode: DisplayMode) => {
     },
     original: {
       borderRight: '1px solid #e0e0e0',
-      color: '#333',
+      color: THEME_COLORS[theme].sourceText,
       wordWrap: 'break-word' as const,
     },
     translation: {
-      color: '#0066cc',
+      color: THEME_COLORS[theme].targetText,
       wordWrap: 'break-word' as const,
     }
   };
@@ -207,13 +230,14 @@ const formatTimeRange = (block: HistoryBlock): string => {
 export const UnifiedHistoryRenderer: React.FC<UnifiedHistoryRendererProps> = ({
   historyBlocks,
   mode,
+  theme = 'light',
   onBlockClick,
   className = '',
   showTimestamps = true,
   showBlockNumbers = true,
 }) => {
   const [hoveredBlockId, setHoveredBlockId] = React.useState<string | null>(null);
-  const styles = getModeStyles(mode);
+  const styles = getModeStyles(mode, theme);
 
   const handleBlockClick = (block: HistoryBlock) => {
     if (mode === 'inline' && onBlockClick) {
@@ -305,9 +329,10 @@ export const renderHistoryToHTML = (
     showTimestamps?: boolean;
     showBlockNumbers?: boolean;
     title?: string;
+    theme?: ThemeType;
   } = {}
 ): string => {
-  const { showTimestamps = true, showBlockNumbers = true, title } = options;
+  const { showTimestamps = true, showBlockNumbers = true, title, theme = 'light' } = options;
 
   let html = '';
   
@@ -367,14 +392,14 @@ export const renderHistoryToHTML = (
           padding-right: 20px;
           border-right: 1px solid #e0e0e0;
           line-height: 1.8;
-          color: #333;
+          color: ${THEME_COLORS[theme].sourceText};
         ">
           ${block.sentences.map(s => s.original).join(' ')}
         </div>
         <div style="
           padding-left: 20px;
           line-height: 1.8;
-          color: #0066cc;
+          color: ${THEME_COLORS[theme].targetText};
         ">
           ${block.sentences.map(s => s.translation).join(' ')}
         </div>

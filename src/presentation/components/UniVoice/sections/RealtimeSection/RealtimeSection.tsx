@@ -48,6 +48,11 @@ export interface RealtimeSectionProps {
   };
   
   /**
+   * 現在のテーマ
+   */
+  theme?: 'light' | 'dark' | 'purple';
+  
+  /**
    * 3段階表示用の透明度
    */
   displayOpacity?: {
@@ -89,6 +94,22 @@ export interface RealtimeSectionProps {
 /**
  * リアルタイム表示セクションコンポーネント
  */
+// テーマ別の色定義
+const THEME_COLORS = {
+  light: {
+    source: '#333',
+    target: '#0044cc'
+  },
+  dark: {
+    source: '#e0e0e0',
+    target: '#66b3ff'
+  },
+  purple: {
+    source: '#ffffff',
+    target: '#b3d9ff'
+  }
+};
+
 export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
   currentOriginal,
   currentTranslation,
@@ -99,8 +120,11 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
   debug = false,
   fontScale = 1,
   displayMode = 'both',
+  theme = 'light',
   style = {}
 }) => {
+  // テーマに応じた色を取得
+  const colors = THEME_COLORS[theme];
   // デバッグログ
   if (debug) {
     console.log('[RealtimeSection] Props received:', {
@@ -142,7 +166,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             opacity: displayOpacity?.original?.oldest || 0.3,
             fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
-            color: '#111',
+            color: colors.source,
             wordWrap: 'break-word',
             padding: '8px 16px',
             minHeight: displayContent?.original?.oldest ? 'auto' : '32px',
@@ -163,7 +187,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             opacity: displayOpacity?.translation?.oldest || 0.3,
             fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
-            color: '#0066cc',
+            color: colors.target,
             wordWrap: 'break-word',
             padding: '8px 16px',
             minHeight: displayContent?.translation?.oldest ? 'auto' : '32px',
@@ -179,7 +203,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             opacity: displayOpacity?.original?.older || 0.6,
             fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
-            color: '#111',
+            color: colors.source,
             wordWrap: 'break-word',
             padding: '8px 16px',
             minHeight: displayContent?.original?.older ? 'auto' : '32px',
@@ -193,7 +217,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             opacity: displayOpacity?.translation?.older || 0.6,
             fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
-            color: '#0066cc',
+            color: colors.target,
             wordWrap: 'break-word',
             padding: '8px 16px',
             minHeight: displayContent?.translation?.older ? 'auto' : '32px',
@@ -209,7 +233,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             opacity: displayOpacity?.original?.recent || 1,
             fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
-            color: '#111',
+            color: colors.source,
             fontWeight: 500,
             wordWrap: 'break-word',
             padding: '8px 16px',
@@ -224,7 +248,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
             opacity: displayOpacity?.translation?.recent || 1,
             fontSize: `${20 * fontScale}px`,
             lineHeight: '1.6',
-            color: '#0066cc',
+            color: colors.target,
             fontWeight: 500,
             wordWrap: 'break-word',
             padding: '8px 16px',
@@ -257,7 +281,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
               style={{
                 fontSize: `${20 * fontScale}px`,
                 lineHeight: '1.6',
-                color: '#111',
+                color: colors.source,
                 fontWeight: 400,
                 wordWrap: 'break-word'
               }}
@@ -283,7 +307,7 @@ export const RealtimeSection: React.FC<RealtimeSectionProps> = ({
               style={{
                 fontSize: `${20 * fontScale}px`,
                 lineHeight: '1.6',
-                color: '#0066cc',
+                color: colors.target,
                 fontWeight: 400,
                 wordWrap: 'break-word'
               }}

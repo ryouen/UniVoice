@@ -11,6 +11,7 @@ exports.emitUnified = emitUnified;
 const electron_1 = require("electron");
 const dotenv_1 = require("dotenv");
 const path_1 = __importDefault(require("path"));
+const os_1 = __importDefault(require("os"));
 const gateway_1 = require("./services/ipc/gateway");
 const UnifiedPipelineService_1 = require("./services/domain/UnifiedPipelineService");
 const DataPersistenceService_1 = require("./services/domain/DataPersistenceService");
@@ -30,12 +31,14 @@ if (process.env.NODE_ENV === 'development' || !electron_1.app.isPackaged) {
 }
 // Windows GPU stability configuration
 // Note: GPU flags must be set before app is ready
-electron_1.app.disableHardwareAcceleration();
+// 透過ウィンドウのためハードウェアアクセラレーションを有効化
+// app.disableHardwareAcceleration(); // グラスモーフィズムのためコメントアウト
 if (process.platform === 'win32') {
     // These must be set before app.whenReady()
-    electron_1.app.commandLine.appendSwitch('disable-gpu');
-    electron_1.app.commandLine.appendSwitch('disable-software-rasterizer');
-    electron_1.app.commandLine.appendSwitch('disable-gpu-compositing');
+    // 透過ウィンドウのためGPU関連の無効化を削除
+    // app.commandLine.appendSwitch('disable-gpu');
+    // app.commandLine.appendSwitch('disable-software-rasterizer');
+    // app.commandLine.appendSwitch('disable-gpu-compositing');
     electron_1.app.commandLine.appendSwitch('enable-media-stream');
     electron_1.app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
     electron_1.app.commandLine.appendSwitch('max-old-space-size', '2048');
@@ -87,15 +90,38 @@ async function createWindow() {
     console.log('[Main] Preload script path:', preloadPath);
     console.log('[Main] Preload script exists:', require('fs').existsSync(preloadPath));
     mainLogger.info('Creating BrowserWindow...');
+    // プラットフォーム別の透過設定
+    const isWindows = process.platform === 'win32';
+    const isMac = process.platform === 'darwin';
+    // Windows 10 1803以降で透過をサポート
+    let supportsTransparency = true;
+    if (isWindows) {
+        try {
+            const release = os_1.default.release().split('.');
+            const build = parseInt(release[2]) || 0;
+            supportsTransparency = build >= 17134; // Windows 10 1803
+        }
+        catch (e) {
+            supportsTransparency = false;
+        }
+    }
     mainWindow = new electron_1.BrowserWindow({
         width: 1200,
         height: 400, // 初期高さを内容に近い値に
         show: false, // Prevent flash of unstyled window
         frame: false, // フレームレスウィンドウ（全OS対応）
-        transparent: false, // 透過は無効化（パフォーマンスと互換性のため）
+        transparent: supportsTransparency, // プラットフォームに応じて透過を設定
+        backgroundColor: supportsTransparency ? '#00000000' : '#f0f0f0', // 非対応環境ではフォールバック
         minWidth: 800,
         minHeight: 200, // 最小高さ: ヘッダー(40) + リアルタイムセクション(100) + 余白(60)
         resizable: true, // ユーザーによるリサイズを許可
+        // 透過ウィンドウの設定（CSS backdrop-filterでグラスモーフィズムを実現）
+        // 注意: backgroundMaterialやtitleBarStyleは透過を無効化するため使用しない
+        // macOSでVibrancy効果
+        ...(isMac ? {
+            vibrancy: 'under-window', // または 'sidebar', 'selection' など
+            visualEffectState: 'active'
+        } : {}),
         webPreferences: {
             preload: preloadPath,
             contextIsolation: true,

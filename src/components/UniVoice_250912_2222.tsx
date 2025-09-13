@@ -27,8 +27,6 @@ import { UserInputSection } from '../presentation/components/UniVoice/sections/U
 import { FullscreenModal, FloatingPanel, MemoModal, ReportModal } from '../presentation/components/UniVoice/modals';
 import { renderHistoryToHTML } from './UnifiedHistoryRenderer';
 import { renderFlowHistoryToHTML } from './UnifiedHistoryRenderer-Flow';
-import styles from './UniVoice.module.css';
-import classNames from 'classnames';
 // import { exportToWord, exportToPDF } from '../utils/exportUtils'; // TODO: Copy utility files
 
 interface SectionHeights {
@@ -117,6 +115,239 @@ interface UniVoiceProps {
 
 // DisplaySegmentはRealtimeDisplayManagerからインポート済み
 
+// Liquid Glassスタイルを生成する関数
+const getLiquidGlassStyles = (theme: 'light' | 'dark' | 'purple', fontScale: number) => {
+  const baseStyles = `
+    /* Liquid Glass ベーススタイル */
+    .header {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px; /* Phase 2: 垂直パディング追加で要素の整合性向上 */
+      gap: 10px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      position: relative;
+      -webkit-app-region: drag; /* ヘッダーをドラッグ可能にする */
+    }
+
+    .header button {
+      -webkit-app-region: no-drag; /* ボタンはドラッグ不可 */
+    }
+
+    .glass-light {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      color: #333;
+    }
+
+    .glass-dark {
+      background: rgba(20, 20, 20, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      color: white;
+    }
+
+    .glass-purple {
+      background: rgba(102, 51, 153, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      color: white;
+    }
+
+    .spacer {
+      flex: 1;
+    }
+
+    .icon-btn {
+      width: 36px; /* Phase 4: 固定サイズ追加 */
+      height: 36px; /* Phase 4: 固定サイズ追加 */
+      border-radius: 10px; /* Phase 4: より大きな角丸 */
+      border: none;
+      background: rgba(255, 255, 255, 0.15); /* Phase 4: 半透明背景 */
+      color: white; /* Phase 4: デフォルトテキスト色 */
+      cursor: pointer;
+      display: flex; /* inline-flexから変更 */
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease; /* Phase 4: より包括的なトランジション */
+      position: relative;
+    }
+
+    .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px); /* Phase 4: ホバー時の上方向移動エフェクト */
+    }
+
+    .glass-light .icon-btn {
+      background: rgba(0, 0, 0, 0.06); /* Phase 4: lightテーマ用の背景色 */
+      color: #333; /* Phase 4: lightテーマ用のテキスト色 */
+    }
+
+    .glass-light .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.1); /* lightテーマのホバー色を維持 */
+    }
+
+    .glass-dark .icon-btn:hover,
+    .glass-purple .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.25); /* Phase 4: より強いホバー効果 */
+      transform: translateY(-2px); /* Phase 4: 統一されたホバー移動 */
+    }
+
+    .icon-btn.active {
+      background: rgba(0, 123, 255, 0.2);
+    }
+
+    .tooltip {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 10000;
+    }
+
+    .icon-btn:hover .tooltip {
+      opacity: 1;
+    }
+
+    .recording-indicator-green {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px; /* Phase 3: 内部余白追加 */
+      background: rgba(76, 175, 80, 0.2); /* Phase 3: 背景色追加 */
+      border-radius: 10px; /* Phase 3: 角丸追加 */
+      color: white; /* Phase 3: デフォルト色（テーマで上書き） */
+      font-size: 14px;
+      font-weight: 500;
+      height: 36px; /* Phase 3: 高さ固定 */
+    }
+
+    .glass-light .recording-indicator-green {
+      background: rgba(76, 175, 80, 0.15); /* Phase 3: lightテーマ用の背景色 */
+      color: #2e7d32; /* Phase 3: lightテーマ用のテキスト色 */
+    }
+
+    .recording-dot-green {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
+      animation: pulse 2s infinite;
+    }
+
+    .recording-dot-green.paused {
+      background: #FFA500;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    /* フォントサイズスケーリング */
+    .app-container {
+      font-size: ${16 * fontScale}px;
+    }
+
+    .settings-bar {
+      height: 0;
+      overflow: hidden;
+      position: relative;
+      z-index: 1000;
+      border: none !important;
+      visibility: hidden;
+      opacity: 0;
+      transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                  visibility 0.3s ease,
+                  opacity 0.3s ease;
+    }
+
+    .settings-bar.show {
+      height: 56px;
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .settings-inner {
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.03);
+      height: 100%;
+      min-height: 56px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .settings-left, .settings-right {
+      display: flex;
+      gap: 6px;
+    }
+
+    .s-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .glass-light .s-btn {
+      background: rgba(0, 0, 0, 0.06);
+      color: #333;
+    }
+
+    .s-btn.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .s-tooltip {
+      position: absolute;
+      bottom: -32px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 10000;
+      visibility: hidden;
+    }
+
+    .settings-bar.show .s-btn:hover .s-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+  `;
+
+  return baseStyles;
+};
 
 export const UniVoice: React.FC<UniVoiceProps> = ({
   realtimeSegmentsOverride,
@@ -937,6 +1168,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   };
   
+  // テーマ切り替え関数
+  const cycleTheme = () => {
+    const themes: ('light' | 'dark' | 'purple')[] = ['light', 'dark', 'purple'];
+    const currentIndex = themes.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setCurrentTheme(themes[nextIndex]);
+  };
   
   // 時間フォーマット関数
   const formatTime = (seconds: number): string => {
@@ -1124,32 +1362,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const toggleHeader = () => {
     setShowHeader(!showHeader);
   };
-  
-  /**
-   * 🎨 テーマ切り替え関数
-   * light → dark → purple → light の順番で循環
-   */
-  const cycleTheme = () => {
-    setCurrentTheme(prev => {
-      switch(prev) {
-        case 'light': return 'dark';
-        case 'dark': return 'purple';
-        case 'purple': return 'light';
-        default: return 'light';
-      }
-    });
-  };
-  
-  // テーマ変更時に背景グラデーションを更新
-  useEffect(() => {
-    const bgGradient = currentTheme === 'light' 
-      ? 'var(--bg-gradient-light)'
-      : currentTheme === 'dark'
-      ? 'var(--bg-gradient-dark)'
-      : 'var(--bg-gradient-purple)';
-    
-    document.documentElement.style.setProperty('--current-bg-gradient', bgGradient);
-  }, [currentTheme]);
   
   
   // 要約データの表示（削除 - summaryEnglish/summaryJapaneseで管理）
@@ -1559,51 +1771,23 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     );
   }
   
-  // CSS Modules用のヘルパー関数
-  const getThemeClass = (base: string, includeBase: boolean = true) => {
-    const themeMap: Record<string, string> = {
-      'light': 'Light',
-      'dark': 'Dark',  
-      'purple': 'Purple'
-    };
-    const themeSuffix = themeMap[currentTheme] || 'Light';
-    
-    // まず"Theme"を含むクラス名を試す（例：settingsBarThemeLight）
-    let themeClass = styles[`${base}Theme${themeSuffix}`];
-    
-    // 見つからない場合は"Theme"なしを試す（例：controlButtonLight）
-    if (!themeClass) {
-      themeClass = styles[`${base}${themeSuffix}`];
-    }
-    
-    // デバッグ用（開発環境のみ）- 最初の数回だけログ出力
-    if (process.env.NODE_ENV === 'development' && base === 'theme') {
-      console.log(`🎨 Theme class applied:`, {
-        currentTheme,
-        className: themeClass,
-        hasGlassmorphism: themeClass ? 'Should include glassmorphism via composes' : 'No theme class'
-      });
-    }
-    
-    return includeBase ? classNames(styles[base], themeClass) : themeClass;
-  };
-
   // ========== メイン画面 ==========
   return (
     <>
+      {/* Liquid Glass スタイル注入 */}
+      <style>{getLiquidGlassStyles(currentTheme, currentFontScale)}</style>
+      
       {/* アプリコンテナ（フレームレス対応） */}
-      <div ref={appContainerRef} className={classNames(styles.app, getThemeClass('theme', false))} style={{
+      <div ref={appContainerRef} className="app-container" style={{
         width: '100%',
         height: 'auto', // コンテンツに合わせて高さを決定
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        // フォントスケールをCSS変数として設定
-        '--font-scale': currentFontScale,
-        fontSize: `calc(16px * var(--font-scale))`
-      } as React.CSSProperties}>
+        background: 'transparent' // 透過背景
+      }}>
         {/* メインウィンドウ */}
-        <div className={styles.mainWindow} style={{
+        <div className="main-window" style={{
           width: '100%',
           height: 'auto', // コンテンツに合わせて高さを自動調整
           display: 'flex',
@@ -1612,7 +1796,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         }}>
         {/* ヘッダー */}
         {showHeader && (
-        <div className={getThemeClass('header')} style={{
+        <div className={`header glass-${currentTheme}`} style={{
           WebkitAppRegion: 'drag' as any,
           position: 'relative',
           userSelect: 'none',
@@ -1620,13 +1804,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           zIndex: 10002
         }}>
           {/* 録音インジケーター */}
-          <div className={getThemeClass('recordingIndicator')}>
-            <div className={classNames(styles.recordingDot, { [styles.recordingDotPaused]: isPaused })} />
+          <div className={`recording-indicator-green ${isPaused ? 'paused' : ''}`}>
+            <div className={`recording-dot-green ${isPaused ? 'paused' : ''}`} />
             <span>{formatTime(recordingTime)}</span>
           </div>
           
           {/* 一時停止ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className="icon-btn" onClick={togglePause} style={{WebkitAppRegion: 'no-drag' as any}}>
             {isPaused ? (
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M4 2 L4 14 L12 8 Z"/>
@@ -1636,23 +1820,23 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 <path d="M5 3v10h3V3H5zm5 0v10h3V3h-3z"/>
               </svg>
             )}
-            <span className={styles.tooltip}>{isPaused ? '再開' : '一時停止'}</span>
+            <span className="tooltip">{isPaused ? '再開' : '一時停止'}</span>
           </button>
           
           {/* 授業終了ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={endSession} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className="icon-btn" onClick={endSession} style={{WebkitAppRegion: 'no-drag' as any}}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
               <rect x="2" y="2" width="10" height="10" rx="1"/>
             </svg>
-            <span className={styles.tooltip}>授業終了</span>
+            <span className="tooltip">授業終了</span>
           </button>
           
           {/* 次の授業へボタン */}
-          <button className={getThemeClass('controlButton')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className="icon-btn" onClick={nextClass} style={{WebkitAppRegion: 'no-drag' as any}}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 7h8m0 0L7 3m4 4L7 11"/>
             </svg>
-            <span className={styles.tooltip}>次の授業へ</span>
+            <span className="tooltip">次の授業へ</span>
           </button>
           
           {/* メモカウンター */}
@@ -1678,11 +1862,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           )}
           
           {/* スペーサー */}
-          <div className={styles.spacer} />
+          <div className="spacer" />
           
           {/* 履歴ボタン（フローティングパネル用） */}
           <button 
-            className={classNames(getThemeClass('controlButton'), showHistoryPanel && styles.controlButtonActive)}
+            className={`icon-btn ${showHistoryPanel ? 'active' : ''}`}
             onClick={() => togglePanel('history')}
           >
             <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1690,12 +1874,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               <line x1="6" y1="7" x2="12" y2="7"/>
               <line x1="6" y1="10" x2="12" y2="10"/>
             </svg>
-            <span className={styles.tooltip}>履歴</span>
+            <span className="tooltip">履歴</span>
           </button>
           
           {/* 要約ボタン（フローティングパネル用） */}
           <button 
-            className={classNames(getThemeClass('controlButton'), showSummaryPanel && styles.controlButtonActive)}
+            className={`icon-btn ${showSummaryPanel ? 'active' : ''}`}
             onClick={() => togglePanel('summary')}
           >
             <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1703,12 +1887,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               <rect x="8" y="7" width="3" height="8" fill="currentColor" opacity="0.5"/>
               <rect x="13" y="4" width="3" height="11" fill="currentColor" opacity="0.7"/>
             </svg>
-            <span className={styles.tooltip}>要約</span>
+            <span className="tooltip">要約</span>
           </button>
           
           {/* 質問ボタン */}
           <button 
-            className={classNames(getThemeClass('controlButton'), showQuestionSection && styles.controlButtonActive)}
+            className={`icon-btn ${showQuestionSection ? 'active' : ''}`}
             onClick={() => {
               setShowQuestionSection(!showQuestionSection);
             }}
@@ -1716,9 +1900,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M3 12 L3 7 Q3 4 6 4 L12 4 Q15 4 15 7 L15 12 L10 12 L6 15 L6 12 Z"/>
             </svg>
-            <span className={styles.tooltip}>質問</span>
+            <span className="tooltip">質問</span>
             {memoList.length > 0 && (
-              <span className={styles.badge} style={{
+              <span className="badge" style={{
                 position: 'absolute',
                 top: '-4px',
                 right: '-4px',
@@ -1734,33 +1918,33 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             )}
           </button>
           
-          <div className={styles.spacer} />
+          <div className="spacer" />
           
           {/* テーマ切り替えボタン */}
-          <button className={getThemeClass('controlButton')} onClick={cycleTheme} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className="icon-btn" onClick={cycleTheme} style={{WebkitAppRegion: 'no-drag' as any}}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
               <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
               <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
             </svg>
-            <span className={styles.tooltip}>テーマ</span>
+            <span className="tooltip">テーマ</span>
           </button>
           
           {/* 設定ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={() => {
+          <button className="icon-btn" onClick={() => {
             setShowSettings(!showSettings);
           }} style={{WebkitAppRegion: 'no-drag' as any}}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
               <path d="M10 3.5v-2m0 17v-2m6.5-6.5h2m-17 0h2m12.02-4.52l1.41-1.41M4.93 15.07l1.41-1.41m0-7.32L4.93 4.93m11.14 11.14l1.41 1.41"/>
             </svg>
-            <span className={styles.tooltip}>設定</span>
+            <span className="tooltip">設定</span>
           </button>
           
           <div style={{ flex: 1 }} />
           
           {/* 最前面固定ボタン */}
           <button 
-            className={classNames(getThemeClass('controlButton'), isAlwaysOnTop && styles.controlButtonActive)}
+            className={`icon-btn ${isAlwaysOnTop ? 'active' : ''}`}
             onClick={async () => {
               const newState = !isAlwaysOnTop;
               const windowAPI = window.univoice?.window;
@@ -1782,12 +1966,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               />
               <line x1="9" y1="15" x2="9" y2="18"/>
             </svg>
-            <span className={styles.tooltip}>最前面に固定</span>
+            <span className="tooltip">最前面に固定</span>
           </button>
           
           {/* メニューを隠すボタン */}
           <button 
-            className={getThemeClass('controlButton')}
+            className="icon-btn"
             onClick={() => {
               setShowHeader(false);
             }}
@@ -1801,99 +1985,83 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               <rect x="3" y="3" width="12" height="12" rx="1"/>
               <path d="M6 7 L9 10 L12 7" strokeLinecap="round"/>
             </svg>
-            <span className={styles.tooltip}>メニューを隠す (Esc で戻る)</span>
+            <span className="tooltip">メニューを隠す (Esc で戻る)</span>
           </button>
           
           <div style={{ width: '10px' }} />
           
           {/* 閉じるボタン */}
           <button 
-            className={getThemeClass('controlButton')} 
+            className="icon-btn" 
             onClick={() => window.univoice?.window?.close()}
             style={{ marginRight: '30px', marginLeft: '20px', WebkitAppRegion: 'no-drag' as any }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
             </svg>
-            <span className={styles.tooltip}>閉じる</span>
+            <span className="tooltip">閉じる</span>
           </button>
         </div>
         )}
         
         
         {/* 設定バー (Liquid Glass) */}
-        <div className={classNames(
-          styles.settingsBar,
-          getThemeClass('settingsBar', false),
-          showSettings && styles.settingsVisible
-        )} style={{
+        <div className={`settings-bar glass-${currentTheme} ${showSettings ? 'show' : ''}`} style={{
           zIndex: 1000
         }}>
-          <div className={styles.settingsContent}>
-            <div className={styles.settingsGroupLeft}>
+          <div className="settings-inner">
+            <div className="settings-left">
               <button 
-                className={classNames(
-                  getThemeClass('settingButton', false),
-                  displayMode === 'both' && styles.settingActive
-                )}
+                className={`s-btn ${displayMode === 'both' ? 'active' : ''}`}
                 onClick={() => setDisplay('both')}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
                   <rect x="10" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
                 </svg>
-                <span className={styles.sTooltip}>Alt+B</span>
+                <span className="s-tooltip">Alt+B</span>
               </button>
               <button 
-                className={classNames(
-                  getThemeClass('settingButton', false),
-                  displayMode === 'source' && styles.settingActive
-                )}
+                className={`s-btn ${displayMode === 'source' ? 'active' : ''}`}
                 onClick={() => setDisplay('source')}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
                   <rect x="10" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
                 </svg>
-                <span className={styles.sTooltip}>Alt+S</span>
+                <span className="s-tooltip">Alt+S</span>
               </button>
               <button 
-                className={classNames(
-                  getThemeClass('settingButton', false),
-                  displayMode === 'target' && styles.settingActive
-                )}
+                className={`s-btn ${displayMode === 'target' ? 'active' : ''}`}
                 onClick={() => setDisplay('target')}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
                   <rect x="10" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
                 </svg>
-                <span className={styles.sTooltip}>Alt+T</span>
+                <span className="s-tooltip">Alt+T</span>
               </button>
             </div>
-            <div className={styles.settingsGroupRight}>
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(-1)}>
+            <div className="settings-right">
+              <button className="s-btn" onClick={() => changeFont(-1)}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <span className={styles.sTooltip}>Ctrl+-</span>
+                <span className="s-tooltip">Ctrl+-</span>
               </button>
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(0)}>
+              <button className="s-btn" onClick={() => changeFont(0)}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>T</span>
-                <span className={styles.sTooltip}>リセット</span>
+                <span className="s-tooltip">リセット</span>
               </button>
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(1)}>
+              <button className="s-btn" onClick={() => changeFont(1)}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <span className={styles.sTooltip}>Ctrl++</span>
+                <span className="s-tooltip">Ctrl++</span>
               </button>
               <div style={{ width: '1px', height: '20px', background: 'rgba(0,0,0,0.1)', margin: '0 8px' }} />
               <button 
-                className={classNames(
-                  getThemeClass('settingButton', false),
-                  !showHeader && styles.settingActive
-                )}
+                className={`s-btn ${!showHeader ? 'active' : ''}`}
                 onClick={toggleHeader}
               >
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -1901,7 +2069,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                   <rect x="3" y="7" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                   <circle cx="9" cy="11" r="2" fill="currentColor" opacity="0.6"/>
                 </svg>
-                <span className={styles.sTooltip}>ヘッダー表示/非表示 (Alt+H)</span>
+                <span className="s-tooltip">ヘッダー表示/非表示 (Alt+H)</span>
               </button>
             </div>
           </div>
@@ -1909,7 +2077,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         
         {/* ヘッダー非表示時のミニマルコントロール */}
         {!showHeader && (
-          <div className={getThemeClass('headerCompact')} style={{
+          <div className={`minimal-control glass-${currentTheme}`} style={{
             height: '32px',
             display: 'flex',
             alignItems: 'center',
@@ -1966,7 +2134,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         {/* リアルタイムセクション（固定高さ） */}
         <div 
           ref={realtimeSectionRef}
-          className={getThemeClass('realtimeArea')} 
+          className={`realtime-section glass-${currentTheme}`} 
           style={{
           height: `${realtimeSectionHeight}px`, // 固定高さ
           overflowY: 'auto',
@@ -2004,17 +2172,14 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           {/* リサイズハンドルを削除 - Electronウィンドウのリサイズのみを使用 */}
           
           {/* 質問セクション（折りたたみ可能） */}
-          <div className={classNames(
-            getThemeClass('questionArea'),
-            showQuestionSection ? styles.questionVisible : styles.questionHidden
-          )} style={{
+          <div className={`question-section glass-${currentTheme} ${showQuestionSection ? 'open' : ''}`} style={{
             height: showQuestionSection ? '160px' : '0',
             overflow: showQuestionSection ? 'visible' : 'hidden',
             transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             position: 'relative',
             flexShrink: 0
           }}>
-            <div className={styles.questionInner} style={{
+            <div className="question-inner" style={{
               padding: '20px 30px',
               display: 'flex',
               gap: '20px',
@@ -2023,7 +2188,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             }}>
               <textarea 
                 id="questionInput"
-                className={getThemeClass('questionInput')}
+                className="question-input"
                 placeholder="質問・発言したい内容・メモを入力（日本語でOK）"
                 style={{
                   flex: 1,
@@ -2048,14 +2213,14 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                   e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
                 }}
               />
-              <div className={styles.questionActions} style={{
+              <div className="question-actions" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
                 justifyContent: 'center'
               }}>
                 <button 
-                  className={classNames(styles.qBtnSecondary, currentTheme !== 'light' && styles[`theme${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`])}
+                  className="q-btn secondary"
                   onClick={() => setShowMemoModal(true)}
                   style={{
                     padding: '10px 18px',
@@ -2073,7 +2238,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                   メモ一覧
                 </button>
                 <button 
-                  className={styles.qBtnPrimary}
+                  className="q-btn primary"
                   onClick={saveAsMemo}
                   style={{
                     padding: '10px 18px',
@@ -2142,6 +2307,62 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         onPDFExport={handlePDFExport}
         onNextClass={nextClass}
       />
+      
+      {/* スタイル */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        
+        .resize-handle:hover {
+          background: rgba(102, 126, 234, 0.3) !important;
+        }
+        
+        .resize-handle.active {
+          background: #667eea !important;
+        }
+        
+        .small-font {
+          font-size: 16px !important;
+        }
+        
+        .extra-small-font {
+          font-size: 14px !important;
+        }
+        
+        .history-paragraph.topic-break {
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 2px solid #667eea;
+        }
+        
+        .incomplete-sentence {
+          color: #999;
+          font-style: italic;
+        }
+        
+        * {
+          box-sizing: border-box;
+        }
+        
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+      `}</style>
     </>
   );
 };

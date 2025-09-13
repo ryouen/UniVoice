@@ -63,7 +63,12 @@
       "Bash(rimraf:*)",
       "Bash(del \"electron\\services\\domain\\AdvancedFeatureService.cumulative.ts\")",
       "Bash(del test-api-key.js)",
-      "mcp__serena__check_onboarding_performed"
+      "mcp__serena__check_onboarding_performed",
+      "mcp__github__list_commits",
+      "mcp__github__get_file_contents",
+      "Bash(for pid in 16872 10440 11704 1404 19488 20928 7840)",
+      "Bash(do taskkill //PID $pid //F)",
+      "Bash(done)"
     ],
     "deny": []
   },

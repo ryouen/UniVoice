@@ -17,6 +17,23 @@ html, body {
   min-height: 0;
 }
 
+/* 背景グラデーション用の疑似要素 */
+/* 透過ウィンドウのため、背景グラデーションは無効化 */
+/*
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--current-bg-gradient, var(--bg-gradient-light));
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0.5;
+}
+*/
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -25,6 +42,14 @@ html, body {
   /* UniVoice Light Theme */
   color: #333;
   background-color: transparent;
+  
+  /* グラスモーフィズム用の背景グラデーション変数 */
+  --bg-gradient-light: linear-gradient(135deg, rgba(245, 247, 250, 0.3) 0%, rgba(195, 207, 226, 0.3) 100%);
+  --bg-gradient-dark: linear-gradient(135deg, rgba(26, 26, 46, 0.3) 0%, rgba(22, 33, 62, 0.3) 100%);
+  --bg-gradient-purple: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+  
+  /* 現在の背景グラデーション（初期値はライトテーマ） */
+  --current-bg-gradient: var(--bg-gradient-light);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

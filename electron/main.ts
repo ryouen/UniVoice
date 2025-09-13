@@ -6,6 +6,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { config } from 'dotenv';
 import path from 'path';
+import os from 'os';
 import { ipcGateway } from './services/ipc/gateway';
 import { UnifiedPipelineService } from './services/domain/UnifiedPipelineService';
 import { DataPersistenceService } from './services/domain/DataPersistenceService';
@@ -29,13 +30,15 @@ if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
 
 // Windows GPU stability configuration
 // Note: GPU flags must be set before app is ready
-app.disableHardwareAcceleration();
+// 透過ウィンドウのためハードウェアアクセラレーションを有効化
+// app.disableHardwareAcceleration(); // グラスモーフィズムのためコメントアウト
 
 if (process.platform === 'win32') {
   // These must be set before app.whenReady()
-  app.commandLine.appendSwitch('disable-gpu');
-  app.commandLine.appendSwitch('disable-software-rasterizer');
-  app.commandLine.appendSwitch('disable-gpu-compositing');
+  // 透過ウィンドウのためGPU関連の無効化を削除
+  // app.commandLine.appendSwitch('disable-gpu');
+  // app.commandLine.appendSwitch('disable-software-rasterizer');
+  // app.commandLine.appendSwitch('disable-gpu-compositing');
   app.commandLine.appendSwitch('enable-media-stream');
   app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
   app.commandLine.appendSwitch('max-old-space-size', '2048');
@@ -96,15 +99,39 @@ async function createWindow() {
   console.log('[Main] Preload script exists:', require('fs').existsSync(preloadPath));
   
   mainLogger.info('Creating BrowserWindow...');
+  // プラットフォーム別の透過設定
+  const isWindows = process.platform === 'win32';
+  const isMac = process.platform === 'darwin';
+  
+  // Windows 10 1803以降で透過をサポート
+  let supportsTransparency = true;
+  if (isWindows) {
+    try {
+      const release = os.release().split('.');
+      const build = parseInt(release[2]) || 0;
+      supportsTransparency = build >= 17134; // Windows 10 1803
+    } catch (e) {
+      supportsTransparency = false;
+    }
+  }
+  
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 400, // 初期高さを内容に近い値に
     show: false, // Prevent flash of unstyled window
     frame: false, // フレームレスウィンドウ（全OS対応）
-    transparent: false, // 透過は無効化（パフォーマンスと互換性のため）
+    transparent: supportsTransparency, // プラットフォームに応じて透過を設定
+    backgroundColor: supportsTransparency ? '#00000000' : '#f0f0f0', // 非対応環境ではフォールバック
     minWidth: 800,
     minHeight: 200, // 最小高さ: ヘッダー(40) + リアルタイムセクション(100) + 余白(60)
     resizable: true, // ユーザーによるリサイズを許可
+    // 透過ウィンドウの設定（CSS backdrop-filterでグラスモーフィズムを実現）
+    // 注意: backgroundMaterialやtitleBarStyleは透過を無効化するため使用しない
+    // macOSでVibrancy効果
+    ...(isMac ? {
+      vibrancy: 'under-window', // または 'sidebar', 'selection' など
+      visualEffectState: 'active'
+    } : {}),
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
