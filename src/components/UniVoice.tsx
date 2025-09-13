@@ -1827,21 +1827,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <span className={styles.tooltip}>次の授業へ</span>
           </button>
           
-          {/* メモカウンター */}
-          {memoList.length > 0 && (
-            <span style={{
-              display: 'inline-block',
-              background: '#ffd700',
-              color: '#333',
-              fontSize: '10px',
-              padding: '2px 6px',
-              borderRadius: '3px',
-              marginLeft: '8px',
-              fontWeight: 600
-            }}>
-              メモ {memoList.length}
-            </span>
-          )}
           
           {autoSaveTime && (
             <span style={{ fontSize: '12px', color: '#4CAF50', marginLeft: '15px', opacity: 0.8 }}>
