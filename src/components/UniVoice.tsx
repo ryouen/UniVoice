@@ -31,11 +31,6 @@ import styles from './UniVoice.module.css';
 import classNames from 'classnames';
 // import { exportToWord, exportToPDF } from '../utils/exportUtils'; // TODO: Copy utility files
 
-interface SectionHeights {
-  history: number;
-  summary: number;
-  input: number;
-}
 
 interface Memo {
   id: string;
@@ -252,25 +247,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     targetLanguageOverride || localStorage.getItem('targetLanguage') || 'ja'
   );
   
-  // セクション高さ（LocalStorageから復元）
-  const [sectionHeights, setSectionHeights] = useState<SectionHeights>(() => {
-    const saved = localStorage.getItem('sectionHeights');
-    const defaultHeights = { history: 30, summary: 12, input: 20 };
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // 異常な値を防ぐ
-        if (parsed.history > 60 || parsed.history < 10) {
-          console.warn('履歴ウィンドウの高さが異常:', parsed.history);
-          return defaultHeights;
-        }
-        return parsed;
-      } catch (e) {
-        return defaultHeights;
-      }
-    }
-    return defaultHeights;
-  });
   
   // 拡大されているセクション
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -329,16 +305,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // ブロックガイドの表示状態
   const [showBlockGuides, setShowBlockGuides] = useState(true);
   
-  // リサイズ中の状態
-  const [isResizing, setIsResizing] = useState(false);
   const [realtimeSectionHeight, setRealtimeSectionHeight] = useState(() => {
     // LocalStorageから保存された高さを読み込む
     const saved = localStorage.getItem('univoice-realtime-height');
     return saved ? parseInt(saved, 10) : LAYOUT_HEIGHTS.realtime.default;
   });
-  const [resizingSection, setResizingSection] = useState<string | null>(null);
-  const [startY, setStartY] = useState(0);
-  const [startHeight, setStartHeight] = useState(0);
   
   // 🆕 リサイズモード管理（将来の拡張性のためenum化）
   enum ResizeMode {
@@ -1018,50 +989,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     localStorage.setItem('targetLanguage', targetLanguage);
   }, [targetLanguage]);
   
-  useEffect(() => {
-    localStorage.setItem('sectionHeights', JSON.stringify(sectionHeights));
-  }, [sectionHeights]);
   
   // セクション高さの変更（ログ削除）
   
   // 履歴エントリ数の変更（ログ削除）
   
-  // リサイズハンドラー
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing || !resizingSection) return;
-      
-      const deltaY = e.clientY - startY;
-      const viewportHeight = window.innerHeight;
-      const deltaVH = (deltaY / viewportHeight) * 100;
-      
-      // リサイズ計算: ${resizingSection}: ${startHeight}vh + ${deltaVH}vh
-      
-      setSectionHeights(prev => ({
-        ...prev,
-        [resizingSection]: Math.max(10, Math.min(60, startHeight + deltaVH))
-      }));
-    };
-    
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      setResizingSection(null);
-    };
-    
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'ns-resize';
-      document.body.style.userSelect = 'none';
-    }
-    
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-  }, [isResizing, resizingSection, startY, startHeight]);
   
   // ブロックガイドを5秒後に非表示（モックアップに合わせて延長）
   useEffect(() => {
@@ -1496,7 +1428,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // セクションクリックハンドラー
   const handleHistoryClick = (event: React.MouseEvent) => {
     if (window.getSelection()?.toString()) return;
-    if ((event.target as HTMLElement).classList.contains('resize-handle')) return;
+    // TODO: 旧リサイズシステム削除時にこの行も削除
+    // if ((event.target as HTMLElement).classList.contains('resize-handle')) return;
     
     // タイトルは renderHistoryToHTML 内で設定されるため不要
     setModalTitle('');
@@ -1506,7 +1439,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   const handleSummaryClick = (event: React.MouseEvent) => {
     if (window.getSelection()?.toString()) return;
-    if ((event.target as HTMLElement).classList.contains('resize-handle')) return;
+    // TODO: 旧リサイズシステム削除時にこの行も削除
+    // if ((event.target as HTMLElement).classList.contains('resize-handle')) return;
     
     setModalTitle('📊 要約（英日対比）');
     setModalContent(getSummaryComparisonContent());
@@ -1595,14 +1529,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }));
   };
   
-  // リサイズハンドルのマウスダウン
-  const handleResizeMouseDown = (section: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    setResizingSection(section);
-    setStartY(e.clientY);
-    setStartHeight(sectionHeights[section as keyof SectionHeights]);
-  };
   
   // ========== ヘルパー関数 ==========
   
@@ -1686,28 +1612,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     `;
   };
   
-  // セクションの高さスタイル計算
-  const getSectionStyle = (section: string) => {
-    let height = sectionHeights[section as keyof SectionHeights];
-    
-    if (expandedSection === section) {
-      height = 60; // 拡大時
-    } else if (expandedSection && expandedSection !== section && section !== 'current') {
-      height = 10; // 圧縮時
-    }
-    
-    // 履歴セクションの高さ計算完了
-    
-    // 履歴セクションの高さを最大40vhに制限
-    if (section === 'history' && height > 40) {
-      height = 40;
-    }
-    
-    return {
-      height: `${height}vh`,
-      transition: 'height 0.3s ease'
-    };
-  };
   
   // ========== 自動スクロール制御 ==========
   const userIsScrollingRef = useRef(false);
