@@ -27,6 +27,7 @@ import { UserInputSection } from '../presentation/components/UniVoice/sections/U
 import { FullscreenModal, FloatingPanel, MemoModal, ReportModal } from '../presentation/components/UniVoice/modals';
 import { renderHistoryToHTML } from './UnifiedHistoryRenderer';
 import { renderFlowHistoryToHTML } from './UnifiedHistoryRenderer-Flow';
+import { windowClient } from '../services/WindowClient';
 import styles from './UniVoice.module.css';
 import classNames from 'classnames';
 // import { exportToWord, exportToPDF } from '../utils/exportUtils'; // TODO: Copy utility files
@@ -1088,6 +1089,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     setRecordingTime(0);
     setShowBlockGuides(true);
     
+    // Setup → Main画面遷移をWindowClient経由で実行
+    await windowClient.enterMain();
+    
     // パイプライン開始
     console.log('[UniVoice] セッション開始:', className, 'Source:', sourceLang, 'Target:', targetLang);
     
@@ -1308,13 +1312,25 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   };
   
   // パネル切り替え関数
-  const togglePanel = (type: 'history' | 'summary') => {
+  const togglePanel = async (type: 'history' | 'summary') => {
     if (type === 'history') {
-      setShowHistoryPanel(!showHistoryPanel);
-      setShowSummaryPanel(false); // 他のパネルを閉じる
+      // WindowClient経由で履歴ウィンドウをトグル
+      const success = await windowClient.toggleHistory();
+      if (success) {
+        // 現在の実装では、FloatingPanelの状態も更新
+        // 将来的には独立ウィンドウのみ使用
+        setShowHistoryPanel(!showHistoryPanel);
+        setShowSummaryPanel(false); // 他のパネルを閉じる
+      }
     } else if (type === 'summary') {
-      setShowSummaryPanel(!showSummaryPanel);
-      setShowHistoryPanel(false); // 他のパネルを閉じる
+      // WindowClient経由で要約ウィンドウをトグル
+      const success = await windowClient.toggleSummary();
+      if (success) {
+        // 現在の実装では、FloatingPanelの状態も更新
+        // 将来的には独立ウィンドウのみ使用
+        setShowSummaryPanel(!showSummaryPanel);
+        setShowHistoryPanel(false); // 他のパネルを閉じる
+      }
     }
   };
   
@@ -1773,7 +1789,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         fontSize: `calc(16px * var(--font-scale))`
       } as React.CSSProperties}>
         {/* メインウィンドウ */}
-        <div className={styles.mainWindow} style={{
+        <div className={classNames(styles.mainWindow, "main-content")} style={{
           width: '100%',
           height: '100%', // 親要素の高さに従う
           display: 'flex',
@@ -1845,6 +1861,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           }}>
             {/* 履歴ボタン（フローティングパネル用） */}
             <button 
+              data-testid="history-button"
               className={classNames(getThemeClass('controlButton'), showHistoryPanel && styles.controlButtonActive)}
               onClick={() => togglePanel('history')}
               style={{WebkitAppRegion: 'no-drag' as any}}
@@ -1859,6 +1876,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             
             {/* 要約ボタン（フローティングパネル用） */}
             <button 
+              data-testid="summary-button"
               className={classNames(getThemeClass('controlButton'), showSummaryPanel && styles.controlButtonActive)}
               onClick={() => togglePanel('summary')}
               style={{WebkitAppRegion: 'no-drag' as any}}

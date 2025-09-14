@@ -1,7 +1,7 @@
 {
-  "lastUpdated": "2025-09-04T02:00:00Z",
+  "lastUpdated": "2025-09-14T12:00:00Z",
   "projectVersion": "2.0.0-alpha",
-  "currentPhase": "Phase 2 完了 / Phase 3 Advanced Features動作確認済み",
+  "currentPhase": "Phase 2 完了 / Phase 3 Advanced Features動作確認済み / Window Management M1実装中",
   "sessionSummary": {
     "startTime": "2025-08-30T07:00:00Z",
     "continuedFrom": "Data Persistence統合完了",
@@ -170,14 +170,24 @@
       "FlexibleHistoryGrouperのパラグラフ対応拡張 - 2025-09-02",
       "パラグラフモード完全統合と動作確認 - 2025-09-03",
       "AdvancedFeatureService初期化確認（バグ修正済み） - 2025-09-04",
-      "ドキュメント整理と最新情報反映 - 2025-09-04"
+      "ドキュメント整理と最新情報反映 - 2025-09-04",
+      "WindowRegistryとBoundsStore実装 - 2025-09-14",
+      "mainWindow参照エラー修正（51箇所） - 2025-09-14",
+      "ウィンドウリサイズ無限ループ解決 - 2025-09-14"
     ],
     "inProgress": [
+      "Setup画面サイズ問題の解決（600x374→600x800）",
+      "未実装IPCハンドラーの追加（セッション管理系）",
       "セッション再開UI実装（データ永続化は完成）",
       "レポート生成UI実装（バックエンドは完成）"
     ],
     "pending": {
       "P0_最優先_今すぐ": [
+        "Setup画面の高さ問題修正（WindowRegistry透明度とスタイル調整）",
+        "check-today-sessionハンドラー実装",
+        "get-available-sessionsハンドラー実装",
+        "load-sessionハンドラー実装",
+        "プロセス重複防止の実装",
         "SentenceCombinerのhandleSegmentメソッドへの組み込み",
         "CombinedSentenceEvent発行コードの有効化",
         "フロントエンドIDマッピング動作確認",

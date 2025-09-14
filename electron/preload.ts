@@ -32,6 +32,20 @@ interface WindowAPI {
 }
 
 /**
+ * Window Manager API for multi-window management
+ */
+interface WindowManagerAPI {
+  // Setup window controls
+  measureSetupContent: () => { width: number; height: number } | null;
+  setSetupBounds: (width: number, height: number) => Promise<boolean>;
+  enterMain: () => Promise<boolean>;
+  
+  // Panel window controls
+  toggleHistory: () => Promise<boolean>;
+  toggleSummary: () => Promise<boolean>;
+}
+
+/**
  * UniVoice API - Type-safe interface for renderer
  */
 interface UniVoiceAPI {
@@ -62,6 +76,9 @@ interface UniVoiceAPI {
   
   // Window control API
   window: WindowAPI;
+  
+  // Window manager API
+  windowManager: WindowManagerAPI;
 }
 
 /**
@@ -207,6 +224,30 @@ function createWindowAPI(): WindowAPI {
 }
 
 /**
+ * Create window manager API
+ */
+function createWindowManagerAPI(): WindowManagerAPI {
+  return {
+    // Setup window controls
+    measureSetupContent: () => {
+      // DISABLED: Dynamic content measurement causes resize loops
+      // Return fixed size to prevent any resize attempts
+      return { width: 600, height: 800 };
+    },
+    setSetupBounds: (width: number, height: number) => 
+      ipcRenderer.invoke('window:setSetupBounds', width, height),
+    enterMain: () => 
+      ipcRenderer.invoke('window:enterMain'),
+    
+    // Panel window controls
+    toggleHistory: () => 
+      ipcRenderer.invoke('window:toggleHistory'),
+    toggleSummary: () => 
+      ipcRenderer.invoke('window:toggleSummary')
+  };
+}
+
+/**
  * Utility functions
  */
 function createUtilities() {
@@ -235,7 +276,8 @@ const univoiceAPI: UniVoiceAPI = {
   ...createEventListeners(),
   ...createUtilities(),
   ...createUnifiedEventListener(),
-  window: createWindowAPI()
+  window: createWindowAPI(),
+  windowManager: createWindowManagerAPI()
 };
 
 // Expose the type-safe UniVoice API

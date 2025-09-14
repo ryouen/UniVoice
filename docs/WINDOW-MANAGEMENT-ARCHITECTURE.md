@@ -1,7 +1,7 @@
 # UniVoice Window Management Architecture
 
-最終更新: 2025-01-14  
-バージョン: 3.0.0  
+最終更新: 2025-09-14  
+バージョン: 3.1.0  
 作成者: Claude Code (Clean Architecture Senior Engineer)
 
 ## 📋 概要
@@ -1279,3 +1279,91 @@ ipcMain.handle('setup:setDesiredBounds', (_, width: number, height: number) => {
    ```
 
 この設計により、各層の責務が明確に分離され、テスタブルで保守性の高いアーキテクチャが実現されます。
+
+## 🚨 実装上の課題と解決策（2025-09-14 追記）
+
+### 1. Setup画面サイズ問題
+
+**問題**: WindowRegistryで800pxに設定しても、実際は374pxで表示される
+
+**原因**:
+- BoundsStoreが前回の374pxを保存し、起動時に復元している（WindowRegistry.ts:89-93）
+- `app.getPath('userData')/window-bounds.json`に保存された値が優先される
+- デフォルトの800pxが上書きされる
+
+**解決策**:
+```typescript
+// 解決策1: window-bounds.jsonを削除
+// %APPDATA%\univoice\window-bounds.json (Windows)
+
+// 解決策2: setup画面は保存値を無視
+if (role !== 'setup') {
+  const saved = this.store.get(role);
+  if (saved?.width && saved?.height) {
+    window.setBounds(saved);
+  }
+}
+
+// 解決策3: 最小高さを強制
+case 'setup':
+  return {
+    width: 600,
+    height: 800,
+    minHeight: 700,  // 最小高さを追加
+    resizable: false
+  };
+```
+
+### 2. ウィンドウリサイズ無限ループ
+
+**問題**: ResizeObserverが無限に"Window resized"ログを出力
+
+**解決策**: autoResizeとmeasureSetupContentを完全無効化
+```typescript
+// preload.ts
+autoResize: () => false,  // 常にfalseを返す
+measureSetupContent: () => ({ width: 600, height: 800 })  // 固定値
+```
+
+### 3. 未実装IPCハンドラー
+
+**問題**: SetupSectionが以下のハンドラーを呼び出してエラー発生
+- `check-today-session`
+- `get-available-sessions`
+- `load-session`
+
+**解決策**: DataPersistenceServiceと統合したハンドラーを実装
+```typescript
+ipcMain.handle('check-today-session', async (event, courseName) => {
+  return dataPersistenceService.checkTodaySession(courseName);
+});
+```
+
+### 4. プロセス重複問題
+
+**問題**: 複数のElectronインスタンスが同時実行
+
+**解決策**:
+```typescript
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  return;
+}
+
+app.on('second-instance', () => {
+  const mainWindow = getMainWindow();
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+```
+
+### 実装の教訓
+
+1. **BoundsStoreの永続化に注意** - 開発中の誤った値が保存されると問題が続く
+2. **動的リサイズ機能は慎重に実装** - 無限ループの原因になりやすい
+3. **IPCハンドラーは事前に網羅的に定義** - 後から追加すると統合が困難
+4. **mainWindow参照の一元管理** - グローバル変数よりもRegistryパターンが優れている
+5. **Setup画面のような固定サイズは保存値を無視すべき** - ユーザビリティの観点から

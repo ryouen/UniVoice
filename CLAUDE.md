@@ -3,6 +3,9 @@
 ## 🔴 最初に必ず実行すること
 
 ```bash
+# 0. クイックチェック（Setup画面374px問題など）🆕
+cat QUICK-CHECK-NEW-SESSION.md
+
 # 1. 重要事実集を確認（新セッション必須）
 cat CRITICAL-FACTS-FOR-NEW-SESSION.md
 
@@ -11,6 +14,22 @@ cat START-HERE.md
 
 # 3. 実装状況の詳細を確認（2025-09-10追加）
 cat IMPLEMENTATION-STATUS-20250910.md
+
+# 4. ウィンドウ管理実装の進捗確認（2025-09-14追加）
+# 実装ガイドを確認
+cat docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md | head -50
+
+# 実装状況をチェック（以下のファイルの存在で進捗を判断）
+ls -la electron/main/WindowRegistry.ts 2>/dev/null || echo "❌ M1: WindowRegistry未実装"
+ls -la src/services/WindowClient.ts 2>/dev/null || echo "❌ M1: WindowClient未実装"
+grep -q "windowManager" electron/preload.ts 2>/dev/null && echo "✅ M1: Preload API実装済" || echo "❌ M1: Preload API未実装"
+
+# ⚠️ Setup画面374px問題の原因と解決（2025-09-14判明）
+# BoundsStoreが前回の374pxを保存しているのが原因
+# 解決方法：window-bounds.jsonを削除するか、setup画面は保存値を無視する修正が必要
+
+# タスクリストで現在のマイルストーンを確認
+grep "M1" docs/ACTIVE/TASKS.json | grep "pending" | head -5
 ```
 
 📌 **必須ファイル**: [`CRITICAL-FACTS-FOR-NEW-SESSION.md`](CRITICAL-FACTS-FOR-NEW-SESSION.md) - 新セッションで最初に読む
@@ -18,7 +37,7 @@ cat IMPLEMENTATION-STATUS-20250910.md
 **重要**: このプロジェクトは UniVoice 2.0 として、
 Clean Architecture + CQRS + Event-Driven パターンで構築されています。
 
-**⚠️ 重要な訂正**: 
+**⚠️ 重要な訂正 (あなたが疑ったり、改悪しては絶対にならないもの)**: 
 - Responses API は2025年3月にリリースされた実在のAPIです
 - GPT-5シリーズ（gpt-5、gpt-5-mini、gpt-5-nano）は実在のモデルです
 - temperature パラメータは GPT-5 では1.0固定（変更不可）
@@ -26,15 +45,13 @@ Clean Architecture + CQRS + Event-Driven パターンで構築されています
 
 ## 🔴 絶対命令（CRITICAL DIRECTIVES）
 
-### 0. **動作実績のあるコードを絶対に壊すな**
-   - test-results/*.jsonが存在 = 動作確認済み = 変更前に必ず確認
-   - 必ず実行して確認: `npm run test`
+### 0. **動作実績のあるコードを壊すな**
 
 ### 1. **Ultrathink原則 — 表面的修正の禁止**
    - コード修正前に必ず状況と構造を深く分析（Ultrathink）すること
    - 計画を立て、その影響範囲と副作用を完全に見通してから着手
    - 「とりあえず試す」「推測で修正」は厳禁
-   - **詳細プロトコル**: `/deep-think` コマンドで深層思考手順を確認
+   - **詳細プロトコル**: `/deep-think` コマンドで深層思考手順を確認。　コマンドは.\.claude\commands内
 
 ### 2. **型安全性の絶対優先**
    - 全てのIPC通信はZodによる型検証必須
@@ -65,7 +82,7 @@ Clean Architecture + CQRS + Event-Driven パターンで構築されています
 ## 📁 プロジェクト構造とリンク
 
 ### コアドキュメント（必読）
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - Clean Architecture設計
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - Clean Architecture設計 🆕
 - [`docs/MIGRATION-GUIDE.md`](docs/MIGRATION-GUIDE.md) - 1.0からの移行ガイド
 - [`docs/API-CONTRACTS.md`](docs/API-CONTRACTS.md) - IPC契約定義
 
@@ -327,7 +344,8 @@ npm run clean
 ### 開発支援ドキュメント
 - [自動テスト・ログ収集システム](docs/development/AUTO-TEST-LOGGING-SYSTEM.md) 🔴 NEW
 - [型定義同期に関する調査結果](docs/TYPE-SYNCHRONIZATION-FINDINGS.md) 🔴 NEW - ビルドエラーの原因と解決策
-- [ウィンドウ管理アーキテクチャ](docs/WINDOW-MANAGEMENT-ARCHITECTURE.md) 🔴 NEW v3.0.0 - WindowRegistryパターンとスケルトン実装
+- [ウィンドウ管理実装ガイド](docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md) 🔴 NEW (2025-09-14) - 実装者向けの具体的な手順書
+- [ウィンドウ管理アーキテクチャ](docs/WINDOW-MANAGEMENT-ARCHITECTURE.md) - 設計思想と詳細仕様
 - テスト戦略ガイド（準備中）
 - デバッグ手順書（準備中）
 
@@ -378,6 +396,55 @@ Deepgramのセグメント（0.8秒区切り）を2-3文の意味単位に結合
 2. **型安全性を犠牲にした「とりあえず動く」実装は禁止**
 3. **パフォーマンス基準を満たさない実装はマージしない**
 4. **/deep-think なしの表面的な修正は禁止**
+
+---
+
+## 🔄 実装整合性チェック＆更新管理（2025-09-14追加）
+
+### マイルストーン完了時の更新手順
+
+```bash
+# M1完了時の確認と更新
+# 1. 実装完了チェック
+npm run test:window-management  # ウィンドウ管理のテスト
+ls -la electron/main/{window-registry,bounds-store}.ts
+ls -la src/services/window-client.ts
+
+# 2. ドキュメント更新
+# 実装ガイドのM1セクションを「完了」に更新
+# 新しい知見や変更点を追記
+
+# 3. タスクリスト更新
+# TodoWriteツールでM1タスクをcompletedに変更
+# M2タスクのpriorityをhighに上げる
+```
+
+### 実装とドキュメントの整合性確認
+
+```bash
+# ソースコードから実装状況を自動検出
+find . -name "*.ts" -o -name "*.tsx" | xargs grep -l "WindowRegistry\|WindowClient\|windowManager" | sort
+
+# ドキュメントに記載されている実装ファイルと比較
+diff <(cat docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md | grep -E "^(electron|src)/" | sort) \
+     <(find . -name "*window*.ts" -o -name "*Window*.tsx" | grep -v node_modules | sort)
+```
+
+### 更新対象ドキュメント一覧
+
+| マイルストーン | 主要更新ドキュメント | 更新内容 |
+|----------------|---------------------|----------|
+| M1完了時 | WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md | M1セクションを完了マーク、実装の振り返り追加 |
+| M2完了時 | 同上 + ARCHITECTURE.md | UI分割の実装詳細、コンポーネント構成図 |
+| M3完了時 | 同上 + API-CONTRACTS.md | Hook分割に伴うIPC契約の整理 |
+| M4完了時 | 全アーキテクチャドキュメント | Clean Architecture完成形の記録 |
+
+### TodoWriteツール使用タイミング
+
+- **毎日の作業開始時**: 当日のタスクをin_progressに
+- **機能実装完了時**: 該当タスクをcompletedに
+- **新しい課題発見時**: 新規タスクを追加
+- **マイルストーン完了時**: 次フェーズのタスクpriorityを調整
 
 ---
 

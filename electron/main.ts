@@ -13,6 +13,7 @@ import { DataPersistenceService } from './services/domain/DataPersistenceService
 import { AdvancedFeatureService } from './services/domain/AdvancedFeatureService';
 import { logger } from './utils/logger';
 import { runStartupChecks, watchForNulCreation } from './utils/startup-check';
+import { windowRegistry } from './main/WindowRegistry';
 // import { devTestService } from './services/DevTestService';
 import { UnifiedEvent, generateEventId } from './shared/ipcEvents';
 // import { UNIFIED_CHANNEL } from './shared/ipcEvents'; // Will be used in Stage 1
@@ -45,11 +46,14 @@ if (process.platform === 'win32') {
   // Move logging after app is ready to avoid early logger issues
 }
 
-let mainWindow: BrowserWindow | null = null;
+// Remove direct mainWindow variable - use windowRegistry instead
 let pipelineService: UnifiedPipelineService | null = null;
 let advancedFeatureService: AdvancedFeatureService | null = null;
 let dataPersistenceService: DataPersistenceService | null = null;
 const mainLogger = logger.child('Main');
+
+// Get current window (setup or main)
+const getMainWindow = () => windowRegistry.get('main') || windowRegistry.get('setup');
 
 // Unified event system state
 let globalSeq = 0; // Monotonic sequence counter
@@ -69,6 +73,8 @@ export function emitUnified(event: Omit<UnifiedEvent, 'id' | 'seq' | 'ts' | 'v'>
   };
   
   // Stage 0: Emit to shadow consumer for metrics in development only
+  const mainWindow = getMainWindow();
+
   if (mainWindow && !mainWindow.isDestroyed()) {
     // Shadow emit for testing in development mode
     if (!app.isPackaged || process.env.NODE_ENV === 'development') {
@@ -94,11 +100,6 @@ export function emitUnified(event: Omit<UnifiedEvent, 'id' | 'seq' | 'ts' | 'v'>
 async function createWindow() {
   mainLogger.info('createWindow called');
   
-  const preloadPath = path.join(__dirname, 'preload.js');
-  console.log('[Main] Preload script path:', preloadPath);
-  console.log('[Main] Preload script exists:', require('fs').existsSync(preloadPath));
-  
-  mainLogger.info('Creating BrowserWindow...');
   // プラットフォーム別の透過設定
   const isWindows = process.platform === 'win32';
   const isMac = process.platform === 'darwin';
@@ -114,44 +115,40 @@ async function createWindow() {
       supportsTransparency = false;
     }
   }
-  
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 400, // 初期高さを内容に近い値に
+
+  // 共通のウィンドウオプション
+  const baseOptions: Electron.BrowserWindowConstructorOptions = {
     show: false, // Prevent flash of unstyled window
     frame: false, // フレームレスウィンドウ（全OS対応）
     transparent: supportsTransparency, // プラットフォームに応じて透過を設定
     backgroundColor: supportsTransparency ? '#00000000' : '#f0f0f0', // 非対応環境ではフォールバック
-    minWidth: 800,
-    minHeight: 200, // 最小高さ: ヘッダー(40) + リアルタイムセクション(100) + 余白(60)
-    resizable: true, // ユーザーによるリサイズを許可
-    // 透過ウィンドウの設定（CSS backdrop-filterでグラスモーフィズムを実現）
-    // 注意: backgroundMaterialやtitleBarStyleは透過を無効化するため使用しない
     // macOSでVibrancy効果
     ...(isMac ? {
-      vibrancy: 'under-window', // または 'sidebar', 'selection' など
-      visualEffectState: 'active'
-    } : {}),
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-      experimentalFeatures: true,
-      enableBlinkFeatures: 'AudioWorklet',
-      // Add sandbox: false to ensure preload script can run
-      sandbox: false
-    },
-    title: 'UniVoice - Streaming UI Optimization'
-  });
+      vibrancy: 'under-window' as const,
+      visualEffectState: 'active' as const
+    } : {})
+  };
+  
+  // Setup画面として起動（初期状態）
+  const mainWindow = windowRegistry.createOrShow('setup', baseOptions);
 
-  mainLogger.info('BrowserWindow created');
+  mainLogger.info('Setup window created via WindowRegistry');
 
   // Development vs Production mode
   const isDev = !app.isPackaged;
+  const testMode = false; // Window works, now try actual app
   
-  if (isDev) {
+  if (testMode) {
+    console.log('[Main] Loading test page for debugging...');
+    try {
+      await mainWindow.loadFile(path.join(__dirname, '../test.html'));
+      mainWindow.show();
+      console.log('[Main] Test page loaded successfully');
+    } catch (err) {
+      console.error('[Main] Failed to load test page:', err);
+      mainLogger.error('Failed to load test page', { error: err });
+    }
+  } else if (isDev) {
     try {
       // Try common Vite ports
       const ports = [5173, 5174, 5175, 5176, 5177, 5178, 5179, 5180, 5181, 5182, 5183, 5190, 5195];
@@ -160,7 +157,7 @@ async function createWindow() {
       for (const port of ports) {
         try {
           console.log(`[Main] Trying to connect to dev server on port ${port}...`);
-          await mainWindow.loadURL(`http://localhost:${port}`);
+          await mainWindow.loadURL(`http://localhost:${port}#/setup`);
           mainLogger.info(`Connected to dev server on port ${port}`);
           console.log(`[Main] Successfully connected to dev server on port ${port}`);
           connected = true;
@@ -176,14 +173,14 @@ async function createWindow() {
     } catch (err) {
       mainLogger.error('Failed to connect to dev server', { error: err });
       console.error('[Main] Failed to connect to dev server:', err);
-      await mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+      await mainWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'setup' });
     }
     
     // Show window immediately in development mode
     mainWindow.show();
   } else {
     console.log('[Main] Loading production build from:', path.join(__dirname, '../dist/index.html'));
-    await mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    await mainWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'setup' });
   }
 
   // Enable DevTools shortcuts
@@ -207,13 +204,22 @@ async function createWindow() {
   });
 
   // Force open DevTools in development
-  if (isDev) {
+  if (isDev || testMode) {
     mainWindow.webContents.openDevTools();
     mainLogger.info('DevTools enabled - Press F12 to toggle');
+    
+    // Log window bounds for debugging
+    setTimeout(() => {
+      const bounds = mainWindow.getBounds();
+      console.log('[Main] Window bounds:', bounds);
+      console.log('[Main] Window visible:', mainWindow.isVisible());
+    }, 1000);
   }
 
   // Handle ready-to-show event for frameless window
   mainWindow.once('ready-to-show', () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show();
       mainLogger.info('Window shown after ready-to-show');
@@ -238,10 +244,20 @@ async function createWindow() {
   
   mainWindow.on('closed', () => {
     cleanup();
-    mainWindow = null;
+  });
+  
+  // Add error logging for renderer process
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
+    console.error('[Main] Page failed to load:', errorCode, errorDescription);
+    mainLogger.error('Page failed to load', { errorCode, errorDescription });
+  });
+  
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Main] Renderer process gone:', details);
+    mainLogger.error('Renderer process gone', { details });
   });
 
-  mainLogger.info('Main window created successfully');
+  mainLogger.info('Setup window created successfully');
 }
 
 /**
@@ -250,6 +266,8 @@ async function createWindow() {
 function setupWindowControls(): void {
   // Window minimize
   ipcMain.handle('window:minimize', async () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.minimize();
     }
@@ -257,6 +275,8 @@ function setupWindowControls(): void {
 
   // Window maximize
   ipcMain.handle('window:maximize', async () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.maximize();
     }
@@ -264,6 +284,8 @@ function setupWindowControls(): void {
 
   // Window unmaximize
   ipcMain.handle('window:unmaximize', async () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.unmaximize();
     }
@@ -271,6 +293,8 @@ function setupWindowControls(): void {
 
   // Window close
   ipcMain.handle('window:close', async () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.close();
     }
@@ -278,6 +302,8 @@ function setupWindowControls(): void {
 
   // Check if window is maximized
   ipcMain.handle('window:isMaximized', async () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       return mainWindow.isMaximized();
     }
@@ -292,6 +318,8 @@ function setupWindowControls(): void {
 
   // Set always on top
   ipcMain.handle('window:setAlwaysOnTop', async (_event, alwaysOnTop: boolean) => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setAlwaysOnTop(alwaysOnTop);
       return mainWindow.isAlwaysOnTop();
@@ -301,26 +329,55 @@ function setupWindowControls(): void {
 
   // Check if always on top
   ipcMain.handle('window:isAlwaysOnTop', async () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       return mainWindow.isAlwaysOnTop();
     }
     return false;
   });
 
-  // Auto resize window to content height
-  ipcMain.handle('window:autoResize', async (_event, height: number) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      const currentBounds = mainWindow.getBounds();
-      mainWindow.setBounds({
-        x: currentBounds.x,
-        y: currentBounds.y,
-        width: currentBounds.width,
-        height: Math.max(200, Math.min(800, height)) // Clamp between min and max
-      });
-      mainLogger.info('Window resized', { newHeight: height });
-      return true;
-    }
+  // Auto resize window to content height - COMPLETELY DISABLED
+  ipcMain.handle('window:autoResize', async () => {
+    // This API is completely disabled to prevent infinite loops
+    // Window sizes are managed by WindowRegistry defaults
+    // Do not log to prevent log spam
     return false;
+  });
+
+  // NEW: Window management IPC handlers
+  // Setup window size fitting
+  ipcMain.handle('window:setSetupBounds', async (_event, width: number, height: number) => {
+    // Disable dynamic resizing to prevent infinite loops
+    mainLogger.warn('window:setSetupBounds called - This API is disabled', { 
+      requestedWidth: width,
+      requestedHeight: height 
+    });
+    // Use fixed size defined in WindowRegistry instead
+    return true;
+  });
+
+  // Transition from Setup to Main
+  ipcMain.handle('window:enterMain', async () => {
+    windowRegistry.reuseSetupAsMain();
+    const mainWindow = windowRegistry.get('main');
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      await mainWindow.loadURL(mainWindow.webContents.getURL().replace('#/setup', '#/main'));
+    }
+    return true;
+  });
+
+  // Toggle history window
+  ipcMain.handle('window:toggleHistory', async () => {
+    windowRegistry.toggleHistory();
+    return true;
+  });
+
+  // Toggle summary window
+  ipcMain.handle('window:toggleSummary', async () => {
+    windowRegistry.toggleSummary();
+    return true;
   });
 
   mainLogger.info('Window controls setup completed');
@@ -365,6 +422,8 @@ function setupIPCGateway(): void {
   // Forward pipeline events to renderer
   ipcGateway.on('pipelineEvent', (event) => {
     console.log('[Main] Forwarding pipeline event to renderer:', event.type);
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('univoice:event', event);
     } else {
@@ -466,6 +525,56 @@ function setupIPCGateway(): void {
   // Do not duplicate them here to avoid the "second handler" error
   mainLogger.info('Window control handlers already registered in setupWindowControls()');
 
+  // Session management handlers
+  ipcMain.handle('check-today-session', async (_event, courseName: string) => {
+    try {
+      if (!dataPersistenceService) {
+        mainLogger.error('DataPersistenceService not initialized');
+        return { exists: false };
+      }
+      
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+      const result = await dataPersistenceService.checkTodaySession(courseName);
+      mainLogger.info('Checked today session', { courseName, today, result });
+      return result;
+    } catch (error) {
+      mainLogger.error('Failed to check today session', { error });
+      return { exists: false };
+    }
+  });
+
+  ipcMain.handle('get-available-sessions', async (_event, options: { limit?: number }) => {
+    try {
+      if (!dataPersistenceService) {
+        mainLogger.error('DataPersistenceService not initialized');
+        return [];
+      }
+      
+      const sessions = await dataPersistenceService.getAvailableSessions(undefined, options.limit || 100);
+      mainLogger.info('Retrieved available sessions', { count: sessions.length });
+      return sessions;
+    } catch (error) {
+      mainLogger.error('Failed to get available sessions', { error });
+      return [];
+    }
+  });
+
+  ipcMain.handle('load-session', async (_event, params: { courseName: string; dateStr: string; sessionNumber: number }) => {
+    try {
+      if (!dataPersistenceService) {
+        mainLogger.error('DataPersistenceService not initialized');
+        return null;
+      }
+      
+      const sessionData = await dataPersistenceService.loadSession(params.courseName, params.dateStr, params.sessionNumber);
+      mainLogger.info('Loaded session data', { params, hasData: !!sessionData });
+      return sessionData;
+    } catch (error) {
+      mainLogger.error('Failed to load session', { error, params });
+      return null;
+    }
+  });
+
   mainLogger.info('IPC Gateway setup completed');
   console.log('[Main] IPC Gateway setup completed - handlers registered');
 }
@@ -546,6 +655,8 @@ function setupPipelineService(): void {
       threshold: summary.threshold,
       summaryLength: summary.english?.length 
     });
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('progressive-summary', summary);
     }
@@ -556,6 +667,8 @@ function setupPipelineService(): void {
       wordCount: summary.data?.wordCount,
       summaryLength: summary.data?.english?.length 
     });
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('summary', summary);
     }
@@ -563,6 +676,8 @@ function setupPipelineService(): void {
   
   advancedFeatureService.on('vocabularyGenerated', (vocabulary) => {
     mainLogger.info('Vocabulary generated', { itemCount: vocabulary.data?.items?.length });
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('vocabulary-generated', vocabulary);
     }
@@ -570,6 +685,8 @@ function setupPipelineService(): void {
   
   advancedFeatureService.on('finalReportGenerated', (report) => {
     mainLogger.info('Final report generated', { reportLength: report.data?.report?.length });
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('final-report-generated', report);
     }
@@ -577,6 +694,8 @@ function setupPipelineService(): void {
   
   advancedFeatureService.on('error', (error) => {
     mainLogger.error('AdvancedFeatureService error', error);
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('advanced-feature-error', error.message || String(error));
     }
@@ -592,6 +711,8 @@ function setupPipelineService(): void {
   pipelineService.on('currentOriginalUpdate', (data) => {
     mainLogger.debug('currentOriginalUpdate event', data);
     // メインウィンドウに直接送信 - ハイフン版のチャンネル名を使用
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('current-original-update', data);
     }
@@ -607,6 +728,8 @@ function setupPipelineService(): void {
   pipelineService.on('currentTranslationUpdate', (text) => {
     mainLogger.debug('currentTranslationUpdate event', { text });
     // メインウィンドウに直接送信 - ハイフン版のチャンネル名を使用
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('current-translation-update', text);
     }
@@ -621,6 +744,8 @@ function setupPipelineService(): void {
   // 他の重要なイベントの転送
   pipelineService.on('translationComplete', async (data) => {
     mainLogger.debug('translationComplete event', data);
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('translation-complete', data);
     }
@@ -656,6 +781,8 @@ function setupPipelineService(): void {
   });
   
   pipelineService.on('started', async () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('pipeline:started');
     }
@@ -678,6 +805,8 @@ function setupPipelineService(): void {
   });
   
   pipelineService.on('stopped', async () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('pipeline:stopped');
     }
@@ -693,24 +822,32 @@ function setupPipelineService(): void {
   });
   
   pipelineService.on('deepgramConnected', () => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('pipeline:deepgramConnected');
     }
   });
   
   pipelineService.on('summaryGenerated', (data) => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('summary-generated', data);
     }
   });
   
   pipelineService.on('userTranslation', (data) => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('user-translation', data);
     }
   });
   
   pipelineService.on('finalReport', (report) => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('final-report', report);
     }
@@ -718,12 +855,16 @@ function setupPipelineService(): void {
   
   pipelineService.on('error', (error) => {
     mainLogger.error('Pipeline error', error);
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('pipeline:error', error.message || String(error));
     }
   });
   
   pipelineService.on('audioProgress', (data) => {
+    const mainWindow = getMainWindow();
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('audio-progress', data);
     }
@@ -959,6 +1100,9 @@ function cleanup(): void {
     ipcGateway.destroy();
   }
   
+  // Close all windows via WindowRegistry
+  windowRegistry.closeAll();
+  
   mainLogger.info('Cleanup completed');
 }
 
@@ -984,7 +1128,9 @@ app.whenReady().then(() => {
   
   app.on('second-instance', () => {
     // 別のインスタンスが起動しようとした場合、既存のウィンドウをフォーカス
-    if (mainWindow) {
+    const mainWindow = getMainWindow();
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }

@@ -68,7 +68,9 @@
       "mcp__github__get_file_contents",
       "Bash(for pid in 16872 10440 11704 1404 19488 20928 7840)",
       "Bash(do taskkill //PID $pid //F)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(start /min cmd /c \"npm run dev\")",
+      "Bash(del \"%APPDATA%\\univoice\\SingletonLock\")"
     ],
     "deny": []
   },

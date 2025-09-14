@@ -1,0 +1,2 @@
+[Main] Window bounds: { x: 660, y: 140, width: 600, height: 800 }
+[Main] Window visible: true

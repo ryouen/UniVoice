@@ -23,6 +23,15 @@ interface WindowAPI {
   autoResize: (height: number) => Promise<boolean>;
 }
 
+// Window Manager API for multi-window management
+interface WindowManagerAPI {
+  measureSetupContent: () => { width: number; height: number } | null;
+  setSetupBounds: (width: number, height: number) => Promise<boolean>;
+  enterMain: () => Promise<boolean>;
+  toggleHistory: () => Promise<boolean>;
+  toggleSummary: () => Promise<boolean>;
+}
+
 // Extend the UniVoiceAPI interface
 declare global {
   interface Window {
@@ -45,6 +54,8 @@ declare global {
       onUnifiedEvent?: (callback: (event: any) => void) => () => void;
       // Window control API
       window?: WindowAPI;
+      // Window manager API
+      windowManager?: WindowManagerAPI;
     };
     electron?: {
       invoke: (channel: string, ...args: any[]) => Promise<any>;

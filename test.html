@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UniVoice Test</title>
+    <style>
+        body {
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .content {
+            text-align: center;
+            padding: 40px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>UniVoice Test Page</h1>
+        <p>If you can see this, the window is working.</p>
+        <p>Window API available: <span id="api-status">checking...</span></p>
+    </div>
+    <script>
+        document.getElementById('api-status').textContent = 
+            (typeof window.univoice !== 'undefined') ? 'YES' : 'NO';
+        
+        console.log('Window loaded successfully');
+        console.log('window.univoice:', window.univoice);
+        console.log('window.electron:', window.electron);
+        console.log('window.electron?.invoke:', window.electron?.invoke);
+        
+        // Test invoke
+        if (window.electron?.invoke) {
+            window.electron.invoke('get-available-sessions', { limit: 10 })
+                .then(result => console.log('Sessions result:', result))
+                .catch(err => console.error('Sessions error:', err));
+        }
+    </script>
+</body>
+</html>

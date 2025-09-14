@@ -11,6 +11,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { SessionResumeModal } from '../../modals';
+import { windowClient } from '../../../../../services/WindowClient';
 
 // 言語オプションの定義（LanguageConfigに依存せず直接定義）
 // Nova-3 公式対応: English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, Dutch
@@ -297,6 +298,11 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
     sessionNumber?: number;
   }>({ exists: false });
   const listRef = useRef<HTMLDivElement>(null);
+  const backgroundRef = useRef<HTMLDivElement>(null);
+  
+  // Setup画面のサイズは固定（WindowRegistryで定義）
+  // コンテンツベースの動的リサイズは無効化 - 無限ループを防ぐため
+  // 必要に応じてWindowRegistry.tsのデフォルトサイズを調整すること
   
   // 初期化
   useEffect(() => {
@@ -309,6 +315,8 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
       let courseData = loadCourseMetadata();
       
       // Electronからセッションデータを取得して統合
+      // TODO: IPC handlers need to be implemented
+      /*
       try {
         if (window.electron?.invoke) {
           const sessions = await window.electron.invoke('get-available-sessions', { limit: 100 });
@@ -334,6 +342,7 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
       } catch (error) {
         console.error('Failed to load sessions from electron:', error);
       }
+      */
       
       setCourses(courseData);
       
@@ -363,6 +372,8 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
       if (!course) return;
       
       setCheckingSession(true);
+      // TODO: Implement check-today-session IPC handler
+      /*
       try {
         if (window.electron?.invoke) {
           const result = await window.electron.invoke('check-today-session', course.name);
@@ -374,6 +385,9 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
       } finally {
         setCheckingSession(false);
       }
+      */
+      setTodaySession({ exists: false });
+      setCheckingSession(false);
     };
     
     if (selectedCourse) {
@@ -533,6 +547,8 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
   
   // セッション選択からの再開処理
   const handleSelectSession = async (courseName: string, dateStr: string, sessionNumber: number) => {
+    // TODO: Implement load-session IPC handler
+    /*
     try {
       if (window.electron) {
         const sessionData = await window.electron.invoke('load-session', {
@@ -550,6 +566,9 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
     } catch (error) {
       console.error('Failed to load session:', error);
     }
+    */
+    // For now, just start the session with current language settings
+    onStartSession(courseName, sourceLanguage, targetLanguage);
   };
   
   return (
@@ -560,7 +579,9 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
         onSelectSession={handleSelectSession}
       />
       
-      <div style={{
+      <div 
+        className="setup-screen"
+        style={{
         position: 'absolute',
         top: 0,
         left: 0,
@@ -572,7 +593,10 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
         justifyContent: 'center',
         ...style
       }}>
-        <div style={{
+        <div 
+          ref={backgroundRef}
+          className="background"
+          style={{
           background: 'white',
           borderRadius: '20px',
           padding: '40px',
@@ -881,6 +905,7 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
           
           {/* 開始ボタン */}
           <button
+            data-testid="start-session-button"
             onClick={handleStartSession}
             disabled={!selectedCourse}
             style={{

@@ -1,7 +1,7 @@
 # 🚀 START HERE - UniVoice 2.0 開発ガイド
 
-**最終更新**: 2025-09-10 (実装評価とフロー型UI追加)  
-**状態**: 🟨 Phase 2 完了 / 🚧 Phase 3 Advanced Features実装中（50%）  
+**最終更新**: 2025-09-14 (ウィンドウ管理実装とSetup画面問題)  
+**状態**: 🟨 Phase 2 完了 / 🚧 Phase 3 Advanced Features実装中（50%） / 🔴 ウィンドウ管理M1実装中  
 **実装者**: Claude Code
 
 ## 📊 最新の実装評価（2025-09-10）
@@ -112,6 +112,12 @@ npm test
 
 ## 🎉 最近の成果
 
+### 2025-09-14
+- WindowRegistryとBoundsStore実装完了
+- mainWindow参照エラー（51箇所）修正
+- ウィンドウリサイズ無限ループ解決
+- **未解決**: Setup画面サイズ問題（600x374px、期待値600x800px）
+
 ### 2025-09-10
 - 履歴表示の二重管理を解消
 - フロー型UIで読みやすさ向上
@@ -124,6 +130,23 @@ npm test
 ### 2025-08-28
 - データ永続化実装完了
 - 自動保存とセッション管理
+
+## 🚨 現在の主要課題
+
+1. **Setup画面の高さ問題**
+   - 現状: 600x374px（使用不可）
+   - 期待: 600x800px
+   - 詳細: [`COMPREHENSIVE-ISSUE-REPORT-20250914.md`](COMPREHENSIVE-ISSUE-REPORT-20250914.md)
+
+2. **未実装IPCハンドラー**
+   - `check-today-session`
+   - `get-available-sessions`
+   - `load-session`
+
+3. **ウィンドウ管理の残タスク**
+   - 透明度の再有効化
+   - プロセス重複防止
+   - セッション管理統合
 
 ---
 *UniVoice 2.0 - Clean Architecture による次世代音声認識・翻訳・要約システム*

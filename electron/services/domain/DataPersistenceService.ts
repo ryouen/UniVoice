@@ -666,4 +666,27 @@ export class DataPersistenceService {
       return [];
     }
   }
+
+  /**
+   * 今日のセッションが存在するかチェック
+   */
+  async checkTodaySession(courseName: string): Promise<{ exists: boolean; sessionNumber?: number }> {
+    try {
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+      const todaySession = await this.findTodaySession(courseName, today);
+      
+      if (todaySession) {
+        return {
+          exists: true,
+          sessionNumber: todaySession.sessionNumber
+        };
+      }
+      
+      return { exists: false };
+    } catch (error) {
+      mainLogger.error('Failed to check today session', { error, courseName });
+      return { exists: false };
+    }
+  }
+
 }

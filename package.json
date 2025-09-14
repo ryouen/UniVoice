@@ -15,6 +15,8 @@
     "test:unit": "jest tests/unit",
     "test:integration": "jest tests/integration",
     "test:performance": "jest tests/performance",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit && tsc -p electron/tsconfig.json --noEmit",
     "sync-contracts": "node scripts/sync-contracts.js",
     "prebuild": "npm run sync-contracts"
@@ -29,6 +31,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.40.0",
     "@types/classnames": "^2.3.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.9.0",
@@ -39,6 +42,7 @@
     "concurrently": "^9.1.0",
     "electron": "^33.2.0",
     "jest": "^30.0.5",
+    "playwright": "^1.40.0",
     "rimraf": "^6.0.1",
     "terser": "^5.43.1",
     "ts-jest": "^29.4.1",
