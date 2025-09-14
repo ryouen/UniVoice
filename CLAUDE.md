@@ -327,7 +327,7 @@ npm run clean
 ### 開発支援ドキュメント
 - [自動テスト・ログ収集システム](docs/development/AUTO-TEST-LOGGING-SYSTEM.md) 🔴 NEW
 - [型定義同期に関する調査結果](docs/TYPE-SYNCHRONIZATION-FINDINGS.md) 🔴 NEW - ビルドエラーの原因と解決策
-- [ウィンドウ管理アーキテクチャ](docs/WINDOW-MANAGEMENT-ARCHITECTURE.md) 🔴 NEW (2025-01-14) - Clean Architectureに基づくウィンドウ管理の大方針
+- [ウィンドウ管理アーキテクチャ](docs/WINDOW-MANAGEMENT-ARCHITECTURE.md) 🔴 NEW v3.0.0 - WindowRegistryパターンとスケルトン実装
 - テスト戦略ガイド（準備中）
 - デバッグ手順書（準備中）
 
@@ -381,6 +381,6 @@ Deepgramのセグメント（0.8秒区切り）を2-3文の意味単位に結合
 
 ---
 
-最終更新: 2025-09-04
+最終更新: 2025-09-14
 作成者: Claude Code
 バージョン: 2.0.0-alpha
