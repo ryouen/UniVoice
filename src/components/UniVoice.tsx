@@ -18,7 +18,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUnifiedPipeline } from '../hooks/useUnifiedPipeline';
 import type { DisplaySegment } from '../utils/RealtimeDisplayManager';
 import type { HistoryBlock } from '../utils/FlexibleHistoryGrouper';
-import { SetupSection } from '../presentation/components/UniVoice/sections/SetupSection';
+import { SetupSection } from '../presentation/components/UniVoice/sections/SetupSection/SetupSection';
 import { RealtimeSection } from '../presentation/components/UniVoice/sections/RealtimeSection';
 import { HistorySection } from '../presentation/components/UniVoice/sections/HistorySection';
 import { SummarySection } from '../presentation/components/UniVoice/sections/SummarySection';
@@ -212,6 +212,12 @@ interface UniVoiceProps {
   // 設定オーバーライド
   sourceLanguageOverride?: string;
   targetLanguageOverride?: string;
+  // セッション設定（Setup画面から渡される）
+  sessionConfig?: {
+    className: string;
+    sourceLanguage: string;
+    targetLanguage: string;
+  } | null;
 }
 
 // DisplaySegmentはRealtimeDisplayManagerからインポート済み
@@ -226,10 +232,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   onStopSession: _onStopSession,
   sourceLanguageOverride,
   targetLanguageOverride,
+  sessionConfig,
 }) => {
   // ========== 状態管理 ==========
-  const [showSetup, setShowSetup] = useState(true);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  // sessionConfigがない場合はSetup画面を表示
+  const [showSetup, setShowSetup] = useState(!sessionConfig);
+  const [selectedClass, setSelectedClass] = useState<string | null>(sessionConfig?.className || null);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [autoSaveTime, setAutoSaveTime] = useState<Date | null>(null);
@@ -242,10 +250,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // LocalStorageから言語設定を復元（propsでオーバーライド可能）
   const [sourceLanguage, setSourceLanguage] = useState(() => 
-    sourceLanguageOverride || localStorage.getItem('sourceLanguage') || 'en'
+    sourceLanguageOverride || sessionConfig?.sourceLanguage || localStorage.getItem('sourceLanguage') || 'en'
   );
   const [targetLanguage, setTargetLanguage] = useState(() => 
-    targetLanguageOverride || localStorage.getItem('targetLanguage') || 'ja'
+    targetLanguageOverride || sessionConfig?.targetLanguage || localStorage.getItem('targetLanguage') || 'ja'
   );
   
   
@@ -346,14 +354,19 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // } = usePipelineConnection();
   
   // 新しいuseUnifiedPipelineフックを使用
+  // sessionConfigがない場合（Setup画面）では空のパラメータを渡して最小限の初期化のみ行う
   const pipeline = useUnifiedPipeline({
-    sourceLanguage,
-    targetLanguage,
+    sourceLanguage: sessionConfig ? sourceLanguage : '',
+    targetLanguage: sessionConfig ? targetLanguage : '',
     onError: (error) => {
-      console.error('[UniVoicePerfect] Pipeline error:', error);
+      if (sessionConfig) {
+        console.error('[UniVoicePerfect] Pipeline error:', error);
+      }
     },
     onStatusChange: (status) => {
-      console.log('[UniVoicePerfect] Pipeline status:', status);
+      if (sessionConfig) {
+        console.log('[UniVoicePerfect] Pipeline status:', status);
+      }
     }
   });
 
@@ -374,12 +387,16 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // デバッグ用：データ更新を監視
   useEffect(() => {
-    console.log('[UniVoicePerfect] currentOriginal updated:', currentOriginal);
-  }, [currentOriginal]);
+    if (sessionConfig) {
+      console.log('[UniVoicePerfect] currentOriginal updated:', currentOriginal);
+    }
+  }, [currentOriginal, sessionConfig]);
   
   useEffect(() => {
-    console.log('[UniVoicePerfect] currentTranslation updated:', currentTranslation);
-  }, [currentTranslation]);
+    if (sessionConfig) {
+      console.log('[UniVoicePerfect] currentTranslation updated:', currentTranslation);
+    }
+  }, [currentTranslation, sessionConfig]);
   
   // 3段階表示用のdisplayContentを構築
   const displayContent = React.useMemo(() => {
@@ -647,6 +664,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
    * - CSSアニメーションとの競合を避けるため、適切な遅延を設定
    */
   useEffect(() => {
+    // sessionConfigがない場合（Setup画面）ではリサイズを実行しない
+    if (!sessionConfig) {
+      console.log('[Window Resize] Skipping initial resize - no session config (Setup screen)');
+      return;
+    }
     // 初回レンダリング時にもリサイズを実行
     executeWindowResize();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -654,6 +676,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
 
   // セクション表示状態の変更を監視
   useEffect(() => {
+    // sessionConfigがない場合（Setup画面）ではリサイズを実行しない
+    if (!sessionConfig) {
+      return;
+    }
     // アニメーションとの競合を避けるための遅延時間
     // 質問セクションは0.4秒のCSSトランジションがあるため、少し長めに待つ
     const delay = showQuestionSection !== undefined ? LAYOUT_HEIGHTS.animationDelay : 50;
@@ -663,10 +689,14 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }, delay);
     
     return () => clearTimeout(timer);
-  }, [showSettings, showQuestionSection, showHeader, executeWindowResize]);
+  }, [showSettings, showQuestionSection, showHeader, executeWindowResize, sessionConfig]);
   
   // リアルタイムセクションの高さ変更時
   useEffect(() => {
+    // sessionConfigがない場合（Setup画面）ではリサイズを実行しない
+    if (!sessionConfig) {
+      return;
+    }
     // ユーザードラッグモードの場合はスキップ（無限ループ防止）
     if (currentResizeMode === ResizeMode.USER_DRAG) {
       console.log('[Realtime Height Change] Skipping resize - in user drag mode');
@@ -674,7 +704,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
     // ユーザーがリサイズハンドルを操作した後
     executeWindowResize();
-  }, [realtimeSectionHeight, executeWindowResize, currentResizeMode]);
+  }, [realtimeSectionHeight, executeWindowResize, currentResizeMode, sessionConfig]);
   
   /**
    * 🆕 ウィンドウリサイズ検知システム

@@ -1,7 +1,7 @@
 {
-  "lastUpdated": "2025-09-14T12:00:00Z",
+  "lastUpdated": "2025-09-15T12:00:00Z",
   "projectVersion": "2.0.0-alpha",
-  "currentPhase": "Phase 2 完了 / Phase 3 Advanced Features動作確認済み / Window Management M1実装中",
+  "currentPhase": "Phase 2 完了 / Phase 3 Advanced Features動作確認済み / Setup画面統一作業中",
   "sessionSummary": {
     "startTime": "2025-08-30T07:00:00Z",
     "continuedFrom": "Data Persistence統合完了",
@@ -26,23 +26,29 @@
       "ドキュメント整理とCLAUDE.md/START-HERE.md更新（2025-09-04）"
     ],
     "currentIssue": {
-      "description": "全コア機能実装完了 - UI/UX改善フェーズへ",
+      "description": "Setup画面の統一が最優先課題 - 2つの画面が混在し画面遷移が破綻",
       "resolvedIssues": [
         "型定義の同期問題（sync-contracts.jsで解決）",
         "履歴翻訳が動作しない根本原因の特定",
         "「翻訳中...」が残り続ける問題（Phase 1で修正）",
         "FlexibleHistoryGrouperとReactステートの同期問題",
         "パラグラフベース履歴表示の実装（Phase 2で完了）",
-        "AdvancedFeatureService未初期化バグ（既に修正済みと判明）"
+        "AdvancedFeatureService未初期化バグ（既に修正済みと判明）",
+        "Setup画面での無限ループ問題（一時的に回避）"
       ],
       "discoveries": [
         "SentenceCombinerクラスは存在するが一度も使用されていない",
         "CombinedSentenceEventは定義されているが発行されていない",
         "segmentToCombinedMapは常に空のため、高品質翻訳が適用されない",
-        "ドキュメントには「実装済み」と記載されているが実際には未統合"
+        "ドキュメントには「実装済み」と記載されているが実際には未統合",
+        "SetupScreenとSetupSectionの2つのSetup画面が混在（2025-09-15発見）",
+        "App.tsxでの不要な条件分岐が画面遷移を破綻させている"
       ],
       "remainingTasks": {
         "immediate": [
+          "SetupScreenの削除とApp.tsx簡素化",
+          "UniVoice.tsxのsessionConfig関連コードのクリーンアップ",
+          "画面遷移フローの正常化テスト",
           "SentenceCombinerをUnifiedPipelineServiceに統合",
           "CombinedSentenceEvent発行の実装",
           "フロントエンドでのIDマッピング動作確認",
@@ -176,22 +182,20 @@
       "ウィンドウリサイズ無限ループ解決 - 2025-09-14"
     ],
     "inProgress": [
-      "Setup画面サイズ問題の解決（600x374→600x800）",
-      "未実装IPCハンドラーの追加（セッション管理系）",
-      "セッション再開UI実装（データ永続化は完成）",
-      "レポート生成UI実装（バックエンドは完成）"
+      "Setup画面の統一作業（SetupScreen削除、SetupSectionのみ使用）",
+      "App.tsxの簡素化（条件分岐削除）",
+      "画面遷移フローの正常化"
     ],
     "pending": {
       "P0_最優先_今すぐ": [
-        "Setup画面の高さ問題修正（WindowRegistry透明度とスタイル調整）",
+        "SetupScreen.tsxの削除",
+        "App.tsxからSetupScreen関連コードの削除",
+        "UniVoice.tsxのsessionConfig関連コードの削除",
+        "画面遷移の動作確認",
         "check-today-sessionハンドラー実装",
         "get-available-sessionsハンドラー実装",
         "load-sessionハンドラー実装",
-        "プロセス重複防止の実装",
-        "SentenceCombinerのhandleSegmentメソッドへの組み込み",
-        "CombinedSentenceEvent発行コードの有効化",
-        "フロントエンドIDマッピング動作確認",
-        "高品質翻訳適用の統合テスト"
+        "プロセス重複防止の実装"
       ],
       "P1_重要_即対応": [
         "セッション再開UI実装（セッション一覧・続きから再開ボタン） - 工数2-3時間",

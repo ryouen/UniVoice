@@ -346,6 +346,7 @@ npm run clean
 - [型定義同期に関する調査結果](docs/TYPE-SYNCHRONIZATION-FINDINGS.md) 🔴 NEW - ビルドエラーの原因と解決策
 - [ウィンドウ管理実装ガイド](docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md) 🔴 NEW (2025-09-14) - 実装者向けの具体的な手順書
 - [ウィンドウ管理アーキテクチャ](docs/WINDOW-MANAGEMENT-ARCHITECTURE.md) - 設計思想と詳細仕様
+- [解決済み問題レポート](docs/RESOLVED-ISSUES-20250914.md) 🆕 - プロセス暴走・IPC重複問題の解決
 - テスト戦略ガイド（準備中）
 - デバッグ手順書（準備中）
 

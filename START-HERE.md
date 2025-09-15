@@ -1,8 +1,8 @@
 # 🚀 START HERE - UniVoice 2.0 開発ガイド
 
-**最終更新**: 2025-09-14 (ウィンドウ管理実装とSetup画面問題)  
-**状態**: 🟨 Phase 2 完了 / 🚧 Phase 3 Advanced Features実装中（50%） / 🔴 ウィンドウ管理M1実装中  
-**実装者**: Claude Code
+**最終更新**: 2025-09-15 (Setup画面統一の緊急課題)  
+**状態**: 🟨 Phase 2 完了 / 🚧 Phase 3 Advanced Features実装中（50%） / 🔴 Setup画面統一作業中  
+**開発環境**: Claude Code
 
 ## 📊 最新の実装評価（2025-09-10）
 
@@ -112,11 +112,17 @@ npm test
 
 ## 🎉 最近の成果
 
+### 2025-09-15
+- Setup画面の無限ループ問題を構造的に解決
+- App.tsxでルーティング実装（#/setup, #/main）
+- UniVoice.tsxでsessionConfig条件分岐によるリソース最適化
+- 問題の根本原因を特定：2つのSetup画面（SetupScreen/SetupSection）の混在
+
 ### 2025-09-14
 - WindowRegistryとBoundsStore実装完了
 - mainWindow参照エラー（51箇所）修正
 - ウィンドウリサイズ無限ループ解決
-- **未解決**: Setup画面サイズ問題（600x374px、期待値600x800px）
+- BoundsStore（374px保存問題）を回避実装
 
 ### 2025-09-10
 - 履歴表示の二重管理を解消
@@ -133,10 +139,14 @@ npm test
 
 ## 🚨 現在の主要課題
 
-1. **Setup画面の高さ問題**
-   - 現状: 600x374px（使用不可）
-   - 期待: 600x800px
-   - 詳細: [`COMPREHENSIVE-ISSUE-REPORT-20250914.md`](COMPREHENSIVE-ISSUE-REPORT-20250914.md)
+1. **Setup画面の統一（緊急）**
+   - **問題**: 2つのSetup画面が混在（SetupScreen と SetupSection）
+   - **原因**: App.tsxで誤ってSetupScreenを使用、本来はUniVoice.tsx内のSetupSectionのみ使用すべき
+   - **解決方針**: 
+     - SetupScreen (`src/components/UniVoice/SetupScreen.tsx`) を削除
+     - App.tsxの条件分岐を削除し、常にUniVoiceコンポーネントを表示
+     - UniVoice.tsx内の既存ロジック（showSetup状態）でSetupSectionを制御
+   - **影響**: 画面遷移の正常化、無限ループの解消
 
 2. **未実装IPCハンドラー**
    - `check-today-session`

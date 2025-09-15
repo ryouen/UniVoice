@@ -84,20 +84,52 @@ npm run typecheck
 3. ✅ ドキュメントを実際のコードに基づいて更新
 4. ✅ パラグラフモード改善計画を作成
 
+## 🚨 Setup画面統一の緊急課題（2025-09-15）
+
+### 問題の構造
+1. **2つのSetup画面が混在**
+   - `SetupScreen.tsx` - 不要（削除対象）
+   - `SetupSection.tsx` - 正式なSetup画面（保持）
+
+2. **誤った実装フロー**
+   - 現状: App.tsx → SetupScreen → UniVoice → SetupSection → エラーで戻る
+   - 正解: App.tsx → UniVoice → SetupSection → メイン画面
+
+3. **修正方針**
+   - SetupScreenを削除
+   - App.tsxの条件分岐を削除
+   - UniVoice.tsx内の既存showSetupロジックで制御
+
 ## 🆕 最新セッション（2025-09-14）の進捗と課題
 
 ### ウィンドウ管理実装（M1）
 1. ✅ WindowRegistryとBoundsStoreの実装完了
 2. ✅ mainWindow参照エラー（51箇所）の修正完了
 3. ✅ ウィンドウリサイズ無限ループの解決
-4. ❌ **Setup画面サイズ問題（600x374px、期待値は600x800px）**
-5. ❌ 未実装IPCハンドラー（セッション管理系）
-6. ❌ 複数Electronプロセスの実行問題
+4. ✅ **Setup画面サイズ問題への対策実装**（WindowRegistry.tsで保存値無視）
+5. ✅ **IPCハンドラー実装・重複削除**（check-today-session, get-available-sessions, load-session）
+6. ✅ **Node.jsプロセス暴走問題を解決**（17個のプロセスを終了、1GB以上のメモリ解放）
+7. ✅ **Setup画面での無限ループ問題を構造的に解決**（App.tsx: ルーティング実装、UniVoice.tsx: sessionConfig条件分岐）
 
-### 重要な発見
+### 重要な発見と解決
 - **Setup画面の高さ問題**: BoundsStoreが前回の374pxを保存・復元している（WindowRegistry.ts:89-93）
 - **ResizeObserver無効化**: autoResizeとの相互作用で無限ループが発生するため完全無効化
 - **透明度設定**: 既存設定（transparent: false）で問題なし、ぼかし効果は断念
+- **無限ループの根本原因**: Setup画面でもUniVoiceコンポーネントが読み込まれ、複数のuseEffectが連鎖的にリサイズを実行
+  - 解決策: App.tsxでルーティング実装、UniVoiceでsessionConfig有無による条件分岐
+
+### 構造的改善（Clean Architecture準拠）
+1. **App.tsx**
+   - SetupScreenとUniVoiceの条件分岐を実装
+   - URLハッシュベースのルーティング（#/setup, #/main）
+   - sessionConfigを通じたセッション情報の受け渡し
+
+2. **UniVoice.tsx**
+   - sessionConfigプロパティを追加
+   - Setup画面（sessionConfig=null）では以下を無効化:
+     - ウィンドウリサイズのuseEffect（656, 668, 685行目）
+     - useUnifiedPipelineの完全初期化（357-370行目）
+     - デバッグログ出力（388, 394行目）
 
 ### 参照ドキュメント
 - `COMPREHENSIVE-ISSUE-REPORT-20250914.md` - 問題の詳細分析と解決策
@@ -108,4 +140,4 @@ npm run typecheck
 **重要**: このファイルの情報が最も正確です。
 古いドキュメントと矛盾がある場合は、このファイルを信じてください。
 
-最終更新: 2025-09-14
+最終更新: 2025-09-15

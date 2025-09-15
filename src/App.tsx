@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import UniVoice from './components/UniVoice';
-// import { UniVoiceEnhanced } from './components/UniVoiceEnhanced'; // 一時的に無効化
 import TestComponent from './components/TestComponent';
 import DebugInfo from './components/DebugInfo';
 import { setupDebugHelpers } from './utils/debug-helper';
@@ -52,16 +51,14 @@ function App() {
   // For debugging - show debug info if requested
   const urlParams = new URLSearchParams(window.location.search);
   const showDebug = urlParams.get('debug') === 'true';
-  const useEnhanced = urlParams.get('enhanced') === 'true';
   
   if (showDebug) {
     return <DebugInfo />;
   }
   
+
   return (
     <div className="App">
-      {/* 改善版UIは一時的に無効化 - ユーザーフィードバックに基づき再設計が必要 */}
-      {/* {useEnhanced ? <UniVoiceEnhanced /> : <UniVoice />} */}
       <UniVoice />
     </div>
   )

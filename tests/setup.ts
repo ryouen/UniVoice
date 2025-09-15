@@ -4,6 +4,7 @@
  * This file runs before each test suite to set up the testing environment
  */
 
+import '@testing-library/jest-dom';
 import path from 'path';
 import fs from 'fs';
 

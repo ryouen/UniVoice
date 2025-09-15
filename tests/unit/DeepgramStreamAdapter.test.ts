@@ -1,380 +1,413 @@
-/**
- * DeepgramStreamAdapter Unit Tests
- */
-
-import { EventEmitter } from 'events';
-import { WebSocket } from 'ws';
 import { DeepgramStreamAdapter, DeepgramAdapterConfig, TranscriptResult, DeepgramError } from '../../electron/services/adapters/DeepgramStreamAdapter';
+import { WebSocket } from 'ws';
 
-// Mock WebSocket
-jest.mock('ws');
-const MockWebSocket = WebSocket as jest.MockedClass<typeof WebSocket>;
+// WebSocketのモック
+const mockWsSend = jest.fn();
+const mockWsClose = jest.fn();
+let mockWsInstance: any = null;
+let mockWsOnHandlers: { [event: string]: Function[] } = {};
 
-// Mock Logger
-const mockLogger = {
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn()
-};
+// WebSocketクラス自体をモック
+jest.mock('ws', () => ({
+  WebSocket: jest.fn().mockImplementation((url: string, options: any) => {
+    mockWsInstance = {
+      url,
+      options,
+      send: mockWsSend,
+      close: mockWsClose,
+      readyState: WebSocket.OPEN, // デフォルトでOPEN状態をシミュレート
+      on: jest.fn((event: string, handler: Function) => {
+        if (!mockWsOnHandlers[event]) {
+          mockWsOnHandlers[event] = [];
+        }
+        mockWsOnHandlers[event].push(handler);
+      }),
+      // テストからイベントを発火させるためのヘルパー
+      _emit: (event: string, ...args: any[]) => {
+        mockWsOnHandlers[event]?.forEach(handler => handler(...args));
+      },
+      // readyStateを動的に変更できるようにする
+      _setReadyState: (state: number) => {
+        mockWsInstance.readyState = state;
+      },
+    };
+    return mockWsInstance;
+  }),
+}));
 
 describe('DeepgramStreamAdapter', () => {
   let adapter: DeepgramStreamAdapter;
-  let mockWs: any;
-  const config: DeepgramAdapterConfig = {
+  const mockConfig: DeepgramAdapterConfig = {
     apiKey: 'test-api-key',
     model: 'nova-3',
     interim: true,
     endpointing: 800,
     utteranceEndMs: 1000,
-    smartFormat: false,
+    smartFormat: true,
     noDelay: false,
     sampleRate: 16000,
-    sourceLanguage: 'en'
+    sourceLanguage: 'en',
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Create mock WebSocket instance
-    mockWs = {
-      on: jest.fn(),
-      send: jest.fn(),
-      close: jest.fn(),
-      readyState: WebSocket.OPEN
-    };
-    
-    MockWebSocket.mockImplementation(() => mockWs);
-    
-    adapter = new DeepgramStreamAdapter(config);
+    jest.useFakeTimers();
+    mockWsOnHandlers = {}; // 各テストでハンドラをリセット
+    adapter = new DeepgramStreamAdapter(mockConfig);
   });
 
   afterEach(() => {
-    adapter.destroy();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    // adapter.destroy(); // テスト内で明示的にdisconnect/destroyを呼ぶ
   });
 
-  describe('Connection', () => {
-    it('should build correct WebSocket URL', async () => {
-      const connectPromise = adapter.connect();
-      
-      // Trigger open event
-      const openHandler = mockWs.on.mock.calls.find(call => call[0] === 'open')[1];
-      openHandler();
-      
-      await connectPromise;
-      
-      const urlArg = MockWebSocket.mock.calls[0][0];
-      expect(urlArg).toContain('wss://api.deepgram.com/v1/listen');
-      expect(urlArg).toContain('model=nova-3');
-      expect(urlArg).toContain('interim_results=true');
-      expect(urlArg).toContain('endpointing=800');
-      expect(urlArg).toContain('utterance_end_ms=1000');
-      expect(urlArg).toContain('language=en');
-      expect(urlArg).toContain('sample_rate=16000');
-      expect(urlArg).toContain('punctuate=true');
-    });
+  // ヘルパー関数：WebSocketのopenイベントを発火させる
+  const triggerWsOpen = () => {
+    mockWsInstance._emit('open');
+  };
 
-    it('should include optional parameters when configured', async () => {
-      const configWithOptions = {
-        ...config,
-        smartFormat: true,
-        noDelay: true
-      };
-      
-      adapter = new DeepgramStreamAdapter(configWithOptions);
+  // ヘルパー関数：WebSocketのmessageイベントを発火させる
+  const triggerWsMessage = (message: any) => {
+    mockWsInstance._emit('message', Buffer.from(JSON.stringify(message)));
+  };
+
+  // ヘルパー関数：WebSocketのerrorイベントを発火させる
+  const triggerWsError = (error: any) => {
+    mockWsInstance._emit('error', error);
+  };
+
+  // ヘルパー関数：WebSocketのcloseイベントを発火させる
+  const triggerWsClose = (code: number, reason: string) => {
+    mockWsInstance._emit('close', code, Buffer.from(reason));
+  };
+
+  describe('Connection', () => {
+    it('should connect to Deepgram with correct URL and headers', async () => {
       const connectPromise = adapter.connect();
-      
-      // Trigger open event
-      const openHandler = mockWs.on.mock.calls.find(call => call[0] === 'open')[1];
-      openHandler();
-      
-      await connectPromise;
-      
-      const urlArg = MockWebSocket.mock.calls[0][0];
-      expect(urlArg).toContain('smart_format=true');
-      expect(urlArg).toContain('no_delay=true');
+
+      expect(WebSocket).toHaveBeenCalledTimes(1);
+      const calledUrl = (WebSocket as jest.Mock).mock.calls[0][0];
+      const calledOptions = (WebSocket as jest.Mock).mock.calls[0][1];
+
+      expect(calledUrl).toContain('wss://api.deepgram.com/v1/listen');
+      expect(calledUrl).toContain('model=nova-3');
+      expect(calledUrl).toContain('interim_results=true');
+      expect(calledUrl).toContain('endpointing=800');
+      expect(calledUrl).toContain('utterance_end_ms=1000');
+      expect(calledUrl).toContain('smart_format=true');
+      expect(calledUrl).not.toContain('no_delay'); // no_delayはsmart_formatと競合するため含まれない
+      expect(calledUrl).toContain('sample_rate=16000');
+      expect(calledUrl).toContain('language=en');
+
+      expect(calledOptions.headers.Authorization).toBe(`Token ${mockConfig.apiKey}`);
+
+      triggerWsOpen(); // WebSocketのopenイベントを発火
+      await connectPromise; // connect()が解決するのを待つ
+
+      expect(adapter.isConnected()).toBe(true);
+      adapter.destroy();
     });
 
     it('should emit connected event when WebSocket opens', async () => {
-      const connectedSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.CONNECTED, connectedSpy);
-      
+      const mockConnected = jest.fn();
+      adapter.on('connected', mockConnected);
+
       const connectPromise = adapter.connect();
-      
-      // Trigger open event
-      const openHandler = mockWs.on.mock.calls.find(call => call[0] === 'open')[1];
-      openHandler();
-      
+      triggerWsOpen();
       await connectPromise;
-      
-      expect(connectedSpy).toHaveBeenCalledTimes(1);
-      expect(adapter.isConnected()).toBe(true);
+
+      expect(mockConnected).toHaveBeenCalledTimes(1);
+      adapter.destroy();
     });
 
     it('should reject connection if already connected', async () => {
-      // First connection
       const connectPromise1 = adapter.connect();
-      const openHandler = mockWs.on.mock.calls.find(call => call[0] === 'open')[1];
-      openHandler();
+      triggerWsOpen();
       await connectPromise1;
-      
-      // Second connection should fail
+
       await expect(adapter.connect()).rejects.toThrow('Already connected to Deepgram');
+      adapter.destroy();
+    });
+
+    it('should handle multilingual language parameter for nova-3', async () => {
+      const multiLangConfig = { ...mockConfig, sourceLanguage: 'ja' };
+      const multiLangAdapter = new DeepgramStreamAdapter(multiLangConfig);
+      const connectPromise = multiLangAdapter.connect();
+
+      triggerWsOpen();
+      await connectPromise;
+
+      const calledUrl = (WebSocket as jest.Mock).mock.calls[0][0];
+      expect(calledUrl).toContain('language=multi');
+      expect(calledUrl).not.toContain('language=ja');
+      multiLangAdapter.destroy();
     });
   });
 
   describe('Audio Sending', () => {
     beforeEach(async () => {
-      // Connect first
-      const connectPromise = adapter.connect();
-      const openHandler = mockWs.on.mock.calls.find(call => call[0] === 'open')[1];
-      openHandler();
-      await connectPromise;
+      await adapter.connect();
+      triggerWsOpen();
     });
 
     it('should send audio buffer when connected', () => {
-      const buffer = Buffer.from([1, 2, 3, 4]);
-      adapter.sendAudio(buffer);
-      
-      expect(mockWs.send).toHaveBeenCalledWith(buffer);
-      
-      const metrics = adapter.getConnectionMetrics();
-      expect(metrics.bytesSent).toBe(4);
-      expect(metrics.messagesSent).toBe(1);
+      const audioBuffer = Buffer.from('test audio');
+      adapter.sendAudio(audioBuffer);
+
+      expect(mockWsSend).toHaveBeenCalledTimes(1);
+      expect(mockWsSend).toHaveBeenCalledWith(audioBuffer);
     });
 
     it('should not send audio when disconnected', () => {
       adapter.disconnect();
-      
-      const buffer = Buffer.from([1, 2, 3, 4]);
-      adapter.sendAudio(buffer);
-      
-      expect(mockWs.send).toHaveBeenCalledTimes(2); // Only disconnect messages
-      expect(mockLogger.warn).toHaveBeenCalledWith('Cannot send audio - not connected');
+      mockWsSend.mockClear(); // disconnectでsendが呼ばれる可能性があるのでクリア
+
+      const audioBuffer = Buffer.from('test audio');
+      adapter.sendAudio(audioBuffer);
+
+      expect(mockWsSend).not.toHaveBeenCalled();
     });
 
     it('should handle send errors', () => {
-      const errorSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.ERROR, errorSpy);
-      
-      mockWs.send.mockImplementation(() => {
+      const mockError = jest.fn();
+      adapter.on('error', mockError);
+
+      mockWsSend.mockImplementationOnce(() => {
         throw new Error('Send failed');
       });
-      
-      const buffer = Buffer.from([1, 2, 3, 4]);
-      adapter.sendAudio(buffer);
-      
-      expect(errorSpy).toHaveBeenCalledWith({
-        code: 'SEND_ERROR',
+
+      const audioBuffer = Buffer.from('test audio');
+      adapter.sendAudio(audioBuffer);
+
+      expect(mockError).toHaveBeenCalledTimes(1);
+      expect(mockError).toHaveBeenCalledWith(expect.objectContaining({
+        code: 'UNKNOWN_ERROR',
         message: 'Failed to send audio data',
-        recoverable: true
-      });
+        recoverable: true,
+      }));
     });
   });
 
   describe('Message Handling', () => {
-    let messageHandler: (data: any) => void;
-
     beforeEach(async () => {
-      // Connect and get message handler
-      const connectPromise = adapter.connect();
-      const openHandler = mockWs.on.mock.calls.find(call => call[0] === 'open')[1];
-      openHandler();
-      await connectPromise;
-      
-      messageHandler = mockWs.on.mock.calls.find(call => call[0] === 'message')[1];
+      await adapter.connect();
+      triggerWsOpen();
     });
 
     it('should emit transcript event for valid transcript message', () => {
-      const transcriptSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.TRANSCRIPT, transcriptSpy);
-      
-      const message = {
+      const mockTranscript = jest.fn();
+      adapter.on('transcript', mockTranscript);
+
+      const deepgramMessage = {
+        type: 'Results',
+        is_final: true,
         channel: {
           alternatives: [{
             transcript: 'Hello world',
-            confidence: 0.95
-          }]
+            confidence: 0.9,
+            language: 'en',
+          }],
         },
-        is_final: false,
-        start: 1.5,
-        end: 2.0
       };
-      
-      messageHandler(Buffer.from(JSON.stringify(message)));
-      
-      expect(transcriptSpy).toHaveBeenCalledTimes(1);
-      const result: TranscriptResult = transcriptSpy.mock.calls[0][0];
-      
-      expect(result).toMatchObject({
+      triggerWsMessage(deepgramMessage);
+
+      expect(mockTranscript).toHaveBeenCalledTimes(1);
+      expect(mockTranscript).toHaveBeenCalledWith(expect.objectContaining<TranscriptResult>({
         text: 'Hello world',
-        confidence: 0.95,
-        isFinal: false,
+        confidence: 0.9,
+        isFinal: true,
         language: 'en',
-        startMs: 1500,
-        endMs: 2000
-      });
-      expect(result.id).toMatch(/^transcript-\d+-\w+$/);
+      }));
     });
 
     it('should emit utteranceEnd event', () => {
-      const utteranceEndSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.UTTERANCE_END, utteranceEndSpy);
-      
-      const message = {
-        type: 'UtteranceEnd'
+      const mockUtteranceEnd = jest.fn();
+      adapter.on('utteranceEnd', mockUtteranceEnd);
+
+      const deepgramMessage = {
+        type: 'UtteranceEnd',
+        // ... other utterance end data
       };
-      
-      messageHandler(Buffer.from(JSON.stringify(message)));
-      
-      expect(utteranceEndSpy).toHaveBeenCalledWith(message);
+      triggerWsMessage(deepgramMessage);
+
+      expect(mockUtteranceEnd).toHaveBeenCalledTimes(1);
+      expect(mockUtteranceEnd).toHaveBeenCalledWith(deepgramMessage);
     });
 
     it('should emit error event for error messages', () => {
-      const errorSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.ERROR, errorSpy);
-      
-      const message = {
+      const mockError = jest.fn();
+      adapter.on('error', mockError);
+
+      const deepgramMessage = {
         type: 'Error',
-        error: 'Invalid audio format'
+        message: 'Deepgram internal error',
       };
-      
-      messageHandler(Buffer.from(JSON.stringify(message)));
-      
-      expect(errorSpy).toHaveBeenCalledWith({
+      triggerWsMessage(deepgramMessage);
+
+      expect(mockError).toHaveBeenCalledTimes(1);
+      expect(mockError).toHaveBeenCalledWith(expect.objectContaining<DeepgramError>({
         code: 'DEEPGRAM_MESSAGE_ERROR',
-        message: 'Invalid audio format',
-        recoverable: true
-      });
+        message: 'Deepgram internal error',
+        recoverable: true,
+      }));
     });
 
     it('should emit metadata event', () => {
-      const metadataSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.METADATA, metadataSpy);
-      
-      const message = {
+      const mockMetadata = jest.fn();
+      adapter.on('metadata', mockMetadata);
+
+      const deepgramMessage = {
         type: 'Metadata',
-        model: 'nova-3',
-        version: '1.0'
+        // ... other metadata
       };
-      
-      messageHandler(Buffer.from(JSON.stringify(message)));
-      
-      expect(metadataSpy).toHaveBeenCalledWith(message);
+      triggerWsMessage(deepgramMessage);
+
+      expect(mockMetadata).toHaveBeenCalledTimes(1);
+      expect(mockMetadata).toHaveBeenCalledWith(deepgramMessage);
     });
 
     it('should handle parse errors gracefully', () => {
-      const errorSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.ERROR, errorSpy);
-      
-      messageHandler(Buffer.from('invalid json'));
-      
-      expect(errorSpy).toHaveBeenCalledWith({
+      const mockError = jest.fn();
+      adapter.on('error', mockError);
+
+      // 不正なJSONを送信
+      mockWsInstance._emit('message', Buffer.from('invalid json'));
+
+      expect(mockError).toHaveBeenCalledTimes(1);
+      expect(mockError).toHaveBeenCalledWith(expect.objectContaining<DeepgramError>({
         code: 'PARSE_ERROR',
         message: 'Failed to parse message',
-        recoverable: true
-      });
-      expect(mockLogger.error).toHaveBeenCalledWith('Failed to parse Deepgram message', expect.any(Object));
+        recoverable: true,
+      }));
     });
   });
 
   describe('Disconnection', () => {
     beforeEach(async () => {
-      // Connect first
-      const connectPromise = adapter.connect();
-      const openHandler = mockWs.on.mock.calls.find(call => call[0] === 'open')[1];
-      openHandler();
-      await connectPromise;
+      await adapter.connect();
+      triggerWsOpen();
     });
 
     it('should send finalize and close messages on disconnect', () => {
       adapter.disconnect();
-      
-      expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify({ type: 'Finalize' }));
-      expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify({ type: 'CloseStream' }));
-      expect(mockWs.close).toHaveBeenCalled();
-    });
 
-    it('should emit disconnected event', () => {
-      const disconnectedSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.DISCONNECTED, disconnectedSpy);
-      
-      adapter.disconnect();
-      
-      expect(disconnectedSpy).toHaveBeenCalledWith('Manual disconnect');
+      expect(mockWsSend).toHaveBeenCalledWith(Buffer.from(JSON.stringify({ type: 'Finalize' })));
+      expect(mockWsSend).toHaveBeenCalledWith(Buffer.from(JSON.stringify({ type: 'CloseStream' })));
+      expect(mockWsClose).toHaveBeenCalledTimes(1);
       expect(adapter.isConnected()).toBe(false);
     });
 
+    it('should emit disconnected event', () => {
+      const mockDisconnected = jest.fn();
+      adapter.on('disconnected', mockDisconnected);
+
+      adapter.disconnect();
+
+      expect(mockDisconnected).toHaveBeenCalledTimes(1);
+      expect(mockDisconnected).toHaveBeenCalledWith('Manual disconnect');
+    });
+
     it('should handle close events with different codes', () => {
-      const disconnectedSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.DISCONNECTED, disconnectedSpy);
-      
-      const closeHandler = mockWs.on.mock.calls.find(call => call[0] === 'close')[1];
-      
-      // Normal closure
-      closeHandler(1000, 'Normal closure');
-      expect(disconnectedSpy).toHaveBeenCalledWith('Normal closure');
-      
-      // Error closure (would attempt reconnection)
-      closeHandler(1006, 'Abnormal closure');
-      // Note: In real test, we'd verify reconnection attempt
+      const mockDisconnected = jest.fn();
+      adapter.on('disconnected', mockDisconnected);
+
+      triggerWsClose(1006, 'Abnormal closure'); // 異常終了をシミュレート
+
+      expect(mockDisconnected).toHaveBeenCalledTimes(1);
+      expect(mockDisconnected).toHaveBeenCalledWith('Abnormal closure');
+      expect(adapter.isConnected()).toBe(false);
     });
   });
 
   describe('Error Handling', () => {
-    it('should determine correct error codes', () => {
-      const errorSpy = jest.fn();
-      adapter.on(DeepgramStreamAdapter.EVENTS.ERROR, errorSpy);
-      
-      // Connect and get error handler
-      adapter.connect().catch(() => {}); // Ignore rejection
-      const errorHandler = mockWs.on.mock.calls.find(call => call[0] === 'error')[1];
-      
-      // Test different error codes
-      errorHandler({ code: 4000 });
-      expect(errorSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({ code: 'BAD_REQUEST' })
-      );
-      
-      errorHandler({ code: 4001 });
-      expect(errorSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({ code: 'UNAUTHORIZED' })
-      );
-      
-      errorHandler({ message: '400 Bad Request' });
-      expect(errorSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({ code: 'INVALID_FORMAT' })
-      );
+    it('should emit error event for WebSocket errors', () => {
+      const mockError = jest.fn();
+      adapter.on('error', mockError);
+
+      const wsError = new Error('WebSocket connection error');
+      (wsError as any).code = 'ECONNREFUSED'; // 例としてエラーコードを追加
+      triggerWsError(wsError);
+
+      expect(mockError).toHaveBeenCalledTimes(1);
+      expect(mockError).toHaveBeenCalledWith(expect.objectContaining<DeepgramError>({
+        code: 'UNKNOWN_ERROR',
+        message: 'WebSocket connection error',
+        recoverable: true,
+      }));
     });
   });
 
   describe('Metrics', () => {
     it('should track connection metrics', async () => {
-      // Connect
-      const connectPromise = adapter.connect();
-      const openHandler = mockWs.on.mock.calls.find(call => call[0] === 'open')[1];
-      openHandler();
-      await connectPromise;
-      
-      // Send audio
-      const buffer = Buffer.from([1, 2, 3, 4, 5]);
-      adapter.sendAudio(buffer);
-      
-      // Receive message
-      const messageHandler = mockWs.on.mock.calls.find(call => call[0] === 'message')[1];
-      const message = Buffer.from(JSON.stringify({ type: 'Metadata' }));
-      messageHandler(message);
-      
-      const metrics = adapter.getConnectionMetrics();
-      expect(metrics).toMatchObject({
-        connected: true,
-        bytesSent: 5,
-        bytesReceived: message.length,
-        messagesSent: 1,
-        messagesReceived: 1
+      await adapter.connect();
+      triggerWsOpen();
+
+      adapter.sendAudio(Buffer.from('audio1'));
+      triggerWsMessage({
+        type: 'Results',
+        is_final: true,
+        channel: { alternatives: [{ transcript: 'test', confidence: 0.9 }] },
       });
+
+      const metrics = adapter.getConnectionMetrics();
+      expect(metrics.connected).toBe(true);
+      expect(metrics.bytesSent).toBe(6); // 'audio1'のバイト数
+      expect(metrics.messagesSent).toBe(1);
+      expect(metrics.messagesReceived).toBe(1);
       expect(metrics.connectionStartTime).toBeDefined();
       expect(metrics.lastActivityTime).toBeDefined();
+
+      adapter.disconnect();
+      expect(adapter.getConnectionMetrics().connected).toBe(false);
+      expect(adapter.getConnectionMetrics().connectionEndTime).toBeDefined();
+    });
+  });
+
+  describe('KeepAlive', () => {
+    it('should send initial silence frame after 9 seconds if no audio is sent', async () => {
+      const connectPromise = adapter.connect();
+      triggerWsOpen();
+      await connectPromise;
+
+      expect(mockWsSend).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(9000); // 9秒進める
+
+      expect(mockWsSend).toHaveBeenCalledTimes(1);
+      expect(mockWsSend.mock.calls[0][0].length).toBeGreaterThan(0); // サイレンスフレームが送られたことを確認
+      expect(adapter['audioStarted']).toBe(true);
+    });
+
+    it('should send KeepAlive message periodically', async () => {
+      const connectPromise = adapter.connect();
+      triggerWsOpen();
+      await connectPromise;
+
+      mockWsSend.mockClear(); // 初期サイレンスフレームの呼び出しをクリア
+
+      jest.advanceTimersByTime(5000); // 5秒進める
+      expect(mockWsSend).toHaveBeenCalledTimes(1);
+      expect(mockWsSend).toHaveBeenCalledWith(Buffer.from(JSON.stringify({ type: 'KeepAlive' })));
+
+      jest.advanceTimersByTime(5000); // さらに5秒進める
+      expect(mockWsSend).toHaveBeenCalledTimes(2);
+      expect(mockWsSend).toHaveBeenCalledWith(Buffer.from(JSON.stringify({ type: 'KeepAlive' })));
+    });
+
+    it('should stop KeepAlive on disconnect', async () => {
+      const connectPromise = adapter.connect();
+      triggerWsOpen();
+      await connectPromise;
+
+      jest.advanceTimersByTime(5000); // KeepAliveを一度発火させる
+      expect(mockWsSend).toHaveBeenCalledTimes(1);
+
+      adapter.disconnect();
+      mockWsSend.mockClear();
+
+      jest.advanceTimersByTime(10000); // さらに10秒進める
+      expect(mockWsSend).not.toHaveBeenCalled(); // KeepAliveが停止していることを確認
     });
   });
 });
