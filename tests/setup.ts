@@ -8,6 +8,101 @@ import '@testing-library/jest-dom';
 import path from 'path';
 import fs from 'fs';
 
+// Mock Electron modules
+jest.mock('electron', () => ({
+  app: {
+    commandLine: {
+      appendSwitch: jest.fn(),
+    },
+    isReady: jest.fn().mockReturnValue(true),
+    on: jest.fn(),
+    getPath: jest.fn().mockReturnValue('/fake/path'),
+    getName: jest.fn().mockReturnValue('UniVoice'),
+    getVersion: jest.fn().mockReturnValue('2.0.0'),
+    requestSingleInstanceLock: jest.fn().mockReturnValue(true),
+    whenReady: jest.fn().mockResolvedValue(undefined),
+  },
+  ipcMain: {
+    on: jest.fn(),
+    handle: jest.fn(),
+    removeListener: jest.fn(),
+    removeAllListeners: jest.fn(),
+  },
+  ipcRenderer: {
+    on: jest.fn(),
+    send: jest.fn(),
+    invoke: jest.fn(),
+    removeListener: jest.fn(),
+    removeAllListeners: jest.fn(),
+  },
+  BrowserWindow: jest.fn().mockImplementation(() => ({
+    on: jest.fn(),
+    loadURL: jest.fn(),
+    destroy: jest.fn(),
+    close: jest.fn(),
+    loadURL: jest.fn(),
+    show: jest.fn(),
+    hide: jest.fn(),
+    focus: jest.fn(),
+    blur: jest.fn(),
+    isDestroyed: jest.fn().mockReturnValue(false),
+    isMinimized: jest.fn().mockReturnValue(false),
+    isVisible: jest.fn().mockReturnValue(true),
+    getBounds: jest.fn().mockReturnValue({ x: 0, y: 0, width: 800, height: 600 }),
+    setBounds: jest.fn(),
+    setContentBounds: jest.fn(),
+    setTitle: jest.fn(),
+    on: jest.fn(),
+    once: jest.fn(),
+    setSize: jest.fn(),
+    setPosition: jest.fn(),
+    webContents: {
+      send: jest.fn(),
+      session: {
+        clearStorageData: jest.fn(),
+        setPermissionRequestHandler: jest.fn(),
+      },
+      on: jest.fn(),
+      openDevTools: jest.fn(),
+      on: jest.fn(),
+      openDevTools: jest.fn(),
+      isDestroyed: jest.fn().mockReturnValue(false),
+      getURL: jest.fn().mockReturnValue(''),
+    },
+  })),
+  screen: {
+    getPrimaryDisplay: jest.fn().mockReturnValue({
+      workAreaSize: { width: 1920, height: 1080 },
+      bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    }),
+    getDisplayNearestPoint: jest.fn().mockReturnValue({
+      workArea: { width: 1920, height: 1080 },
+      bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    }),
+    getCursorScreenPoint: jest.fn().mockReturnValue({ x: 0, y: 0 }),
+  },
+  dialog: {
+    showSaveDialog: jest.fn(),
+  },
+  Menu: {
+    buildFromTemplate: jest.fn(() => ({
+      popup: jest.fn(),
+    })),
+    setApplicationMenu: jest.fn(),
+  },
+  MenuItem: jest.fn(),
+  shell: {
+    openPath: jest.fn(),
+  },
+}));
+
+// Polyfill for setImmediate
+if (typeof setImmediate === 'undefined') {
+  (global as any).setImmediate = (callback: (...args: any[]) => void, ...args: any[]) => {
+    return setTimeout(callback, 0, ...args);
+  };
+}
+
 // Mock Node.js modules for testing environment
 jest.mock('fs', () => ({
   ...jest.requireActual('fs'),

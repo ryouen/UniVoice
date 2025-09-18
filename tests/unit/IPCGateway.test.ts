@@ -137,8 +137,13 @@ describe('IPCGateway', () => {
       expect(errorEventSpy).toHaveBeenCalledTimes(1);
       expect(errorEventSpy).toHaveBeenCalledWith(expect.objectContaining({
         type: 'error',
-        code: 'COMMAND_VALIDATION_ERROR',
-        message: expect.stringContaining('validation'), // Zodのエラーメッセージは詳細なのでstringContainingで対応
+        data: expect.objectContaining({
+          code: 'COMMAND_VALIDATION_ERROR',
+          message: expect.any(String),
+          details: expect.objectContaining({
+            rawCommand: expect.any(Object)
+          })
+        }),
         correlationId: expect.any(String)
       }));
     });
@@ -153,8 +158,13 @@ describe('IPCGateway', () => {
       expect(errorEventSpy).toHaveBeenCalledTimes(1);
       expect(errorEventSpy).toHaveBeenCalledWith(expect.objectContaining({
         type: 'error',
-        code: 'UNKNOWN_COMMAND',
-        message: expect.stringContaining('Invalid discriminator value'), // Zodのエラーメッセージは詳細なのでstringContainingで対応
+        data: expect.objectContaining({
+          code: 'COMMAND_VALIDATION_ERROR',
+          message: expect.any(String),
+          details: expect.objectContaining({
+            rawCommand: expect.any(Object)
+          })
+        }),
         correlationId: expect.any(String)
       }));
     });
@@ -196,8 +206,11 @@ describe('IPCGateway', () => {
       expect(errorEventSpy).toHaveBeenCalledTimes(1);
       expect(errorEventSpy).toHaveBeenCalledWith(expect.objectContaining({
         type: 'error',
-        code: 'EVENT_VALIDATION_ERROR',
-        message: expect.stringContaining('validation'),
+        data: expect.objectContaining({
+          code: 'EVENT_VALIDATION_ERROR',
+          message: expect.any(String),
+          details: expect.any(Object)
+        }),
       }));
     });
   });

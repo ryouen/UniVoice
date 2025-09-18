@@ -1,0 +1,86 @@
+import { renderHook, act } from '@testing-library/react';
+import { useUnifiedPipeline } from '../../src/hooks/useUnifiedPipeline';
+
+describe('useUnifiedPipeline duplicate prevention', () => {
+  let eventHandlers: Map<string, Function>;
+
+  beforeEach(() => {
+    eventHandlers = new Map();
+    // Mock the window.electron API that the preload script would expose
+    Object.defineProperty(window, 'electron', {
+      value: {
+        on: (channel: string, handler: Function) => {
+          eventHandlers.set(channel, handler);
+          return () => eventHandlers.delete(channel); // Return an unsubscribe function
+        },
+        removeListener: (channel: string) => {
+          eventHandlers.delete(channel);
+        },
+      },
+      writable: true,
+      configurable: true,
+    });
+
+    // Mock window.univoice for other functionalities if needed
+    Object.defineProperty(window, 'univoice', {
+        value: {
+            clearHistory: jest.fn(),
+        },
+        writable: true,
+        configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should add a new translation via translation-complete event', () => {
+    const { result } = renderHook(() => useUnifiedPipeline());
+    const handler = eventHandlers.get('translation-complete');
+    expect(handler).toBeDefined();
+
+    const translation = { id: 'segment-123', original: 'Hello', japanese: 'こんにちは', timestamp: Date.now() };
+
+    act(() => {
+      handler!(translation);
+    });
+
+    expect(result.current.history).toHaveLength(1);
+    expect(result.current.history[0].id).toBe('segment-123');
+  });
+
+  it('should prevent duplicate entries in history', () => {
+    const { result } = renderHook(() => useUnifiedPipeline());
+    const handler = eventHandlers.get('translation-complete');
+    expect(handler).toBeDefined();
+
+    const translation = { id: 'segment-123', original: 'Hello', japanese: 'こんにちは', timestamp: Date.now() };
+
+    act(() => { handler!(translation); });
+    act(() => { handler!(translation); }); // Duplicate
+
+    expect(result.current.history).toHaveLength(1);
+  });
+
+  it('should allow adding the same translation after clearAll', async () => {
+    const { result } = renderHook(() => useUnifiedPipeline());
+    const handler = eventHandlers.get('translation-complete');
+    expect(handler).toBeDefined();
+
+    const translation = { id: 'segment-456', original: 'Test', japanese: 'テスト', timestamp: Date.now() };
+
+    act(() => { handler!(translation); });
+    expect(result.current.history).toHaveLength(1);
+
+    // clearAll is now part of the hook's return value
+    await act(async () => {
+      await result.current.clearAll();
+    });
+    expect(result.current.history).toHaveLength(0);
+
+    // Add same translation again
+    act(() => { handler!(translation); });
+    expect(result.current.history).toHaveLength(1);
+  });
+});

@@ -3,12 +3,17 @@ import { windowClient } from '../../src/services/WindowClient';
 describe('WindowClient', () => {
   let mockWindowManager: any;
   let mockWindow: any;
-  let originalWindowUnivoice: any; // 元のwindow.univoiceを保存するための変数
+  let originalUnivoice: any;
+
+  beforeAll(() => {
+    originalUnivoice = (window as any).univoice;
+  });
+
+  afterAll(() => {
+    (window as any).univoice = originalUnivoice;
+  });
 
   beforeEach(() => {
-    // 元のwindow.univoiceを保存
-    originalWindowUnivoice = (global as any).window.univoice;
-
     mockWindowManager = {
       toggleHistory: jest.fn().mockResolvedValue(true),
       toggleSummary: jest.fn().mockResolvedValue(true),
@@ -27,20 +32,16 @@ describe('WindowClient', () => {
       isAlwaysOnTop: jest.fn().mockResolvedValue(false),
     };
 
-    // グローバルなwindow.univoiceをモック
-    (global as any).window = {
-      univoice: {
-        windowManager: mockWindowManager,
-        window: mockWindow,
-      },
+    (window as any).univoice = {
+      windowManager: mockWindowManager,
+      window: mockWindow,
     };
 
-    jest.clearAllMocks(); // 各テストの前にモックの呼び出し履歴をクリア
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
-    // グローバルなwindow.univoiceを元に戻す
-    (global as any).window.univoice = originalWindowUnivoice;
+    // This can be empty now
   });
 
   describe('Window Manager Methods', () => {
