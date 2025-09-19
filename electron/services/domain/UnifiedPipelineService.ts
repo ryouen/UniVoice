@@ -652,18 +652,7 @@ export class UnifiedPipelineService extends EventEmitter {
     
     // Transcript イベント
     this.deepgramAdapter.on(DeepgramStreamAdapter.EVENTS.TRANSCRIPT, (result: TranscriptResult) => {
-      // TranscriptResult を既存の TranscriptSegment 形式に変換
-      const segment: TranscriptSegment = {
-        id: result.id,
-        text: result.text,
-        timestamp: result.timestamp,
-        confidence: result.confidence,
-        isFinal: result.isFinal,
-        startMs: result.startMs,
-        endMs: result.endMs
-      };
-      
-      this.processTranscriptSegment(segment);
+      this.handleTranscriptSegment(result);
     });
     
     // Error イベント
@@ -703,108 +692,7 @@ export class UnifiedPipelineService extends EventEmitter {
    */
 
 
-  /**
-   * Process transcript segment - シンプルに処理（親フォルダと同様）
-   */
-  private processTranscriptSegment(segment: TranscriptSegment): void {
-    // 【Phase 0-1】データフロー可視化ログ追加
-    console.log('[DataFlow-1] Transcript segment received:', {
-      id: segment.id,
-      textLength: segment.text.length,
-      isFinal: segment.isFinal,
-      timestamp: Date.now()
-    });
-    
-    // Store final segments only
-    if (segment.isFinal) {
-      this.transcriptSegments.push(segment);
-      
-      // 直接翻訳をキューに追加（SegmentManager不要）
-      console.log('[DataFlow-2] Queuing translation for segment:', segment.id);
-      this.translateSegment(segment.text, segment.id);
-      
-      // SentenceCombinerに追加（文単位の結合用）
-      console.log('[DataFlow-3] Adding to SentenceCombiner:', segment.id);
-      this.sentenceCombiner.addSegment(segment);
-      
-      // 🔴 ParagraphBuilderを一時的に無効化 - フロントエンドでのグループ化を優先
-      // 【Phase 2-ParagraphBuilder】ParagraphBuilderにのみ追加（パラグラフ単位の結合用）
-      // console.log('[DataFlow-3b] Adding to ParagraphBuilder:', {
-      //   segmentId: segment.id,
-      //   text: segment.text.substring(0, 50) + '...',
-      //   isFinal: segment.isFinal,
-      //   timestamp: segment.timestamp,
-      //   hasStartMs: 'startMs' in segment,
-      //   hasEndMs: 'endMs' in segment
-      // });
-      // this.paragraphBuilder.addSegment(segment);
-    }
-    
-    // Emit ASR event for both interim and final results
-    console.log('[UnifiedPipelineService] Emitting ASR event:', {
-      text: segment.text,
-      isFinal: segment.isFinal,
-      segmentId: segment.id
-    });
-    this.emitEvent(createASREvent({
-      text: segment.text,
-      confidence: segment.confidence,
-      isFinal: segment.isFinal,
-      language: this.sourceLanguage,
-      segmentId: segment.id, // Added for RealtimeDisplayManager
-    }, this.currentCorrelationId || 'unknown'));
-    
-    // 🔴 CRITICAL: 親フォルダと同じ直接イベントも発行
-    // リアルタイム表示のために必要（interim結果も含む）
-    this.emit('currentOriginalUpdate', {
-      text: segment.text,
-      isFinal: segment.isFinal
-    });
-    
-    // 🔴 CRITICAL: SegmentManager経由の処理を削除
-    // 重複の原因：SegmentManagerも翻訳をトリガーするため、
-    // 同じセグメントが2回翻訳されていた
-    // 親フォルダ（UniVoice 1.0）と同じシンプルな実装に戻す
-  }
 
-  /**
-   * Translate segment text using queue
-   * 
-   * 翻訳リクエストをキューに追加し、並列数制限を適用
-   */
-  private async translateSegment(text: string, segmentId: string): Promise<void> {
-    try {
-      // キューに翻訳リクエストを追加
-      await this.translationQueue.enqueue({
-        segmentId,
-        originalText: text,
-        sourceLanguage: this.sourceLanguage,
-        targetLanguage: this.targetLanguage,
-        timestamp: Date.now(),
-        priority: 'normal' // 通常優先度
-      });
-      
-      this.componentLogger.info('Translation request queued', {
-        segmentId,
-        queueStatus: this.translationQueue.getStatus()
-      });
-    } catch (error) {
-      this.componentLogger.error('Failed to queue translation', {
-        segmentId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      
-      // エラーイベントを発行
-      this.emitEvent(createErrorEvent(
-        {
-          code: 'TRANSLATION_QUEUE_ERROR',
-          message: `Translation queue error: ${error instanceof Error ? error.message : String(error)}`,
-          recoverable: true
-        },
-        this.currentCorrelationId || 'unknown'
-      ));
-    }
-  }
   
   /**
    * Execute translation (called by queue)
@@ -957,6 +845,11 @@ export class UnifiedPipelineService extends EventEmitter {
         translatedText: cleanedTranslation.substring(0, 50) + '...',
         timings: { firstPaintMs: firstPaintTime, completeMs: completeTime }
       });
+      
+      // 文字化けデバッグ情報
+      console.log('[Translation] Debug - Raw translation:', translation);
+      console.log('[Translation] Debug - Cleaned translation:', cleanedTranslation);
+      console.log('[Translation] Debug - First 10 char codes:', [...cleanedTranslation.slice(0, 10)].map(c => c.charCodeAt(0)));
       
       // 翻訳完了
       const result: Translation = {
@@ -1267,6 +1160,73 @@ export class UnifiedPipelineService extends EventEmitter {
   //   }
   // }
   
+  /**
+   * Handle transcript segment from Deepgram
+   * Deepgramから受信したトランスクリプトセグメントを処理
+   */
+  private async handleTranscriptSegment(result: TranscriptResult): Promise<void> {
+    try {
+      // コンソールログ（デバッグ用）
+      if (result.isFinal) {
+        console.log('[UnifiedPipelineService] Final transcript result:', {
+          id: result.id,
+          text: result.text.substring(0, 50) + '...',
+          confidence: result.confidence,
+          timestamp: Date.now()
+        });
+      }
+
+      // トランスクリプト結果を保存（互換性のため）
+      const segment = {
+        id: result.id,
+        text: result.text,
+        timestamp: result.timestamp,
+        confidence: result.confidence,
+        isFinal: result.isFinal
+      };
+      this.transcriptSegments.push(segment);
+
+      // ASRイベントを発火
+      this.emitEvent(createASREvent({
+        text: result.text,
+        confidence: result.confidence,
+        isFinal: result.isFinal,
+        language: this.sourceLanguage,
+        segmentId: result.id
+      }, this.currentCorrelationId || 'unknown'));
+
+      // SentenceCombinerに送信（文単位の結合）
+      if (result.isFinal) {
+        this.sentenceCombiner.addSegment({
+          id: result.id,
+          text: result.text,
+          timestamp: result.timestamp,
+          isFinal: result.isFinal,
+          startMs: result.startMs,
+          endMs: result.endMs
+        });
+      }
+
+      // 翻訳をキューに追加（finalセグメントのみ）
+      if (result.isFinal && result.text.trim()) {
+        await this.translationQueue.enqueue({
+          segmentId: result.id,
+          originalText: result.text,
+          sourceLanguage: this.sourceLanguage,
+          targetLanguage: this.targetLanguage,
+          timestamp: result.timestamp,
+          priority: 'normal'
+        });
+      }
+    } catch (error) {
+      this.componentLogger.error('Failed to handle transcript result', {
+        error,
+        resultId: result.id
+      });
+      // エラーを握りつぶして処理を継続
+    }
+  }
+
   /**
    * Execute history translation with higher quality
    * 履歴用の高品質翻訳を実行（より大きなコンテキストと高品質モデル）

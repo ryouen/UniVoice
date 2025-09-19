@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniVoice Session Clear</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 10px 10px 0;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #e6ffed;
+            color: #1e7e34;
+            border: 1px solid #c3e6cb;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UniVoice Session Clear</h1>
+        
+        <div>
+            <h3>現在のセッションデータ:</h3>
+            <pre id="current-data">読み込み中...</pre>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="clearSession()">セッションをクリア</button>
+            <button onclick="forceSetup()">強制的にSetup画面を表示</button>
+            <button onclick="viewAllData()">すべてのLocalStorageデータを表示</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        // ページ読み込み時に現在のデータを表示
+        window.onload = function() {
+            displayCurrentData();
+        };
+        
+        function displayCurrentData() {
+            const activeSession = localStorage.getItem('univoice-active-session');
+            const forceSetup = localStorage.getItem('FORCE_SETUP');
+            const data = {
+                'univoice-active-session': activeSession ? JSON.parse(activeSession) : null,
+                'FORCE_SETUP': forceSetup,
+                'session-count': Object.keys(localStorage).filter(k => k.startsWith('univoice-')).length
+            };
+            
+            document.getElementById('current-data').textContent = JSON.stringify(data, null, 2);
+        }
+        
+        function clearSession() {
+            // UniVoice関連のすべてのデータをクリア
+            const keys = Object.keys(localStorage);
+            let cleared = 0;
+            
+            keys.forEach(key => {
+                if (key.startsWith('univoice-')) {
+                    localStorage.removeItem(key);
+                    cleared++;
+                }
+            });
+            
+            // FORCE_SETUPもクリア
+            localStorage.removeItem('FORCE_SETUP');
+            
+            showStatus(`セッションデータをクリアしました (${cleared}件)`, true);
+            displayCurrentData();
+        }
+        
+        function forceSetup() {
+            localStorage.setItem('FORCE_SETUP', 'true');
+            showStatus('FORCE_SETUP フラグを設定しました。UniVoiceを再起動してください。', true);
+            displayCurrentData();
+        }
+        
+        function viewAllData() {
+            const allData = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                try {
+                    allData[key] = JSON.parse(localStorage.getItem(key));
+                } catch {
+                    allData[key] = localStorage.getItem(key);
+                }
+            }
+            
+            document.getElementById('current-data').textContent = JSON.stringify(allData, null, 2);
+        }
+        
+        function showStatus(message, success = true) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + (success ? 'success' : 'error');
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

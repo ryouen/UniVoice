@@ -20,6 +20,10 @@ interface WindowAPI {
     setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>;
     isAlwaysOnTop: () => Promise<boolean>;
     autoResize: (height: number) => Promise<boolean>;
+    setBounds: (bounds: {
+        width: number;
+        height: number;
+    }) => Promise<void>;
 }
 /**
  * Window Manager API for multi-window management

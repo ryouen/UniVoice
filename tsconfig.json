@@ -25,5 +25,12 @@
     }
   },
   "include": ["src", "src/types/**/*.d.ts"],
-  "references": [{ "path": "./electron/tsconfig.json" }]
+  "references": [{ "path": "./electron/tsconfig.json" }],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist-electron",
+    "src/services/claude/**/*",
+    "examples/claude-sdk-example.ts"
+  ]
 }

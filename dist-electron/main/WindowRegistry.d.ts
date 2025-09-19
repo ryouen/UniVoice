@@ -40,7 +40,7 @@ export declare class WindowRegistry {
     /**
      * Setup画面を.backgroundサイズにフィット
      */
-    fitSetupTo(width: number, height: number): void;
+    fitSetupTo(_width: number, _height: number): void;
     /**
      * Setup画面をMain画面として再利用（メモリ効率化）
      */

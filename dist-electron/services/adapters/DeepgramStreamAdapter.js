@@ -243,12 +243,13 @@ class DeepgramStreamAdapter extends events_1.EventEmitter {
         this.metrics.lastActivityTime = Date.now();
         try {
             const message = this.parseMessage(data);
-            // 🔴 受信メッセージの詳細ログ（日本語またはmultiモードの場合）
-            if (this.config.sourceLanguage === 'ja' || this.config.sourceLanguage === 'multi') {
+            // 🔴 受信メッセージの詳細ログ（全言語モードで有効）
+            if (true) { // デバッグのため常に有効
                 if (message.channel?.alternatives?.[0]) {
                     console.log('[DeepgramAdapter] Recognition result:', {
                         sourceLanguage: this.config.sourceLanguage,
-                        text: message.channel.alternatives[0].transcript,
+                        text: message.channel.alternatives[0].transcript.substring(0, 50),
+                        fullText: message.channel.alternatives[0].transcript,
                         confidence: message.channel.alternatives[0].confidence,
                         isFinal: message.is_final,
                         messageType: message.type,
@@ -264,6 +265,12 @@ class DeepgramStreamAdapter extends events_1.EventEmitter {
                         channel: message.channel,
                         duration: message.duration,
                         isFinal: message.is_final
+                    });
+                }
+                else if (message.type) {
+                    console.log('[DeepgramAdapter] Other message type:', {
+                        type: message.type,
+                        hasChannel: !!message.channel
                     });
                 }
             }

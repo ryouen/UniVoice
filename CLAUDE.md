@@ -3,16 +3,13 @@
 ## 🔴 最初に必ず実行すること
 
 ```bash
-# 0. クイックチェック（Setup画面374px問題など）🆕
-cat QUICK-CHECK-NEW-SESSION.md
-
-# 1. 重要事実集を確認（新セッション必須）
+# 1. 重要事実集を確認（新セッション必須）- 2025-09-17大幅更新
 cat CRITICAL-FACTS-FOR-NEW-SESSION.md
 
-# 2. 現在の状況を確認
+# 2. 現在の状況を確認 - 2025-09-17更新
 cat START-HERE.md
 
-# 3. 実装状況の詳細を確認（2025-09-10追加）
+# 3. 実装状況の詳細を確認 - 2025-09-17深層分析済み
 cat IMPLEMENTATION-STATUS-20250910.md
 
 # 4. ウィンドウ管理実装の進捗確認（2025-09-14追加）
@@ -32,10 +29,15 @@ grep -q "windowManager" electron/preload.ts 2>/dev/null && echo "✅ M1: Preload
 grep "M1" docs/ACTIVE/TASKS.json | grep "pending" | head -5
 ```
 
-📌 **必須ファイル**: [`CRITICAL-FACTS-FOR-NEW-SESSION.md`](CRITICAL-FACTS-FOR-NEW-SESSION.md) - 新セッションで最初に読む
+📌 **必須ファイル**: [`CRITICAL-FACTS-FOR-NEW-SESSION.md`](CRITICAL-FACTS-FOR-NEW-SESSION.md) - 新セッションで最初に読む（2025-09-17大幅更新済み）
 
 **重要**: このプロジェクトは UniVoice 2.0 として、
 Clean Architecture + CQRS + Event-Driven パターンで構築されています。
+
+**🔴 2025-09-17 重要な発見**:
+- SentenceCombinerは既に統合済み・正常動作中（多くのドキュメントの誤情報を修正）
+- SessionStorageServiceは実装済みだが完全に未使用（データ永続化の欠如）
+- 実装進捗は約50%（リアルタイム100%、高度機能70%、永続化0%）
 
 **⚠️ 重要な訂正 (あなたが疑ったり、改悪しては絶対にならないもの)**: 
 - Responses API は2025年3月にリリースされた実在のAPIです
@@ -138,13 +140,13 @@ UniVoice/
 - SegmentManager（重複除去）
 
 ### 🚧 Phase 2: Advanced Features（実装中）
-- [x] 文単位履歴管理（SentenceCombiner）- 2025-08-24 完了
-- [x] 二段階翻訳システム（リアルタイム/履歴）- 2025-08-24 完了
-- [x] 高品質翻訳の動的更新 - 2025-08-24 完了
-- [ ] 単語数ベース要約（400/800語）
-- [ ] 語彙抽出（5-10専門用語）
-- [ ] 最終レポート生成（Markdown）
-- [ ] データ永続化（IndexedDB）
+- [x] 文単位履歴管理（SentenceCombiner）- 統合済み・動作中 ✅
+- [x] 二段階翻訳システム（リアルタイム/履歴）- 完了
+- [x] 高品質翻訳の動的更新 - 完了
+- [x] 単語数ベース要約（400/800語）- バックエンド完了、UI課題
+- [x] 語彙抽出（5-10専門用語）- バックエンド完了、UI未統合
+- [ ] 最終レポート生成（Markdown）- メソッド存在、未統合
+- [ ] データ永続化 - SessionStorageService未使用 🔴
 
 ### 🔮 Phase 3: Production Ready（計画中）
 - [ ] パフォーマンス最適化
@@ -342,8 +344,11 @@ npm run clean
 - [API契約仕様](docs/API-CONTRACTS.md)
 
 ### 開発支援ドキュメント
+- [GitHubバックアップ差分詳細分析](docs/GITHUB-DIFF-FACTUAL-ANALYSIS-20250919.md) 🔴 NEW (2025-09-19) - 現在の変更とGitHubの差分を詳細分析（透過設定復元を含む）
+- [Windows透過設定復元ログ](docs/TRANSPARENCY-RESTORATION-LOG-20250919.md) 🔴 NEW (2025-09-19) - グラスモーフィズム効果の復元作業記録
 - [自動テスト・ログ収集システム](docs/development/AUTO-TEST-LOGGING-SYSTEM.md) 🔴 NEW
 - [型定義同期に関する調査結果](docs/TYPE-SYNCHRONIZATION-FINDINGS.md) 🔴 NEW - ビルドエラーの原因と解決策
+- [LocalStorage廃止・移行計画](docs/LOCALSTORAGE-MIGRATION-PLAN.md) 🔴 NEW (2025-09-16) - Setup画面スキップ問題の根本解決
 - [ウィンドウ管理実装ガイド](docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md) 🔴 NEW (2025-09-14) - 実装者向けの具体的な手順書
 - [ウィンドウ管理アーキテクチャ](docs/WINDOW-MANAGEMENT-ARCHITECTURE.md) - 設計思想と詳細仕様
 - [解決済み問題レポート](docs/RESOLVED-ISSUES-20250914.md) 🆕 - プロセス暴走・IPC重複問題の解決
@@ -371,23 +376,26 @@ Deepgramのセグメント（0.8秒区切り）を2-3文の意味単位に結合
 
 ---
 
-## 📄 最重要ドキュメント (2025-09-04 更新)
+## 📄 最重要ドキュメント (2025-09-17 更新)
 
-### 🔥 現在の状態管理
-- `START-HERE.md` - セッション開始ガイド
-- `docs/ACTIVE/STATE.json` - アプリケーションの現在状態
-- `docs/ACTIVE/TASKS.json` - 優先順位付きタスクリスト
+### 🔥 現在の状態管理（全て最新版に更新済み）
+- `CRITICAL-FACTS-FOR-NEW-SESSION.md` - 重要事実集（深層分析反映）✅
+- `START-HERE.md` - セッション開始ガイド（優先順位更新）✅
+- `IMPLEMENTATION-STATUS-20250910.md` - 正確な実装状況 ✅
+- `docs/ACTIVE/TASKS.json` - 優先順位付きタスクリスト ✅
 
-### 🔴 最新の重要実装 (2025-08-28～09-03)
-- [`docs/DATA-PERSISTENCE-IMPLEMENTATION-STATUS.md`](docs/DATA-PERSISTENCE-IMPLEMENTATION-STATUS.md) - データ永続化（完了）
-- [`docs/PARAGRAPH-MODE-IMPLEMENTATION-SUMMARY.md`](docs/PARAGRAPH-MODE-IMPLEMENTATION-SUMMARY.md) - パラグラフ履歴（完了）
-- [`docs/CRITICAL-BUG-DISCOVERY-20250830.md`](docs/CRITICAL-BUG-DISCOVERY-20250830.md) - **🚨 AdvancedFeatureService未初期化バグ**
+### 🔴 重要な発見と修正 (2025-09-17)
+- SentenceCombiner統合済みの発見（多くのドキュメントの誤情報を修正）
+- SessionStorageService完全未使用の発見（データ永続化の欠如）
+- プロジェクト実装率の正確な把握（約50%）
 
 ### 🔨 開発ガイド
 - [`docs/BUILD-GUIDE.md`](docs/BUILD-GUIDE.md) - ビルド手順
 - [`docs/MULTILINGUAL-TESTING-GUIDE.md`](docs/MULTILINGUAL-TESTING-GUIDE.md) - 多言語テスト
 - [`docs/development/AUTO-TEST-LOGGING-SYSTEM.md`](docs/development/AUTO-TEST-LOGGING-SYSTEM.md) - 自動テストシステム
 - [`docs/LOGGING-AND-DEBUG-GUIDE.md`](docs/LOGGING-AND-DEBUG-GUIDE.md) - 🆕 ログ出力とデバッグガイド
+- [`docs/UNIVOICE-TSX-STRUCTURE-ANALYSIS.md`](docs/UNIVOICE-TSX-STRUCTURE-ANALYSIS.md) 🔴 NEW (2025-09-19) - 2890行のUniVoice.tsx構造分析とClean Architectureリファクタリング戦略
+- [`docs/CLEAR-SESSION-DEBUG-GUIDE.md`](docs/CLEAR-SESSION-DEBUG-GUIDE.md) - Setup画面が表示されない問題のデバッグ
 
 ---
 
@@ -449,6 +457,6 @@ diff <(cat docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md | grep -E "^(electron|
 
 ---
 
-最終更新: 2025-09-14
+最終更新: 2025-09-19（Clean Architectureリファクタリング開始）
 作成者: Claude Code
 バージョン: 2.0.0-alpha

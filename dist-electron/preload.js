@@ -16,7 +16,14 @@ function createCommandSender() {
             return result;
         }
         catch (error) {
-            console.error('[UniVoice Preload] Command failed:', error);
+            try {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('[UniVoice Preload] Command failed:', error);
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error'
@@ -44,7 +51,14 @@ function createEventListeners() {
                 }
             }
             catch (error) {
-                console.error('[UniVoice Preload] Event listener error:', error);
+                try {
+                    if (typeof console !== 'undefined' && console.error) {
+                        console.error('[UniVoice Preload] Event listener error:', error);
+                    }
+                }
+                catch (e) {
+                    // Ignore console errors to prevent EPIPE
+                }
             }
         };
         electron_1.ipcRenderer.on('univoice:event', listener);
@@ -67,7 +81,9 @@ function createEventListeners() {
  */
 function createUnifiedEventListener() {
     // Only enable in development for testing
-    if (process.env.NODE_ENV !== 'development') {
+    // Note: process.env.NODE_ENV may be undefined in production builds
+    const isDevelopment = process.env?.NODE_ENV === 'development' || false;
+    if (!isDevelopment) {
         return {};
     }
     return {
@@ -77,7 +93,14 @@ function createUnifiedEventListener() {
                 if (!data || typeof data !== 'object' ||
                     !data.v || !data.id || typeof data.seq !== 'number' ||
                     typeof data.ts !== 'number' || !data.kind) {
-                    console.warn('[Preload] UnifiedEvent invalid format:', data);
+                    try {
+                        if (typeof console !== 'undefined' && console.warn) {
+                            console.warn('[Preload] UnifiedEvent invalid format:', data);
+                        }
+                    }
+                    catch (e) {
+                        // Ignore console errors to prevent EPIPE
+                    }
                     return;
                 }
                 callback(data);
@@ -100,7 +123,8 @@ function createWindowAPI() {
         updateTheme: (theme) => electron_1.ipcRenderer.invoke('window:updateTheme', theme),
         setAlwaysOnTop: (alwaysOnTop) => electron_1.ipcRenderer.invoke('window:setAlwaysOnTop', alwaysOnTop),
         isAlwaysOnTop: () => electron_1.ipcRenderer.invoke('window:isAlwaysOnTop'),
-        autoResize: (height) => electron_1.ipcRenderer.invoke('window:autoResize', height)
+        autoResize: (height) => electron_1.ipcRenderer.invoke('window:autoResize', height),
+        setBounds: (bounds) => electron_1.ipcRenderer.invoke('window:setBounds', bounds)
     };
 }
 /**
@@ -130,17 +154,25 @@ function createUtilities() {
             return `ui-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         },
         // Development only debug methods
-        ...(process.env.NODE_ENV === 'development' && {
+        // Note: process.env.NODE_ENV may be undefined in production builds
+        ...(process.env?.NODE_ENV === 'development' ? {
             getDebugInfo: async () => {
                 try {
                     return await electron_1.ipcRenderer.invoke('univoice:debug');
                 }
                 catch (error) {
-                    console.warn('[UniVoice Preload] Debug info not available:', error);
+                    try {
+                        if (typeof console !== 'undefined' && console.warn) {
+                            console.warn('[UniVoice Preload] Debug info not available:', error);
+                        }
+                    }
+                    catch (e) {
+                        // Ignore console errors to prevent EPIPE
+                    }
                     return null;
                 }
             }
-        })
+        } : {})
     };
 }
 // Create the complete UniVoice API
@@ -205,7 +237,14 @@ const legacyElectronAPI = {
     invoke: (channel, ...args) => {
         // セキュリティのため、許可されたチャンネルのみ
         if (!allowedChannels.includes(channel)) {
-            console.warn(`[UniVoice Preload] Blocked invoke to channel: ${channel}`);
+            try {
+                if (typeof console !== 'undefined' && console.warn) {
+                    console.warn(`[UniVoice Preload] Blocked invoke to channel: ${channel}`);
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             return Promise.reject(new Error(`Channel "${channel}" is not allowed`));
         }
         return electron_1.ipcRenderer.invoke(channel, ...args);
@@ -213,7 +252,14 @@ const legacyElectronAPI = {
     on: (channel, listener) => {
         // セキュリティのため、許可されたチャンネルのみ
         if (!allowedChannels.includes(channel)) {
-            console.warn(`[UniVoice Preload] Blocked access to channel: ${channel}`);
+            try {
+                if (typeof console !== 'undefined' && console.warn) {
+                    console.warn(`[UniVoice Preload] Blocked access to channel: ${channel}`);
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             return () => { };
         }
         electron_1.ipcRenderer.on(channel, listener);
@@ -224,7 +270,14 @@ const legacyElectronAPI = {
     },
     removeListener: (channel, listener) => {
         if (!allowedChannels.includes(channel)) {
-            console.warn(`[UniVoice Preload] Blocked removeListener for channel: ${channel}`);
+            try {
+                if (typeof console !== 'undefined' && console.warn) {
+                    console.warn(`[UniVoice Preload] Blocked removeListener for channel: ${channel}`);
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             return;
         }
         electron_1.ipcRenderer.removeListener(channel, listener);
@@ -245,7 +298,14 @@ const legacyElectronAPI = {
             buffer = Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength);
         }
         else {
-            console.error('[Preload] Invalid audio chunk type:', chunk);
+            try {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('[Preload] Invalid audio chunk type:', chunk);
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             return;
         }
         electron_1.ipcRenderer.send('audio-chunk', buffer);
@@ -253,7 +313,14 @@ const legacyElectronAPI = {
     send: (channel, ...args) => {
         // セキュリティのため、許可されたチャンネルのみ
         if (!allowedChannels.includes(channel)) {
-            console.warn(`[UniVoice Preload] Blocked send to channel: ${channel}`);
+            try {
+                if (typeof console !== 'undefined' && console.warn) {
+                    console.warn(`[UniVoice Preload] Blocked send to channel: ${channel}`);
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             return;
         }
         electron_1.ipcRenderer.send(channel, ...args);
@@ -262,11 +329,34 @@ const legacyElectronAPI = {
 // Expose legacy API for backward compatibility
 electron_1.contextBridge.exposeInMainWorld('electron', legacyElectronAPI);
 electron_1.contextBridge.exposeInMainWorld('electronAPI', legacyElectronAPI); // Additional alias
-// Always log for debugging
-console.info('[UniVoice Preload] Script loaded');
-console.info('[UniVoice Preload] Type-safe API bridge exposed');
-console.info('[UniVoice Preload] Available APIs:', {
-    univoice: Object.keys(univoiceAPI),
-    electron: Object.keys(legacyElectronAPI)
-});
-console.info('[UniVoice Preload] NODE_ENV:', process.env.NODE_ENV);
+// Safe console logging with try-catch
+try {
+    if (typeof console !== 'undefined' && console.info) {
+        console.info('[UniVoice Preload] Script loaded');
+        console.info('[UniVoice Preload] Type-safe API bridge exposed');
+    }
+}
+catch (error) {
+    // Ignore console errors during startup
+}
+// Safe console logging with try-catch
+try {
+    if (typeof console !== 'undefined' && console.info) {
+        console.info('[UniVoice Preload] Available APIs:', {
+            univoice: Object.keys(univoiceAPI),
+            electron: Object.keys(legacyElectronAPI)
+        });
+    }
+}
+catch (error) {
+    // Ignore console errors
+}
+// Safe console logging with try-catch
+try {
+    if (typeof console !== 'undefined' && console.info) {
+        console.info('[UniVoice Preload] NODE_ENV:', process.env?.NODE_ENV || 'production');
+    }
+}
+catch (error) {
+    // Ignore console errors
+}

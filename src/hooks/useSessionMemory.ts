@@ -14,7 +14,7 @@ import { StreamingBuffer } from '../utils/StreamingBuffer';
 import type { Translation, Summary } from './useUnifiedPipeline';
 import type { SessionState, SessionMemo } from '../domain/services/SessionMemoryService';
 
-interface UseSessionMemoryReturn {
+export interface UseSessionMemoryReturn {
   // Session management
   startSession: (className: string, sourceLanguage: string, targetLanguage: string) => Promise<void>;
   completeSession: () => Promise<void>;
@@ -23,6 +23,7 @@ interface UseSessionMemoryReturn {
   
   // Data management
   addTranslation: (translation: Translation) => void;
+  updateTranslation: (segmentId: string, updates: Partial<Translation>) => void;
   addSummary: (summary: Summary) => void;
   addMemo: (memo: SessionMemo) => void;
   updateMemos: (memos: SessionMemo[]) => void;
@@ -36,6 +37,8 @@ interface UseSessionMemoryReturn {
   loadSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   exportSession: (sessionId: string) => Promise<string | null>;
+  getLatestSession: (className: string) => Promise<SessionState | null>;
+  restoreSession: (sessionId: string) => Promise<void>;
   
   // Streaming buffer
   streamingBuffer: StreamingBuffer | null;
@@ -93,44 +96,67 @@ export function useSessionMemory(): UseSessionMemoryReturn {
     };
   }, []);
   
+  // Complete current session
+  const completeSession = useCallback(async () => {
+    if (!sessionServiceRef.current || !isSessionActive) return;
+    
+    try {
+      const result = await sessionServiceRef.current.completeSession();
+      
+      if (result.success) {
+        setSessionState(null);
+        streamingBufferRef.current?.clear();
+        setIsSessionActive(false);
+      } else {
+        console.error('[useSessionMemory] Failed to complete session:', result.error);
+        // エラー発生時も状態をクリア
+        setSessionState(null);
+        setIsSessionActive(false);
+      }
+    } catch (error) {
+      console.error('[useSessionMemory] Unexpected error completing session:', error);
+      setSessionState(null);
+      setIsSessionActive(false);
+    }
+  }, [isSessionActive]);
+  
   // Start a new session
   const startSession = useCallback(async (className: string, sourceLanguage: string, targetLanguage: string) => {
     if (!sessionServiceRef.current) return;
     
-    const result = await sessionServiceRef.current.startSession({
-      className,
-      sourceLanguage,
-      targetLanguage
-    });
-    
-    if (result.success) {
-      const sessionResult = sessionServiceRef.current.getCurrentSession();
-      if (sessionResult.success) {
-        setSessionState(sessionResult.data.state);
+    try {
+      // 既存セッションの確認
+      if (isSessionActive) {
+        console.warn('[useSessionMemory] Session already active, completing previous session');
+        await completeSession();
       }
       
-      // Clear streaming buffer for new session
-      streamingBufferRef.current?.clear();
-    } else {
-      console.error('[useSessionMemory] Failed to start session:', result.error);
-      throw result.error;
-    }
-  }, []);
-  
-  // Complete current session
-  const completeSession = useCallback(async () => {
-    if (!sessionServiceRef.current) return;
-    
-    const result = await sessionServiceRef.current.completeSession();
-    
-    if (result.success) {
+      const result = await sessionServiceRef.current.startSession({
+        className,
+        sourceLanguage,
+        targetLanguage
+      });
+      
+      if (result.success) {
+        const sessionResult = sessionServiceRef.current.getCurrentSession();
+        if (sessionResult.success) {
+          setSessionState(sessionResult.data.state);
+        }
+        
+        // Clear streaming buffer for new session
+        streamingBufferRef.current?.clear();
+      } else {
+        console.error('[useSessionMemory] Failed to start session:', result.error);
+        // Errorをthrowせず、グレースフルに処理
+        setSessionState(null);
+        setIsSessionActive(false);
+      }
+    } catch (error) {
+      console.error('[useSessionMemory] Unexpected error starting session:', error);
       setSessionState(null);
-      streamingBufferRef.current?.clear();
-    } else {
-      console.error('[useSessionMemory] Failed to complete session:', result.error);
-      throw result.error;
+      setIsSessionActive(false);
     }
-  }, []);
+  }, [isSessionActive, completeSession]);
   
   // Pause/Resume session
   const pauseSession = useCallback(() => {
@@ -149,44 +175,78 @@ export function useSessionMemory(): UseSessionMemoryReturn {
   
   // Add translation
   const addTranslation = useCallback((translation: Translation) => {
-    if (!sessionServiceRef.current) return;
-    
-    // Add to session memory
-    const result = sessionServiceRef.current.addTranslation(translation);
-    if (!result.success) {
-      console.error('[useSessionMemory] Failed to add translation:', result.error);
+    if (!sessionServiceRef.current || !isSessionActive) {
+      console.log('[useSessionMemory] Cannot add translation - no active session');
+      return;
     }
     
-    // Add to streaming buffer
-    if (streamingBufferRef.current) {
-      streamingBufferRef.current.addSegment({
-        id: translation.id,
-        timestamp: translation.timestamp,
-        original: translation.original,
-        translation: translation.japanese,
-        metadata: {
-          wordCount: translation.original.split(' ').length
-        }
-      });
+    try {
+      // Add to session memory
+      const result = sessionServiceRef.current.addTranslation(translation);
+      if (!result.success) {
+        console.error('[useSessionMemory] Failed to add translation:', result.error);
+        return;
+      }
+      
+      // Add to streaming buffer
+      if (streamingBufferRef.current) {
+        streamingBufferRef.current.addSegment({
+          id: translation.id,
+          timestamp: translation.timestamp,
+          original: translation.original,
+          translation: translation.japanese,
+          metadata: {
+            wordCount: translation.original.split(' ').length
+          }
+        });
+      }
+      
+      // Update word count
+      if (sessionState) {
+        const newWordCount = sessionState.wordCount + translation.original.split(' ').length;
+        sessionServiceRef.current.updateSessionState({ wordCount: newWordCount });
+        setSessionState({ ...sessionState, wordCount: newWordCount });
+      }
+    } catch (error) {
+      console.error('[useSessionMemory] Error adding translation:', error);
+    }
+  }, [sessionState, isSessionActive]);
+  
+  // Update existing translation (for high-quality translation updates)
+  const updateTranslation = useCallback((segmentId: string, updates: Partial<Translation>) => {
+    if (!sessionServiceRef.current || !isSessionActive) {
+      console.log('[useSessionMemory] Cannot update translation - no active session');
+      return;
     }
     
-    // Update word count
-    if (sessionState) {
-      const newWordCount = sessionState.wordCount + translation.original.split(' ').length;
-      sessionServiceRef.current.updateSessionState({ wordCount: newWordCount });
-      setSessionState({ ...sessionState, wordCount: newWordCount });
+    try {
+      const result = sessionServiceRef.current.updateTranslation(segmentId, updates);
+      if (!result.success) {
+        console.error('[useSessionMemory] Failed to update translation:', result.error);
+      } else {
+        console.log('[useSessionMemory] Translation updated:', segmentId);
+      }
+    } catch (error) {
+      console.error('[useSessionMemory] Error updating translation:', error);
     }
-  }, [sessionState]);
+  }, [isSessionActive]);
   
   // Add summary
   const addSummary = useCallback((summary: Summary) => {
-    if (!sessionServiceRef.current) return;
-    
-    const result = sessionServiceRef.current.addSummary(summary);
-    if (!result.success) {
-      console.error('[useSessionMemory] Failed to add summary:', result.error);
+    if (!sessionServiceRef.current || !isSessionActive) {
+      console.log('[useSessionMemory] Cannot add summary - no active session');
+      return;
     }
-  }, []);
+    
+    try {
+      const result = sessionServiceRef.current.addSummary(summary);
+      if (!result.success) {
+        console.error('[useSessionMemory] Failed to add summary:', result.error);
+      }
+    } catch (error) {
+      console.error('[useSessionMemory] Error adding summary:', error);
+    }
+  }, [isSessionActive]);
   
   // Memo management
   const addMemo = useCallback((memo: SessionMemo) => {
@@ -253,6 +313,28 @@ export function useSessionMemory(): UseSessionMemoryReturn {
     }
   }, []);
   
+  // Get latest session for a class
+  const getLatestSession = useCallback(async (className: string): Promise<SessionState | null> => {
+    if (!sessionServiceRef.current) return null;
+    
+    try {
+      const sessions = await getAllSessions();
+      const classSessions = sessions
+        .filter(s => s.className === className)
+        .sort((a, b) => b.startTime - a.startTime);
+      
+      return classSessions[0] || null;
+    } catch (error) {
+      console.error('[useSessionMemory] Failed to get latest session:', error);
+      return null;
+    }
+  }, [getAllSessions]);
+  
+  // Restore a session
+  const restoreSession = useCallback(async (sessionId: string): Promise<void> => {
+    await loadSession(sessionId);
+  }, [loadSession]);
+  
   // Update session duration periodically
   useEffect(() => {
     if (!isSessionActive || !sessionState) return;
@@ -275,6 +357,7 @@ export function useSessionMemory(): UseSessionMemoryReturn {
     
     // Data management
     addTranslation,
+    updateTranslation,
     addSummary,
     addMemo,
     updateMemos,
@@ -288,6 +371,8 @@ export function useSessionMemory(): UseSessionMemoryReturn {
     loadSession,
     deleteSession,
     exportSession,
+    getLatestSession,
+    restoreSession,
     
     // Streaming buffer
     streamingBuffer: streamingBufferRef.current

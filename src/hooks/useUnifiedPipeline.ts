@@ -23,6 +23,7 @@ import { IncrementalTextManager } from '../utils/IncrementalTextManager';
 import { StreamBatcher } from '../utils/StreamBatcher';
 import { TranslationTimeoutManager } from '../utils/TranslationTimeoutManager';
 import type { UnifiedEvent } from '../shared/types/ipcEvents';
+import { useSessionMemory } from './useSessionMemory';
 
 // ThreeLineDisplay型の定義
 export interface ThreeLineDisplay {
@@ -90,9 +91,51 @@ export interface PipelineState {
   startTime: number | null;
 }
 
+// Return type for useUnifiedPipeline hook
+export interface UseUnifiedPipelineReturn {
+  // State
+  isRunning: boolean;
+  currentOriginal: string;
+  currentTranslation: string;
+  displayPairs: DisplayPair[];
+  threeLineDisplay: ThreeLineDisplay;
+  historyBlocks: HistoryBlock[];
+  groupedHistory: Translation[][];
+  realtimeSegments: any[];
+  history: Translation[];
+  summaries: Summary[];
+  error: string | null;
+  vocabulary: Array<{ term: string; definition: string }> | null;
+  finalReport: string | null;
+  state: PipelineState;
+  
+  // Control functions
+  startFromMicrophone: () => Promise<void>;
+  stop: () => Promise<void>;
+  translateUserInput: (text: string) => Promise<string>;
+  generateVocabulary: () => Promise<void>;
+  generateFinalReport: () => Promise<void>;
+  
+  // Clear functions
+  clearHistory: () => void;
+  clearSummaries: () => void;
+  clearError: () => void;
+  clearAll: () => void;
+  
+  // Language management
+  updateLanguages: (source: string, target: string) => void;
+  currentSourceLanguage: string;
+  currentTargetLanguage: string;
+  
+  // Compatibility
+  startFromFile: () => Promise<void>;
+  refreshState: () => Promise<void>;
+}
+
 interface UseUnifiedPipelineOptions {
   sourceLanguage?: string;
   targetLanguage?: string;
+  className?: string | undefined; // セッション管理用のクラス名
   onError?: (error: string) => void;
   onStatusChange?: (status: string) => void;
   onTranslation?: (translation: Translation) => void;
@@ -103,11 +146,23 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   const {
     sourceLanguage = 'en',
     targetLanguage = 'ja',
+    className,
     onError,
     onStatusChange,
     onTranslation,
     onSummary
   } = options;
+
+  // SessionMemory hook for data persistence
+  const {
+    startSession,
+    completeSession,
+    addTranslation,
+    updateTranslation,
+    addSummary,
+    sessionState,
+    isSessionActive
+  } = useSessionMemory();
 
   // State
   const [isRunning, setIsRunning] = useState(false);
@@ -130,8 +185,9 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   });
   
   // 言語設定を状態として管理（動的更新対応）
-  const [currentSourceLanguage, setCurrentSourceLanguage] = useState(sourceLanguage);
-  const [currentTargetLanguage, setCurrentTargetLanguage] = useState(targetLanguage);
+  // デフォルト値を設定して空文字列を防ぐ
+  const [currentSourceLanguage, setCurrentSourceLanguage] = useState(sourceLanguage || 'multi');
+  const [currentTargetLanguage, setCurrentTargetLanguage] = useState(targetLanguage || 'ja');
   
   // Manager instances
   const displayManagerRef = useRef<SyncedRealtimeDisplayManager | null>(null);
@@ -214,6 +270,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
               isFinal: p.original.isFinal
             }))
           });
+          console.log('[SyncedRealtimeDisplayManager] Updating displayPairs:', pairs.length, pairs);
           setDisplayPairs(pairs);
         }
       );
@@ -312,6 +369,33 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       }
     };
   }, []);
+
+  // 言語設定の同期（パイプライン実行中は無視）
+  useEffect(() => {
+    // パイプライン実行中は言語変更を無視
+    if (state.status === 'running' || state.status === 'processing' || state.status === 'starting') {
+      console.warn('[useUnifiedPipeline] Language change ignored during pipeline execution:', state.status);
+      return;
+    }
+    
+    // 実際に変更があった場合のみ更新
+    if (sourceLanguage !== currentSourceLanguage || targetLanguage !== currentTargetLanguage) {
+      console.log('[useUnifiedPipeline] 🔄 Updating language settings:', {
+        from: { source: currentSourceLanguage, target: currentTargetLanguage },
+        to: { source: sourceLanguage, target: targetLanguage },
+        timestamp: new Date().toISOString()
+      });
+      
+      setCurrentSourceLanguage(sourceLanguage);
+      setCurrentTargetLanguage(targetLanguage);
+      
+      // マネージャーのリセット（必要な場合）
+      if (historyGrouperRef.current && (currentSourceLanguage || currentTargetLanguage)) {
+        console.log('[useUnifiedPipeline] Resetting history grouper due to language change');
+        historyGrouperRef.current.reset();
+      }
+    }
+  }, [sourceLanguage, targetLanguage, state.status, currentSourceLanguage, currentTargetLanguage]);
 
   // Update threeLineDisplay when displayPairs change
   useEffect(() => {
@@ -451,6 +535,13 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   const handlePipelineEvent = useCallback((event: PipelineEvent) => {
     // イベント受信ログ（デバッグ用）
     console.log('[useUnifiedPipeline] Event received:', event.type, event.correlationId, event.data);
+    
+    // ASRイベントのデバッグログを強化
+    if (event.type === 'asr') {
+      console.log('[ASR DEBUG] Full event:', JSON.stringify(event, null, 2));
+      console.log('[ASR DEBUG] displayManagerRef exists:', !!displayManagerRef.current);
+      console.log('[ASR DEBUG] displayPairs length:', displayPairs.length);
+    }
 
     switch (event.type) {
       case 'asr':
@@ -460,6 +551,15 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
           isFinal: event.data.isFinal,
           currentOriginal: currentOriginal?.substring(0, 50) + '...'
         });
+        
+        // Final結果の特別なログ
+        if (event.data.isFinal) {
+          console.log('[ASR FINAL] Final result received:', {
+            segmentId: event.data.segmentId,
+            textLength: event.data.text?.length,
+            text: event.data.text
+          });
+        }
         
         // Update display manager - now accepts interim results too
         if (displayManagerRef.current) {
@@ -507,6 +607,10 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
 
       case 'translation':
         console.log('[useUnifiedPipeline] Translation event received:', event.data);
+        console.log('[useUnifiedPipeline] Translation text:', event.data.translatedText);
+        console.log('[useUnifiedPipeline] Translation text length:', event.data.translatedText?.length);
+        console.log('[useUnifiedPipeline] Translation text char codes (first 10):', 
+          event.data.translatedText ? [...event.data.translatedText.slice(0, 10)].map(c => c.charCodeAt(0)) : []);
         
         // 履歴用高品質翻訳またはパラグラフ翻訳の場合
         if (event.data.segmentId && 
@@ -534,6 +638,19 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
           if (translationText) {
             highQualityTranslationsRef.current.set(targetId, translationText);
             console.log('[useUnifiedPipeline] High-quality translation stored:', targetId, translationText.substring(0, 50));
+            
+            // SessionMemoryService: 高品質翻訳で更新
+            if (isSessionActive && !isParagraph) {
+              try {
+                updateTranslation(targetId, {
+                  japanese: translationText,
+                  completeMs: Date.now()
+                });
+                console.log('[useUnifiedPipeline] Translation updated in session memory:', targetId);
+              } catch (error) {
+                console.error('[useUnifiedPipeline] Failed to update translation in session memory:', error);
+              }
+            }
             
             // FlexibleHistoryGrouperの内部状態も更新
             if (historyGrouperRef.current) {
@@ -722,6 +839,16 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
             window.electron.send('summary-created', summary);
             console.log('[useUnifiedPipeline] Summary sent to main process:', summary.id);
           }
+
+          // SessionMemoryService: 要約を永続化
+          if (isSessionActive) {
+            try {
+              addSummary(summary);
+              console.log('[useUnifiedPipeline] Summary added to session memory:', summary.id);
+            } catch (error) {
+              console.error('[useUnifiedPipeline] Failed to add summary to session memory:', error);
+            }
+          }
           
           // Call callback if provided
           if (onSummary) {
@@ -755,6 +882,16 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
           // Progressive summaries are also sent to main process for persistence
           if (window.electron?.send) {
             window.electron.send('summary-created', summary);
+          }
+
+          // SessionMemoryService: プログレッシブ要約を永続化
+          if (isSessionActive) {
+            try {
+              addSummary(summary);
+              console.log('[useUnifiedPipeline] Progressive summary added to session memory:', summary.id);
+            } catch (error) {
+              console.error('[useUnifiedPipeline] Failed to add progressive summary to session memory:', error);
+            }
           }
           
           // Call callback if provided
@@ -837,6 +974,24 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
           });
           
           console.log('[DataFlow-13] Added combined sentence to history grouper');
+
+          // SessionMemoryService: 文単位の履歴を永続化
+          if (isSessionActive) {
+            try {
+              const translation: Translation = {
+                id: event.data.combinedId,
+                original: event.data.originalText,
+                japanese: '', // 翻訳は後で更新される
+                timestamp: event.data.timestamp,
+                firstPaintMs: 0,
+                completeMs: 0
+              };
+              addTranslation(translation);
+              console.log('[useUnifiedPipeline] Translation added to session memory:', event.data.combinedId);
+            } catch (error) {
+              console.error('[useUnifiedPipeline] Failed to add translation to session memory:', error);
+            }
+          }
         }
         break;
         
@@ -917,7 +1072,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       default:
         console.warn('[useUnifiedPipeline] Unknown event type:', event);
     }
-  }, [onError, onStatusChange, onTranslation, onSummary]);
+  }, [onError, onStatusChange, onTranslation, onSummary, isSessionActive, addTranslation, updateTranslation, addSummary]);
 
   // handlePipelineEventへの最新の参照を保持
   const handlePipelineEventRef = useRef(handlePipelineEvent);
@@ -1036,6 +1191,19 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       console.log('[useUnifiedPipeline] Starting microphone with correlation:', correlationId);
       console.log('[useUnifiedPipeline] Languages:', { source: currentSourceLanguage, target: currentTargetLanguage });
 
+      // SessionMemoryService: セッション開始
+      // classNameがない場合はデフォルト値を使用
+      const sessionClassName = className || `session_${new Date().toISOString().split('T')[0]}`;
+      if (!isSessionActive) {
+        console.log('[useUnifiedPipeline] Starting new session:', sessionClassName);
+        try {
+          await startSession(sessionClassName, currentSourceLanguage, currentTargetLanguage);
+        } catch (error) {
+          console.error('[useUnifiedPipeline] Failed to start session memory:', error);
+          // セッションメモリの失敗は致命的ではないため、パイプラインは継続
+        }
+      }
+
       const result = await window.univoice?.startListening?.({
         sourceLanguage: currentSourceLanguage,
         targetLanguage: currentTargetLanguage,
@@ -1061,7 +1229,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         onError(msg);
       }
     }
-  }, [currentSourceLanguage, currentTargetLanguage, state.status, generateCorrelationId, onError]);
+  }, [currentSourceLanguage, currentTargetLanguage, state.status, generateCorrelationId, onError, className, isSessionActive, startSession]);
 
   const stop = useCallback(async () => {
     // レース防止
@@ -1081,6 +1249,17 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
 
       stopAudioCapture();
 
+      // SessionMemoryService: セッション完了
+      if (isSessionActive) {
+        console.log('[useUnifiedPipeline] Completing session');
+        try {
+          await completeSession();
+        } catch (error) {
+          console.error('[useUnifiedPipeline] Failed to complete session memory:', error);
+          // セッションメモリの失敗は致命的ではないため、パイプラインの停止は継続
+        }
+      }
+
       setIsRunning(false);
       setState(prev => ({ ...prev, status: 'stopped' }));
       currentCorrelationId.current = null;
@@ -1094,7 +1273,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         onError(errorMsg);
       }
     }
-  }, [state.status, onError]);
+  }, [state.status, onError, isSessionActive, completeSession]);
 
   const translateUserInput = useCallback(async (text: string, from: string = 'ja', to: string = 'en'): Promise<string> => {
     try {
@@ -1389,6 +1568,12 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         isFinal: pair.original.isFinal
       }));
       console.log('[useUnifiedPipeline] Converted realtimeSegments:', segments);
+      console.log('[useUnifiedPipeline] realtimeSegments details:', segments.map(s => ({
+        id: s.id,
+        originalLength: s.original.length,
+        translationLength: s.translation.length,
+        isFinal: s.isFinal
+      })));
       return segments;
     })(), // Legacy compatibility - convert to old format
     history,

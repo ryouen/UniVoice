@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>UniVoice 履歴確認ツール</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .session {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .session-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .session-content {
+            display: none;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .session.expanded .session-content {
+            display: block;
+        }
+        .transcript {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        .original {
+            color: #fff;
+        }
+        .translation {
+            color: #66b3ff;
+            margin-top: 5px;
+        }
+        .export-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .export-btn:hover {
+            background: #45a049;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UniVoice 履歴確認ツール</h1>
+        <div id="sessions"></div>
+    </div>
+
+    <script>
+        function loadSessions() {
+            const sessionsDiv = document.getElementById('sessions');
+            const sessions = [];
+
+            // LocalStorageからセッションを取得
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('univoice_session_')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        sessions.push({
+                            key: key,
+                            data: data
+                        });
+                    } catch (e) {
+                        console.error('Failed to parse session:', key, e);
+                    }
+                }
+            }
+
+            if (sessions.length === 0) {
+                sessionsDiv.innerHTML = '<div class="no-data">保存されたセッションが見つかりません。<br>UniVoiceで録音を開始すると、ここに履歴が表示されます。</div>';
+                return;
+            }
+
+            // セッションを表示
+            sessions.sort((a, b) => new Date(b.data.startTime) - new Date(a.data.startTime));
+
+            sessionsDiv.innerHTML = sessions.map((session, index) => {
+                const startTime = new Date(session.data.startTime);
+                const transcriptCount = session.data.transcripts ? session.data.transcripts.length : 0;
+
+                return `
+                    <div class="session" onclick="toggleSession(${index})">
+                        <div class="session-header">
+                            📚 ${session.data.className || 'Unknown Class'} - ${startTime.toLocaleString('ja-JP')}
+                            <br>
+                            <small>言語: ${session.data.sourceLanguage} → ${session.data.targetLanguage} | ${transcriptCount}件の記録</small>
+                        </div>
+                        <div class="session-content" id="session-${index}">
+                            <button class="export-btn" onclick="exportAsText(${index}, event)">テキストとしてエクスポート</button>
+                            <button class="export-btn" onclick="exportAsJSON(${index}, event)">JSONとしてエクスポート</button>
+                            <hr>
+                            ${session.data.transcripts ? session.data.transcripts.map(t => `
+                                <div class="transcript">
+                                    <div class="original">🎤 ${t.original}</div>
+                                    <div class="translation">🌐 ${t.translation}</div>
+                                    <small>${new Date(t.timestamp).toLocaleTimeString('ja-JP')}</small>
+                                </div>
+                            `).join('') : '<p>記録がありません</p>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            window.sessionsData = sessions;
+        }
+
+        function toggleSession(index) {
+            const session = document.querySelector(`#session-${index}`).parentElement;
+            session.classList.toggle('expanded');
+        }
+
+        function exportAsText(index, event) {
+            event.stopPropagation();
+            const session = window.sessionsData[index].data;
+            let text = `UniVoice Session Export\n`;
+            text += `========================\n\n`;
+            text += `Class: ${session.className}\n`;
+            text += `Date: ${new Date(session.startTime).toLocaleString('ja-JP')}\n`;
+            text += `Languages: ${session.sourceLanguage} → ${session.targetLanguage}\n\n`;
+            text += `Transcripts:\n`;
+            text += `------------\n\n`;
+
+            if (session.transcripts) {
+                session.transcripts.forEach(t => {
+                    text += `[${new Date(t.timestamp).toLocaleTimeString('ja-JP')}]\n`;
+                    text += `Original: ${t.original}\n`;
+                    text += `Translation: ${t.translation}\n\n`;
+                });
+            }
+
+            downloadFile(`univoice-session-${session.id || 'export'}.txt`, text);
+        }
+
+        function exportAsJSON(index, event) {
+            event.stopPropagation();
+            const session = window.sessionsData[index];
+            const json = JSON.stringify(session.data, null, 2);
+            downloadFile(`univoice-session-${session.data.id || 'export'}.json`, json);
+        }
+
+        function downloadFile(filename, content) {
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        // ページ読み込み時に実行
+        loadSessions();
+
+        // 5秒ごとに更新
+        setInterval(loadSessions, 5000);
+    </script>
+</body>
+</html>

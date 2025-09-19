@@ -86,6 +86,12 @@ export class BoundsStore {
         
         // バージョンチェック
         if (parsed.version === '2.0.0') {
+          // setup画面のデータは強制削除（374px問題の修正）
+          if (parsed.windows && parsed.windows.setup) {
+            console.log('[BoundsStore] Removing invalid setup window data:', parsed.windows.setup);
+            delete parsed.windows.setup;
+          }
+          
           return parsed;
         }
       }

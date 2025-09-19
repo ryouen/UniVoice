@@ -1,19 +1,13 @@
 {
   "mcpServers": {
     "serena": {
-      "type": "stdio",
-      "command": "uvx",
+      "command": "C:\\Users\\ryosu\\.local\\bin\\serena-mcp-server.exe",
       "args": [
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server",
         "--context",
         "ide-assistant",
         "--project",
-        "C:\\Users\\ryosu\\Dropbox\\ai\\realtime_transtrator\\UniVoice"
-      ],
-      "env": {}
+        "."
+      ]
     }
   }
 }

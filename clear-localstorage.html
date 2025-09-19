@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear UniVoice LocalStorage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .success {
+            color: green;
+            margin-top: 20px;
+        }
+        .data {
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>UniVoice LocalStorage Manager</h1>
+    
+    <h2>Current LocalStorage Data:</h2>
+    <div id="current-data" class="data">Loading...</div>
+    
+    <button onclick="clearUniVoiceData()">Clear UniVoice Session Data</button>
+    <button onclick="clearAllData()">Clear All LocalStorage</button>
+    
+    <div id="message"></div>
+    
+    <script>
+        function showCurrentData() {
+            const data = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('univoice') || key.includes('language')) {
+                    data[key] = localStorage.getItem(key);
+                }
+            }
+            document.getElementById('current-data').textContent = 
+                Object.keys(data).length > 0 
+                    ? JSON.stringify(data, null, 2)
+                    : 'No UniVoice data found';
+        }
+        
+        function clearUniVoiceData() {
+            const keys = [];
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('univoice') || key.includes('language'))) {
+                    keys.push(key);
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            document.getElementById('message').innerHTML = 
+                '<div class="success">Cleared ' + keys.length + ' items: ' + keys.join(', ') + '</div>';
+            
+            showCurrentData();
+        }
+        
+        function clearAllData() {
+            const count = localStorage.length;
+            localStorage.clear();
+            document.getElementById('message').innerHTML = 
+                '<div class="success">Cleared all ' + count + ' items from LocalStorage</div>';
+            showCurrentData();
+        }
+        
+        // Show data on load
+        showCurrentData();
+    </script>
+</body>
+</html>

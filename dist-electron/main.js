@@ -75,11 +75,18 @@ function emitUnified(event) {
             const UNIFIED_CHANNEL = 'univoice:event'; // Local import to avoid unused import warning
             mainWindow.webContents.send(UNIFIED_CHANNEL, fullEvent);
         }
-        console.log('[Main] Shadow unified event:', {
-            kind: fullEvent.kind,
-            seq: fullEvent.seq,
-            corr: fullEvent.corr
-        });
+        try {
+            if (typeof console !== 'undefined' && console.log) {
+                console.log('[Main] Shadow unified event:', {
+                    kind: fullEvent.kind,
+                    seq: fullEvent.seq,
+                    corr: fullEvent.corr
+                });
+            }
+        }
+        catch (e) {
+            // Ignore console errors to prevent EPIPE
+        }
     }
     // Legacy compatibility layer (if enabled)
     if (ENABLE_LEGACY_CHANNELS && mainWindow && !mainWindow.isDestroyed()) {
@@ -124,14 +131,35 @@ async function createWindow() {
     const isDev = !electron_1.app.isPackaged;
     const testMode = false; // Window works, now try actual app
     if (testMode) {
-        console.log('[Main] Loading test page for debugging...');
+        try {
+            if (typeof console !== 'undefined' && console.log) {
+                console.log('[Main] Loading test page for debugging...');
+            }
+        }
+        catch (e) {
+            // Ignore console errors to prevent EPIPE
+        }
         try {
             await mainWindow.loadFile(path_1.default.join(__dirname, '../test.html'));
             mainWindow.show();
-            console.log('[Main] Test page loaded successfully');
+            try {
+                if (typeof console !== 'undefined' && console.log) {
+                    console.log('[Main] Test page loaded successfully');
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
         }
         catch (err) {
-            console.error('[Main] Failed to load test page:', err);
+            try {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('[Main] Failed to load test page:', err);
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             mainLogger.error('Failed to load test page', { error: err });
         }
     }
@@ -142,10 +170,24 @@ async function createWindow() {
             let connected = false;
             for (const port of ports) {
                 try {
-                    console.log(`[Main] Trying to connect to dev server on port ${port}...`);
-                    await mainWindow.loadURL(`http://localhost:${port}#/setup`);
+                    try {
+                        if (typeof console !== 'undefined' && console.log) {
+                            console.log(`[Main] Trying to connect to dev server on port ${port}...`);
+                        }
+                    }
+                    catch (e) {
+                        // Ignore console errors to prevent EPIPE
+                    }
+                    await mainWindow.loadURL(`http://localhost:${port}/`);
                     mainLogger.info(`Connected to dev server on port ${port}`);
-                    console.log(`[Main] Successfully connected to dev server on port ${port}`);
+                    try {
+                        if (typeof console !== 'undefined' && console.log) {
+                            console.log(`[Main] Successfully connected to dev server on port ${port}`);
+                        }
+                    }
+                    catch (e) {
+                        // Ignore console errors to prevent EPIPE
+                    }
                     connected = true;
                     break;
                 }
@@ -159,15 +201,29 @@ async function createWindow() {
         }
         catch (err) {
             mainLogger.error('Failed to connect to dev server', { error: err });
-            console.error('[Main] Failed to connect to dev server:', err);
-            await mainWindow.loadFile(path_1.default.join(__dirname, '../dist/index.html'), { hash: 'setup' });
+            try {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('[Main] Failed to connect to dev server:', err);
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
+            await mainWindow.loadFile(path_1.default.join(__dirname, '../dist/index.html'));
         }
         // Show window immediately in development mode
         mainWindow.show();
     }
     else {
-        console.log('[Main] Loading production build from:', path_1.default.join(__dirname, '../dist/index.html'));
-        await mainWindow.loadFile(path_1.default.join(__dirname, '../dist/index.html'), { hash: 'setup' });
+        try {
+            if (typeof console !== 'undefined' && console.log) {
+                console.log('[Main] Loading production build from:', path_1.default.join(__dirname, '../dist/index.html'));
+            }
+        }
+        catch (e) {
+            // Ignore console errors to prevent EPIPE
+        }
+        await mainWindow.loadFile(path_1.default.join(__dirname, '../dist/index.html'));
     }
     // Enable DevTools shortcuts
     mainWindow.webContents.on('before-input-event', (_event, input) => {
@@ -177,7 +233,7 @@ async function createWindow() {
                 mainWindow.webContents.closeDevTools();
             }
             else {
-                mainWindow?.webContents.openDevTools();
+                mainWindow?.webContents.openDevTools({ mode: 'detach' });
             }
         }
         // Ctrl+Shift+I alternative
@@ -186,19 +242,26 @@ async function createWindow() {
                 mainWindow.webContents.closeDevTools();
             }
             else {
-                mainWindow?.webContents.openDevTools();
+                mainWindow?.webContents.openDevTools({ mode: 'detach' });
             }
         }
     });
     // Force open DevTools in development
     if (isDev || testMode) {
-        mainWindow.webContents.openDevTools();
-        mainLogger.info('DevTools enabled - Press F12 to toggle');
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+        mainLogger.info('DevTools enabled in detached window - Press F12 to toggle');
         // Log window bounds for debugging
         setTimeout(() => {
             const bounds = mainWindow.getBounds();
-            console.log('[Main] Window bounds:', bounds);
-            console.log('[Main] Window visible:', mainWindow.isVisible());
+            try {
+                if (typeof console !== 'undefined' && console.log) {
+                    console.log('[Main] Window bounds:', bounds);
+                    console.log('[Main] Window visible:', mainWindow.isVisible());
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
         }, 1000);
     }
     // Handle ready-to-show event for frameless window
@@ -229,11 +292,25 @@ async function createWindow() {
     });
     // Add error logging for renderer process
     mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
-        console.error('[Main] Page failed to load:', errorCode, errorDescription);
+        try {
+            if (typeof console !== 'undefined' && console.error) {
+                console.error('[Main] Page failed to load:', errorCode, errorDescription);
+            }
+        }
+        catch (e) {
+            // Ignore console errors to prevent EPIPE
+        }
         mainLogger.error('Page failed to load', { errorCode, errorDescription });
     });
     mainWindow.webContents.on('render-process-gone', (_event, details) => {
-        console.error('[Main] Renderer process gone:', details);
+        try {
+            if (typeof console !== 'undefined' && console.error) {
+                console.error('[Main] Renderer process gone:', details);
+            }
+        }
+        catch (e) {
+            // Ignore console errors to prevent EPIPE
+        }
         mainLogger.error('Renderer process gone', { details });
     });
     mainLogger.info('Setup window created successfully');
@@ -307,6 +384,18 @@ function setupWindowControls() {
         // Do not log to prevent log spam
         return false;
     });
+    // Window bounds setter for Setup screen
+    electron_1.ipcMain.handle('window:setBounds', async (_event, bounds) => {
+        const currentWindow = WindowRegistry_1.windowRegistry.get('setup') || WindowRegistry_1.windowRegistry.get('main');
+        if (currentWindow && !currentWindow.isDestroyed()) {
+            currentWindow.setBounds({
+                ...currentWindow.getBounds(),
+                width: bounds.width,
+                height: bounds.height
+            });
+        }
+        return;
+    });
     // NEW: Window management IPC handlers
     // Setup window size fitting
     electron_1.ipcMain.handle('window:setSetupBounds', async (_event, width, height) => {
@@ -320,10 +409,26 @@ function setupWindowControls() {
     });
     // Transition from Setup to Main
     electron_1.ipcMain.handle('window:enterMain', async () => {
+        mainLogger.info('[window:enterMain] Transitioning from Setup to Main');
+        // WindowRegistryでSetup画面をMain画面として再利用
         WindowRegistry_1.windowRegistry.reuseSetupAsMain();
         const mainWindow = WindowRegistry_1.windowRegistry.get('main');
         if (mainWindow && !mainWindow.isDestroyed()) {
-            await mainWindow.loadURL(mainWindow.webContents.getURL().replace('#/setup', '#/main'));
+            // URLベースのルーティングは使用せず、
+            // レンダラープロセス側でshowSetupフラグによる画面切り替えのみ行う
+            mainLogger.info('[window:enterMain] Window transitioned to main role');
+            // ウィンドウサイズをMain画面用に調整
+            mainWindow.setBounds({
+                width: 1200,
+                height: 800,
+                x: mainWindow.getBounds().x,
+                y: mainWindow.getBounds().y
+            });
+            // タイトルをMain用に変更
+            mainWindow.setTitle('UniVoice');
+        }
+        else {
+            mainLogger.error('[window:enterMain] Main window not available');
         }
         return true;
     });
@@ -347,19 +452,40 @@ function setupIPCGateway() {
     electron_1.ipcMain.handle('univoice:command', async (_event, command) => {
         const startTime = Date.now();
         try {
-            console.log('[Main] Received command:', JSON.stringify(command, null, 2));
-            console.log('[Main] Command type:', command?.command);
-            console.log('[Main] Command params:', JSON.stringify(command?.params, null, 2));
+            try {
+                if (typeof console !== 'undefined' && console.log) {
+                    console.log('[Main] Received command:', JSON.stringify(command, null, 2));
+                    console.log('[Main] Command type:', command?.command);
+                    console.log('[Main] Command params:', JSON.stringify(command?.params, null, 2));
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             await gateway_1.ipcGateway.handleCommand(command);
             mainLogger.performance('info', 'IPC command handled', startTime, {
                 command: command?.command,
             });
-            console.log('[Main] Command handled successfully');
+            try {
+                if (typeof console !== 'undefined' && console.log) {
+                    console.log('[Main] Command handled successfully');
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             return { success: true };
         }
         catch (error) {
-            console.error('[Main] Command failed:', error);
-            console.error('[Main] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+            try {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('[Main] Command failed:', error);
+                    console.error('[Main] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             mainLogger.error('IPC command failed', {
                 error: error instanceof Error ? error.message : String(error),
                 command,
@@ -372,13 +498,27 @@ function setupIPCGateway() {
     });
     // Forward pipeline events to renderer
     gateway_1.ipcGateway.on('pipelineEvent', (event) => {
-        console.log('[Main] Forwarding pipeline event to renderer:', event.type);
+        try {
+            if (typeof console !== 'undefined' && console.log) {
+                console.log('[Main] Forwarding pipeline event to renderer:', event.type);
+            }
+        }
+        catch (e) {
+            // Ignore console errors to prevent EPIPE
+        }
         const mainWindow = getMainWindow();
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('univoice:event', event);
         }
         else {
-            console.error('[Main] Cannot forward event - mainWindow not available');
+            try {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('[Main] Cannot forward event - mainWindow not available');
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
         }
     });
     // Handle domain commands - Route to pipeline service
@@ -388,15 +528,36 @@ function setupIPCGateway() {
             correlationId: domainCommand.correlationId,
         });
         if (!pipelineService) {
-            console.error('[Main] Pipeline service not initialized!');
+            try {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('[Main] Pipeline service not initialized!');
+                }
+            }
+            catch (e) {
+                // Ignore console errors to prevent EPIPE
+            }
             mainLogger.error('Pipeline service not initialized');
             return;
         }
-        console.log('[Main] Pipeline service is initialized:', !!pipelineService);
+        try {
+            if (typeof console !== 'undefined' && console.log) {
+                console.log('[Main] Pipeline service is initialized:', !!pipelineService);
+            }
+        }
+        catch (e) {
+            // Ignore console errors to prevent EPIPE
+        }
         try {
             switch (domainCommand.type) {
                 case 'startListening':
-                    console.log('[Main] Starting listening with params:', domainCommand.params);
+                    try {
+                        if (typeof console !== 'undefined' && console.log) {
+                            console.log('[Main] Starting listening with params:', domainCommand.params);
+                        }
+                    }
+                    catch (e) {
+                        // Ignore console errors to prevent EPIPE
+                    }
                     mainLogger.info('Starting listening', domainCommand.params);
                     await pipelineService.startListening(domainCommand.params.sourceLanguage, domainCommand.params.targetLanguage, domainCommand.correlationId);
                     // Start AdvancedFeatureService with the same correlation ID and languages
@@ -411,7 +572,14 @@ function setupIPCGateway() {
                     else {
                         mainLogger.error('AdvancedFeatureService not initialized');
                     }
-                    console.log('[Main] Started listening successfully');
+                    try {
+                        if (typeof console !== 'undefined' && console.log) {
+                            console.log('[Main] Started listening successfully');
+                        }
+                    }
+                    catch (e) {
+                        // Ignore console errors to prevent EPIPE
+                    }
                     mainLogger.info('Started listening successfully');
                     break;
                 case 'stopListening':
@@ -430,7 +598,14 @@ function setupIPCGateway() {
                     pipelineService.clearHistory();
                     break;
                 case 'generateVocabulary':
-                    console.log('[Main] Generating vocabulary for correlation:', domainCommand.correlationId);
+                    try {
+                        if (typeof console !== 'undefined' && console.log) {
+                            console.log('[Main] Generating vocabulary for correlation:', domainCommand.correlationId);
+                        }
+                    }
+                    catch (e) {
+                        // Ignore console errors to prevent EPIPE
+                    }
                     if (advancedFeatureService) {
                         await advancedFeatureService.generateVocabulary();
                         mainLogger.info('Vocabulary generation triggered');
@@ -440,7 +615,14 @@ function setupIPCGateway() {
                     }
                     break;
                 case 'generateFinalReport':
-                    console.log('[Main] Generating final report for correlation:', domainCommand.correlationId);
+                    try {
+                        if (typeof console !== 'undefined' && console.log) {
+                            console.log('[Main] Generating final report for correlation:', domainCommand.correlationId);
+                        }
+                    }
+                    catch (e) {
+                        // Ignore console errors to prevent EPIPE
+                    }
                     if (advancedFeatureService) {
                         await advancedFeatureService.generateFinalReport();
                         mainLogger.info('Final report generation triggered');
@@ -511,7 +693,14 @@ function setupIPCGateway() {
         }
     });
     mainLogger.info('IPC Gateway setup completed');
-    console.log('[Main] IPC Gateway setup completed - handlers registered');
+    try {
+        if (typeof console !== 'undefined' && console.log) {
+            console.log('[Main] IPC Gateway setup completed - handlers registered');
+        }
+    }
+    catch (e) {
+        // Ignore console errors to prevent EPIPE
+    }
 }
 /**
  * Setup Pipeline Service
@@ -621,7 +810,14 @@ function setupPipelineService() {
     });
     // Forward pipeline events to IPC Gateway
     pipelineService.on('pipelineEvent', (event) => {
-        console.log('[Main] Pipeline event received from service:', event.type);
+        try {
+            if (typeof console !== 'undefined' && console.log) {
+                console.log('[Main] Pipeline event received from service:', event.type);
+            }
+        }
+        catch (e) {
+            // Ignore console errors to prevent EPIPE
+        }
         gateway_1.ipcGateway.emitEvent(event);
     });
     // 親フォルダ仕様: 直接イベントの転送

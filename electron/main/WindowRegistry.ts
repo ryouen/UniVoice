@@ -34,10 +34,16 @@ export class WindowRegistry {
       // 開発環境: Viteのポートを試す
       const ports = [5173, 5174, 5175, 5176, 5177, 5178, 5179, 5180, 5181, 5182, 5183, 5190, 5195];
       // TODO: 実際の接続はmain.tsで行うため、ここでは最初のポートを返す
-      return `http://localhost:${ports[0]}${hash}`;
+      // HashRouter用にhashが空の場合は/を追加
+      const url = `http://localhost:${ports[0]}/${hash}`;
+      return url;
     }
     // 本番環境
-    return `file://${path.join(app.getAppPath(), 'dist', 'index.html')}${hash}`;
+    // HashRouter用にhashが空の場合はindex.htmlのみ
+    if (hash) {
+      return `file://${path.join(app.getAppPath(), 'dist', 'index.html')}${hash}`;
+    }
+    return `file://${path.join(app.getAppPath(), 'dist', 'index.html')}`;
   }
 
   /**
@@ -63,8 +69,8 @@ export class WindowRegistry {
     const defaults: Electron.BrowserWindowConstructorOptions = {
       show: false,
       frame: false, // UniVoiceはフレームレス
-      transparent: false, // 一時的に透明を無効化（JavaScriptエラーのデバッグ用）
-      backgroundColor: '#FFFFFF',
+      transparent: true, // 透過を有効化（グラスモーフィズム効果）
+      backgroundColor: '#00000000', // 完全透明の背景
       webPreferences: {
         preload: path.join(__dirname, '..', 'preload.js'),
         contextIsolation: true,
@@ -75,6 +81,12 @@ export class WindowRegistry {
 
     // ロール別のデフォルト設定
     const roleDefaults = this.getRoleDefaults(role);
+    
+    console.log(`[WindowRegistry] Creating window for role: ${role}`, {
+      defaults: { width: defaults.width, height: defaults.height },
+      roleDefaults,
+      options
+    });
     
     // ウィンドウ作成
     const window = new BrowserWindow({
@@ -95,6 +107,26 @@ export class WindowRegistry {
       if (saved?.maximized) {
         window.maximize();
       }
+    } else {
+      // setup画面は常に固定サイズを強制（374px問題の修正）
+      const display = screen.getPrimaryDisplay();
+      const workArea = display.workArea;
+      
+      // 画面サイズより大きくならないよう調整
+      const targetWidth = 600;
+      const targetHeight = 800;
+      const safeWidth = Math.min(targetWidth, workArea.width - 100);
+      const safeHeight = Math.min(targetHeight, workArea.height - 100);
+      
+      window.setMinimumSize(safeWidth, safeHeight);
+      window.setMaximumSize(safeWidth, safeHeight);
+      window.setBounds({ 
+        width: safeWidth, 
+        height: safeHeight,
+        x: Math.round((workArea.width - safeWidth) / 2),
+        y: Math.round((workArea.height - safeHeight) / 2)
+      });
+      console.log('[WindowRegistry] Setup window size enforced:', { safeWidth, safeHeight });
     }
 
     // 位置/サイズの自動保存を設定
@@ -234,28 +266,22 @@ export class WindowRegistry {
   /**
    * Setup画面を.backgroundサイズにフィット
    */
-  fitSetupTo(width: number, height: number): void {
+  fitSetupTo(_width: number, _height: number): void {
     const setup = this.get('setup');
     if (!setup || setup.isDestroyed()) return;
 
-    // 最小サイズを適切に設定（縦長のレイアウトに合わせて調整）
-    const MIN_WIDTH = 600;  // 縦長のレイアウトに適した幅
-    const MIN_HEIGHT = 700; // 全てのコンテンツが見えるよう十分な高さを確保
+    // Setup画面は固定サイズ（374px問題の修正）
+    const FIXED_WIDTH = 600;
+    const FIXED_HEIGHT = 800;
     
-    // ディスプレイサイズの制限
+    // ディスプレイ中央に配置
     const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-    const maxWidth = Math.min(width, display.workArea.width - 100);
-    const maxHeight = Math.min(height, display.workArea.height - 100);
-
-    // 最小サイズを優先し、コンテンツサイズと比較して大きい方を採用
-    const finalWidth = Math.max(MIN_WIDTH, Math.floor(maxWidth));
-    const finalHeight = Math.max(MIN_HEIGHT, Math.floor(maxHeight));
 
     setup.setContentBounds({
-      width: finalWidth,
-      height: finalHeight,
-      x: Math.round((display.workArea.width - finalWidth) / 2) + display.workArea.x,
-      y: Math.round((display.workArea.height - finalHeight) / 2) + display.workArea.y
+      width: FIXED_WIDTH,
+      height: FIXED_HEIGHT,
+      x: Math.round((display.workArea.width - FIXED_WIDTH) / 2) + display.workArea.x,
+      y: Math.round((display.workArea.height - FIXED_HEIGHT) / 2) + display.workArea.y
     });
     
     setup.show();
@@ -301,8 +327,13 @@ export class WindowRegistry {
   async openHistory(): Promise<BrowserWindow> {
     const window = this.createOrShow('history');
     
-    if (!window.webContents.getURL().includes('#/history')) {
-      await window.loadURL(this.resolveUrl('#/history'));
+    // React Routerに対応したURL（#/history）をロード
+    const targetUrl = this.resolveUrl('#/history');
+    const currentUrl = window.webContents.getURL();
+    
+    // 既に正しいURLがロードされていない場合のみロード
+    if (!currentUrl.includes('#/history')) {
+      await window.loadURL(targetUrl);
     }
     
     window.show();
@@ -315,8 +346,13 @@ export class WindowRegistry {
   async openSummary(): Promise<BrowserWindow> {
     const window = this.createOrShow('summary');
     
-    if (!window.webContents.getURL().includes('#/summary')) {
-      await window.loadURL(this.resolveUrl('#/summary'));
+    // React Routerに対応したURL（#/summary）をロード
+    const targetUrl = this.resolveUrl('#/summary');
+    const currentUrl = window.webContents.getURL();
+    
+    // 既に正しいURLがロードされていない場合のみロード
+    if (!currentUrl.includes('#/summary')) {
+      await window.loadURL(targetUrl);
     }
     
     window.show();

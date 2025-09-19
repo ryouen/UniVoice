@@ -1,9 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import UniVoice from './components/UniVoice';
 import TestComponent from './components/TestComponent';
 import DebugInfo from './components/DebugInfo';
 import { setupDebugHelpers } from './utils/debug-helper';
 import './App.css';
+
+// Lazy load history and summary views for better performance
+const HistoryView = lazy(() => import('./components/HistoryView'));
+const SummaryView = lazy(() => import('./components/SummaryView'));
 
 function App() {
   const [error, setError] = useState<string | null>(null);
@@ -58,9 +63,17 @@ function App() {
   
 
   return (
-    <div className="App">
-      <UniVoice />
-    </div>
+    <HashRouter>
+      <div className="App">
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<UniVoice />} />
+            <Route path="/history" element={<HistoryView />} />
+            <Route path="/summary" element={<SummaryView />} />
+          </Routes>
+        </Suspense>
+      </div>
+    </HashRouter>
   )
 }
 

@@ -23,6 +23,8 @@ interface WindowAPI {
   setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>;
   isAlwaysOnTop: () => Promise<boolean>;
   autoResize: (height: number) => Promise<boolean>;
+  setBounds: (bounds: { width: number; height: number }) => Promise<void>;
+  getSize: () => Promise<{ width: number; height: number }>;
 }
 
 /**
@@ -57,6 +59,13 @@ interface UniVoiceAPI {
   
   // Window control API
   window: WindowAPI;
+  
+  // Window management API
+  windowManager?: {
+    toggleHistory: () => Promise<boolean>;
+    toggleSummary: () => Promise<boolean>;
+    enterMain: () => Promise<boolean>;
+  };
 }
 
 /**

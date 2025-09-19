@@ -84,7 +84,14 @@ export class SyncedRealtimeDisplayManager {
       return;
     }
     
-    // Final確定時に初めて表示ペアを作成
+    // Final結果を受信
+    console.log('[SyncedRealtimeDisplayManager] Final result received:', {
+      text: text.substring(0, 50) + '...',
+      segmentId,
+      existingPairsCount: this.displayPairs.length
+    });
+    
+    // 新しいペアを作成
     const now = Date.now();
     const newPair: SyncedDisplayPair = {
       id: segmentId || `pair_${now}`,
@@ -112,6 +119,15 @@ export class SyncedRealtimeDisplayManager {
     
     // 新しいペアを追加
     this.displayPairs.unshift(newPair);
+    console.log('[SyncedRealtimeDisplayManager] New pair added:', {
+      pairId: newPair.id,
+      totalPairs: this.displayPairs.length,
+      positions: this.displayPairs.slice(0, 3).map(p => ({
+        id: p.id,
+        position: p.display.position,
+        text: p.original.text.substring(0, 20) + '...'
+      }))
+    });
     
     // 最大表示数を超えたら、最小表示時間を満たした古いものから削除
     if (this.displayPairs.length > this.maxDisplayPairs) {

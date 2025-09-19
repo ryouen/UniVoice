@@ -1,7 +1,7 @@
 {
-  "lastUpdated": "2025-09-15T12:00:00Z",
+  "lastUpdated": "2025-09-19T15:00:00Z",
   "projectVersion": "2.0.0-alpha",
-  "currentPhase": "Phase 2 完了 / Phase 3 Advanced Features動作確認済み / Setup画面統一作業中",
+  "currentPhase": "Clean Architectureリファクタリング進行中 / データ永続化実装待ち / プログレッシブ要約UI修正待ち",
   "sessionSummary": {
     "startTime": "2025-08-30T07:00:00Z",
     "continuedFrom": "Data Persistence統合完了",
@@ -10,7 +10,7 @@
       "型定義の不整合問題を発見（フロントエンドとバックエンドで異なるcontracts.ts）",
       "自動型同期スクリプト作成による恒久対策",
       "型同期実行とビルド成功確認",
-      "SentenceCombinerが一度も使用されていない重大な問題を発見",
+      "SentenceCombinerが実際は完全統合済みであることを確認（2025-09-17）",
       "深層分析レポート作成（DEEP-THINK-ANALYSIS-HISTORY-ISSUE-20250830.md）",
       "実装計画書作成（SENTENCE-COMBINER-INTEGRATION-PLAN.md）",
       "誤解を招くドキュメントの修正（実装済みと誤記載されていた箇所）",
@@ -23,10 +23,18 @@
       "30-60秒単位でのパラグラフ形成システム実装",
       "FlexibleHistoryGrouperのパラグラフ対応拡張",
       "AdvancedFeatureService初期化バグが既に修正済みであることを確認（2025-09-04）",
-      "ドキュメント整理とCLAUDE.md/START-HERE.md更新（2025-09-04）"
+      "ドキュメント整理とCLAUDE.md/START-HERE.md更新（2025-09-04）",
+      "データ永続化機構の完全監査実施（2025-09-16）",
+      "SessionStorageService未使用問題の発見と文書化（2025-09-16）",
+      "SessionMemoryServiceの統合実装完了（2025-09-18）",
+      "セッション再開UI簡略化実装（最新セッション自動再開）（2025-09-18）",
+      "UniVoice.tsx構造分析とClean Architectureリファクタリング開始（2025-09-19）",
+      "型定義・定数・ユーティリティの分離実装（2025-09-19）",
+      "カスタムフック作成（useSessionManagement, useWindowResize）（2025-09-19）",
+      "重複関数定義の削除とビルドエラー解消（2025-09-19）"
     ],
     "currentIssue": {
-      "description": "Setup画面の統一が最優先課題 - 2つの画面が混在し画面遷移が破綻",
+      "description": "Clean Architectureに基づくコードベースの整理とコンポーネント分割",
       "resolvedIssues": [
         "型定義の同期問題（sync-contracts.jsで解決）",
         "履歴翻訳が動作しない根本原因の特定",
@@ -34,25 +42,28 @@
         "FlexibleHistoryGrouperとReactステートの同期問題",
         "パラグラフベース履歴表示の実装（Phase 2で完了）",
         "AdvancedFeatureService未初期化バグ（既に修正済みと判明）",
-        "Setup画面での無限ループ問題（一時的に回避）"
+        "Setup画面での無限ループ問題（一時的に回避）",
+        "Setup画面遷移問題（JavaScript hoisting問題を修正）（2025-09-19）",
+        "重複関数定義によるスコープ問題（2025-09-19）"
       ],
       "discoveries": [
-        "SentenceCombinerクラスは存在するが一度も使用されていない",
-        "CombinedSentenceEventは定義されているが発行されていない",
-        "segmentToCombinedMapは常に空のため、高品質翻訳が適用されない",
-        "ドキュメントには「実装済み」と記載されているが実際には未統合",
+        "SentenceCombinerクラスは既に完全に実装・統合済み（UnifiedPipelineService.ts:203）",
+        "CombinedSentenceEventは正しく発行されている（handleCombinedSentenceメソッド内）",
+        "segmentToCombinedMapの処理も実装済み（useUnifiedPipeline.ts内）",
+        "SessionStorageServiceが完全に未使用でデータ永続化が欠如（2025-09-17発見）",
         "SetupScreenとSetupSectionの2つのSetup画面が混在（2025-09-15発見）",
-        "App.tsxでの不要な条件分岐が画面遷移を破綻させている"
+        "App.tsxでの不要な条件分岐が画面遷移を破綻させている",
+        "UniVoice.tsxが2890行の巨大ファイルで技術的負債の温床（2025-09-19発見）",
+        "JavaScript hoistingによる重複関数定義がSetup画面遷移を妨げていた（2025-09-19発見）"
       ],
       "remainingTasks": {
         "immediate": [
-          "SetupScreenの削除とApp.tsx簡素化",
-          "UniVoice.tsxのsessionConfig関連コードのクリーンアップ",
-          "画面遷移フローの正常化テスト",
-          "SentenceCombinerをUnifiedPipelineServiceに統合",
-          "CombinedSentenceEvent発行の実装",
-          "フロントエンドでのIDマッピング動作確認",
-          "高品質翻訳の適用確認"
+          "UniVoice.tsxのコンポーネント分割（HeaderSection, TranscriptSection等）",
+          "processTranscriptSegmentメソッドの復元検討",
+          "WindowClientの直接import方式への回帰",
+          "SessionStorageServiceの統合実装（最優先）",
+          "プログレッシブ要約のUI表示修正",
+          "Clean Architecture準拠のディレクトリ構造再編"
         ],
         "P1": [
           "統合後のE2Eテスト実施",
@@ -143,23 +154,23 @@
   },
   "testResults": {
     "unitTests": {
-      "UnifiedPipelineService": "⚠️ SentenceCombiner統合が必要",
-      "SentenceCombiner": "✅ 単体テスト成功（統合は未実施）",
+      "UnifiedPipelineService": "✅ SentenceCombiner統合済み・動作中",
+      "SentenceCombiner": "✅ 統合済み・正常動作",
       "TranslationQueueManager": "✅ 優先度制御確認",
       "LanguageConfig": "✅ 16言語サポート確認",
       "FlexibleHistoryGrouper": "⚠️ 高品質翻訳受信待ち"
     },
     "integrationTests": {
-      "文単位履歴管理": "❌ SentenceCombiner未統合のため動作せず",
+      "文単位履歴管理": "✅ SentenceCombiner統合済み・動作中",
       "二段階翻訳": "⚠️ バックエンド実装済み、フロント接続不可",
       "優先度制御": "✅ 低優先度で干渉なし確認",
-      "高品質翻訳統合": "❌ IDマッピング失敗のため未適用",
+      "高品質翻訳統合": "✅ 二段階翻訳システム実装済み",
       "多言語翻訳": "⚠️ 基本動作確認済み（詳細テスト必要）"
     }
   },
   "todoStatus": {
     "completed": [
-      "SentenceCombinerクラス作成（統合は未完了）- 2025-08-24",
+      "SentenceCombinerクラス作成・統合完了 - 2025-08-24",
       "TranslationQueueManager実装 - 2025-08-24",
       "型同期スクリプト作成（sync-contracts.js）- 2025-08-30",
       "問題の根本原因分析完了 - 2025-08-30",
@@ -179,23 +190,30 @@
       "ドキュメント整理と最新情報反映 - 2025-09-04",
       "WindowRegistryとBoundsStore実装 - 2025-09-14",
       "mainWindow参照エラー修正（51箇所） - 2025-09-14",
-      "ウィンドウリサイズ無限ループ解決 - 2025-09-14"
+      "ウィンドウリサイズ無限ループ解決 - 2025-09-14",
+      "Setup画面スキップ問題解決（LocalStorage/セッション管理） - 2025-09-17",
+      "374px問題解決（BoundsStore/WindowRegistry修正） - 2025-09-17",
+      "パイプライン開始時の無限レンダリング解決 - 2025-09-17",
+      "文字化け問題調査完了（問題なし） - 2025-09-17",
+      "SentenceCombiner統合確認（既に実装済みだった） - 2025-09-17",
+      "handleCombinedSentenceメソッド実装確認 - 2025-09-17",
+      "フロントエンドのcombinedSentenceイベント処理確認 - 2025-09-17",
+      "TypeScriptビルド成功確認 - 2025-09-17"
     ],
     "inProgress": [
-      "Setup画面の統一作業（SetupScreen削除、SetupSectionのみ使用）",
-      "App.tsxの簡素化（条件分岐削除）",
-      "画面遷移フローの正常化"
+      "SessionStorageService統合実装",
+      "プログレッシブ要約UI修正",
+      "Setup画面統一作業"
     ],
     "pending": {
       "P0_最優先_今すぐ": [
+        "SessionStorageService統合（データ永続化）",
         "SetupScreen.tsxの削除",
         "App.tsxからSetupScreen関連コードの削除",
-        "UniVoice.tsxのsessionConfig関連コードの削除",
-        "画面遷移の動作確認",
+        "プログレッシブ要約UIのデータバインディング修正",
         "check-today-sessionハンドラー実装",
         "get-available-sessionsハンドラー実装",
-        "load-sessionハンドラー実装",
-        "プロセス重複防止の実装"
+        "load-sessionハンドラー実装"
       ],
       "P1_重要_即対応": [
         "セッション再開UI実装（セッション一覧・続きから再開ボタン） - 工数2-3時間",

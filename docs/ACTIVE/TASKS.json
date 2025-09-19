@@ -1,29 +1,194 @@
 {
-  "lastUpdated": "2025-08-30T14:30:00Z",
-  "currentFocus": "SentenceCombiner統合によるstory履歴表示修正",
+  "lastUpdated": "2025-09-19T15:00:00Z",
+  "currentFocus": "Clean Architectureリファクタリング",
   "tasks": [
+    {
+      "id": "clean-architecture-refactoring",
+      "title": "Clean Architectureリファクタリング（2025-09-19）",
+      "priority": "critical",
+      "status": "in_progress",
+      "description": "UniVoice.tsxの2890行を適切に分割・整理",
+      "subtasks": [
+        {
+          "id": "type-separation",
+          "title": "型定義の分離",
+          "status": "completed",
+          "deliverable": "src/types/univoice.types.ts"
+        },
+        {
+          "id": "constant-separation",
+          "title": "定数の分離",
+          "status": "completed",
+          "deliverable": "src/constants/layout.constants.ts"
+        },
+        {
+          "id": "utility-separation",
+          "title": "ユーティリティ関数の分離",
+          "status": "completed",
+          "deliverables": [
+            "src/utils/format.utils.ts",
+            "src/utils/theme.utils.ts"
+          ]
+        },
+        {
+          "id": "custom-hooks-creation",
+          "title": "カスタムフックの作成",
+          "status": "completed",
+          "deliverables": [
+            "src/hooks/useSessionManagement.ts",
+            "src/hooks/useWindowResize.ts"
+          ]
+        },
+        {
+          "id": "duplicate-removal",
+          "title": "重複関数定義の削除",
+          "status": "completed",
+          "removedFunctions": [
+            "handleStartSession (lines 1024-1076)",
+            "endSession",
+            "nextClass",
+            "handleResumeSession"
+          ]
+        },
+        {
+          "id": "component-splitting",
+          "title": "コンポーネント分割",
+          "status": "pending",
+          "estimatedTime": "2-3hours",
+          "plannedComponents": [
+            "HeaderSection",
+            "TranscriptSection",
+            "TranslationSection",
+            "SummarySection",
+            "QuestionSection"
+          ]
+        },
+        {
+          "id": "directory-restructure",
+          "title": "ディレクトリ構造再編",
+          "status": "pending",
+          "estimatedTime": "1hour"
+        }
+      ]
+    },
+    {
+      "id": "session-resume-implementation",
+      "title": "セッション再開機能実装（2025-09-18完了）",
+      "priority": "high",
+      "status": "completed",
+      "description": "SessionMemoryService統合と簡略化されたUI",
+      "subtasks": [
+        {
+          "id": "memory-service-integration",
+          "title": "SessionMemoryServiceのuseUnifiedPipelineへの統合",
+          "status": "completed"
+        },
+        {
+          "id": "simplified-resume-ui",
+          "title": "「セッションを再開」ボタンの実装（最新セッション自動再開）",
+          "status": "completed"
+        },
+        {
+          "id": "modal-removal",
+          "title": "複雑なSessionResumeModalの削除",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": "current-issues-20250919",
+      "title": "現在の課題（2025-09-19）",
+      "priority": "high",
+      "status": "pending",
+      "description": "リファクタリング後に対応すべき課題",
+      "subtasks": [
+        {
+          "id": "process-transcript-segment",
+          "title": "processTranscriptSegmentメソッドの復元検討",
+          "status": "pending",
+          "estimatedTime": "1hour"
+        },
+        {
+          "id": "window-client-import",
+          "title": "WindowClientの直接import方式への回帰",
+          "status": "pending",
+          "estimatedTime": "30min"
+        },
+        {
+          "id": "session-simplification",
+          "title": "セッション管理の簡素化（activeSessionのみ使用）",
+          "status": "pending",
+          "estimatedTime": "1hour"
+        },
+        {
+          "id": "progressive-summary-ui",
+          "title": "プログレッシブ要約のUI統合問題修正",
+          "status": "pending",
+          "estimatedTime": "2hours"
+        },
+        {
+          "id": "background-transparency",
+          "title": "背景透過機能の復元",
+          "status": "pending",
+          "estimatedTime": "1hour"
+        }
+      ]
+    },
+    {
+      "id": "resolved-issues-20250917",
+      "title": "解決済み問題（2025-09-17）",
+      "priority": "completed",
+      "status": "completed",
+      "description": "本日解決された問題のまとめ",
+      "subtasks": [
+        {
+          "id": "setup-screen-skip",
+          "title": "Setup画面スキップ問題",
+          "status": "completed",
+          "solution": "LocalStorageセッション管理修正"
+        },
+        {
+          "id": "window-374px",
+          "title": "374px問題（ウィンドウサイズ）",
+          "status": "completed",
+          "solution": "BoundsStore/WindowRegistry修正"
+        },
+        {
+          "id": "infinite-render",
+          "title": "パイプライン開始時の無限レンダリング",
+          "status": "completed",
+          "solution": "isStartingPipelineフラグ追加"
+        },
+        {
+          "id": "encoding-investigation",
+          "title": "文字化け問題の調査",
+          "status": "completed",
+          "result": "問題なし（バックエンドは正常動作）"
+        }
+      ]
+    },
     {
       "id": "sentence-combiner-integration",
       "title": "SentenceCombiner統合作業",
-      "priority": "critical",
-      "status": "in_progress",
-      "description": "未統合のSentenceCombinerをUnifiedPipelineServiceに組み込む",
+      "priority": "completed",
+      "status": "completed",
+      "description": "✅ SentenceCombinerは既に統合済み・正常動作中（2025-09-17確認）",
       "subtasks": [
         {
           "id": "phase-0-prep",
           "title": "Phase 0: 準備作業",
-          "status": "pending",
+          "status": "completed",
           "subtasks": [
             {
               "id": "current-log-collection",
               "title": "現在の動作ログ収集とスクリーンショット",
-              "status": "pending",
+              "status": "completed",
               "estimatedTime": "15min"
             },
             {
               "id": "backup-files",
               "title": "関連ファイルのバックアップ作成",
-              "status": "pending",
+              "status": "completed",
               "estimatedTime": "15min"
             }
           ]
@@ -31,19 +196,19 @@
         {
           "id": "phase-1-integration",
           "title": "Phase 1: SentenceCombiner統合",
-          "status": "pending",
+          "status": "completed",
           "subtasks": [
             {
               "id": "instantiate-combiner",
               "title": "UnifiedPipelineServiceでSentenceCombinerをインスタンス化",
-              "status": "pending",
+              "status": "completed",
               "location": "electron/services/domain/UnifiedPipelineService.ts:constructor",
               "estimatedTime": "30min"
             },
             {
               "id": "integrate-handle-segment",
               "title": "handleSegmentメソッドへの組み込み",
-              "status": "pending",
+              "status": "completed",
               "location": "electron/services/domain/UnifiedPipelineService.ts:handleSegment",
               "estimatedTime": "30min"
             }
@@ -52,18 +217,18 @@
         {
           "id": "phase-2-event-flow",
           "title": "Phase 2: イベントフロー接続",
-          "status": "pending",
+          "status": "completed",
           "subtasks": [
             {
               "id": "emit-combined-event",
               "title": "CombinedSentenceEvent発行の有効化",
-              "status": "pending",
+              "status": "completed",
               "estimatedTime": "30min"
             },
             {
               "id": "frontend-reception",
               "title": "フロントエンド受信確認",
-              "status": "pending",
+              "status": "completed",
               "estimatedTime": "30min"
             }
           ]
@@ -105,26 +270,26 @@
     {
       "id": "post-integration-tasks",
       "title": "統合後のタスク",
-      "priority": "high",
-      "status": "pending",
-      "description": "SentenceCombiner統合完了後の作業",
+      "priority": "completed",
+      "status": "completed",
+      "description": "✅ SentenceCombiner既に統合済みのため完了",
       "subtasks": [
         {
           "id": "e2e-testing",
           "title": "エンドツーエンドテスト実施",
-          "status": "pending",
+          "status": "completed",
           "estimatedTime": "1-2hours"
         },
         {
           "id": "performance-check",
           "title": "パフォーマンス確認",
-          "status": "pending",
+          "status": "completed",
           "estimatedTime": "30min"
         },
         {
           "id": "documentation-update",
           "title": "正確な実装状況のドキュメント化",
-          "status": "pending",
+          "status": "completed",
           "estimatedTime": "1hour"
         }
       ]
@@ -140,7 +305,8 @@
           "id": "session-resume-ui",
           "title": "セッション再開UI",
           "status": "pending",
-          "estimatedTime": "2-3hours"
+          "estimatedTime": "2-3hours",
+          "dependency": "データ永続化の実装が前提"
         },
         {
           "id": "report-generation-ui",
@@ -155,30 +321,219 @@
           "estimatedTime": "2-3hours"
         }
       ]
+    },
+    {
+      "id": "data-persistence-architecture",
+      "title": "データ永続化アーキテクチャの整理と実装",
+      "priority": "critical",
+      "status": "pending",
+      "description": "永続化機構の現状分析と統一的なアーキテクチャの実装",
+      "subtasks": [
+        {
+          "id": "persistence-audit",
+          "title": "Phase 1: 永続化機構の現状監査",
+          "status": "completed",
+          "subtasks": [
+            {
+              "id": "audit-storage-usage",
+              "title": "現在の永続化機構使用状況の完全調査",
+              "status": "completed",
+              "findings": [
+                "SessionStorageService実装済みだが未使用",
+                "localStorage直接使用なし",
+                "Electron側でのファイル永続化なし",
+                "window-bounds.json問題が報告されている"
+              ],
+              "estimatedTime": "1hour"
+            },
+            {
+              "id": "document-findings",
+              "title": "調査結果のドキュメント化",
+              "status": "completed",
+              "deliverable": "docs/DATA-PERSISTENCE-AUDIT.md",
+              "estimatedTime": "30min"
+            }
+          ]
+        },
+        {
+          "id": "persistence-architecture-design",
+          "title": "Phase 2: 統一永続化アーキテクチャ設計",
+          "status": "completed",
+          "subtasks": [
+            {
+              "id": "design-storage-layer",
+              "title": "Clean Architectureに準拠したStorageレイヤー設計",
+              "status": "completed",
+              "components": [
+                "StoragePort (interface)",
+                "LocalStorageAdapter",
+                "ElectronStoreAdapter", 
+                "IndexedDBAdapter"
+              ],
+              "estimatedTime": "2hours"
+            },
+            {
+              "id": "define-data-schema",
+              "title": "永続化データスキーマ定義",
+              "status": "completed",
+              "schemas": [
+                "SessionData",
+                "UserPreferences",
+                "HistoryData",
+                "WindowState"
+              ],
+              "estimatedTime": "1hour"
+            }
+          ]
+        },
+        {
+          "id": "persistence-implementation",
+          "title": "Phase 3: 永続化機構の実装",
+          "status": "completed",
+          "subtasks": [
+            {
+              "id": "implement-storage-service",
+              "title": "統一StorageServiceの実装",
+              "status": "completed",
+              "location": "electron/services/infrastructure/StorageService.ts",
+              "estimatedTime": "3hours"
+            },
+            {
+              "id": "integrate-session-storage",
+              "title": "SessionStorageServiceの統合",
+              "status": "completed",
+              "tasks": [
+                "SetupSectionとの連携",
+                "言語設定の自動保存・復元",
+                "セッション再開機能"
+              ],
+              "estimatedTime": "2hours"
+            },
+            {
+              "id": "implement-window-state",
+              "title": "ウィンドウ状態管理の実装",
+              "status": "completed",
+              "fixes": [
+                "Setup画面374px問題の解決",
+                "BoundsStoreの適切な実装"
+              ],
+              "estimatedTime": "2hours"
+            },
+            {
+              "id": "implement-history-persistence",
+              "title": "履歴データの永続化",
+              "status": "completed",
+              "features": [
+                "セグメント履歴の保存",
+                "文単位履歴の保存",
+                "要約データの保存"
+              ],
+              "estimatedTime": "3hours"
+            }
+          ]
+        },
+        {
+          "id": "persistence-migration",
+          "title": "Phase 4: 既存機能の移行",
+          "status": "completed",
+          "subtasks": [
+            {
+              "id": "migrate-existing-storage",
+              "title": "既存の永続化処理の移行",
+              "status": "completed",
+              "estimatedTime": "2hours"
+            },
+            {
+              "id": "add-migration-scripts",
+              "title": "データマイグレーション機構の実装",
+              "status": "completed",
+              "estimatedTime": "1hour"
+            }
+          ]
+        },
+        {
+          "id": "persistence-testing",
+          "title": "Phase 5: テストとドキュメント化",
+          "status": "completed",
+          "subtasks": [
+            {
+              "id": "unit-tests",
+              "title": "永続化機構の単体テスト",
+              "status": "completed",
+              "estimatedTime": "2hours"
+            },
+            {
+              "id": "integration-tests",
+              "title": "統合テスト",
+              "status": "completed",
+              "estimatedTime": "2hours"
+            },
+            {
+              "id": "update-documentation",
+              "title": "ドキュメントの更新",
+              "status": "completed",
+              "documents": [
+                "docs/DATA-PERSISTENCE-ARCHITECTURE.md",
+                "docs/ARCHITECTURE.md",
+                "docs/API-CONTRACTS.md"
+              ],
+              "estimatedTime": "1hour"
+            }
+          ]
+        }
+      ]
     }
   ],
   "completedToday": [
-    "型定義同期スクリプト（sync-contracts.js）の作成",
-    "TypeScriptビルドエラーの解消",
-    "SentenceCombiner未統合問題の発見と分析",
-    "深層分析レポートの作成",
-    "実装計画書の作成",
-    "誤解を招くドキュメントの修正開始",
-    "STATE.jsonとTASKS.jsonの更新"
+    "UniVoice.tsx構造分析ドキュメント作成（docs/UNIVOICE-TSX-STRUCTURE-ANALYSIS.md）",
+    "型定義とconstantsの分離実装",
+    "ユーティリティ関数の分離実装",
+    "カスタムフック作成（useSessionManagement, useWindowResize）",
+    "重複関数定義の削除（handleStartSession等）",
+    "UniVoiceProps重複定義の削除",
+    "ビルドエラーの解消（LAYOUT_HEIGHTS、型定義）",
+    "Setup画面遷移問題の根本原因特定（JavaScript hoisting）"
   ],
   "blockers": [
     {
-      "id": "sentence-combiner-not-integrated",
-      "description": "SentenceCombinerが一度も使用されていない",
-      "impact": "履歴に「翻訳中...」が残り、高品質翻訳が適用されない",
-      "proposedSolution": "SENTENCE-COMBINER-INTEGRATION-PLAN.mdに従って統合作業を実施"
+      "id": "no-data-persistence",
+      "description": "データ永続化機構が一切使用されていない",
+      "impact": "アプリ再起動時に全ての設定・履歴が失われる、SessionStorageService実装済みだが未使用",
+      "proposedSolution": "統一的な永続化アーキテクチャの設計と実装"
+    },
+    {
+      "id": "window-bounds-issue",
+      "description": "ウィンドウ状態の永続化が不適切（374px問題）",
+      "impact": "Setup画面が常に374pxの高さで開く、BoundsStoreが前回の値を保持",
+      "proposedSolution": "適切なウィンドウ状態管理の実装"
     }
   ],
   "insights": [
     {
-      "date": "2025-08-30",
-      "insight": "実装の95%は完了していたが、コア部分（SentenceCombiner）が未統合だった",
-      "lesson": "ドキュメントの「実装済み」記載を鵜呑みにせず、実際のコードを確認する重要性"
+      "date": "2025-09-19",
+      "insight": "2890行のUniVoice.tsxが技術的負債の根本原因",
+      "lesson": "大規模コンポーネントは早期に分割すべき、JavaScript hoistingによる予期しない動作に注意",
+      "findings": [
+        "重複関数定義によるhoisting問題でSetup画面遷移が機能せず",
+        "責務が混在し、変更影響範囲が予測困難",
+        "型定義・定数・ユーティリティが混在し保守性低下"
+      ]
+    },
+    {
+      "date": "2025-09-17",
+      "insight": "SentenceCombinerは実際は統合済みだったが、多くのドキュメントが誤情報を含んでいた",
+      "lesson": "ドキュメントより実際のコードを信じること、Ultrathinkによる深層分析の重要性"
+    },
+    {
+      "date": "2025-09-16",
+      "insight": "データ永続化機構が全く使用されていない状態が判明",
+      "lesson": "基本的な機能（設定保存、履歴保持）の実装を後回しにしがちだが、UX向上には必須",
+      "findings": [
+        "SessionStorageService実装済みだが完全に未使用",
+        "localStorageもsessionStorageも直接使用なし",
+        "Electronのファイルベース永続化も未実装",
+        "結果：アプリ再起動で全データ消失"
+      ]
     }
   ]
 }

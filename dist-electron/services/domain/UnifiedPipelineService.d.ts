@@ -139,16 +139,6 @@ export declare class UnifiedPipelineService extends EventEmitter {
      * Get meaning of WebSocket close code
      */
     /**
-     * Process transcript segment - シンプルに処理（親フォルダと同様）
-     */
-    private processTranscriptSegment;
-    /**
-     * Translate segment text using queue
-     *
-     * 翻訳リクエストをキューに追加し、並列数制限を適用
-     */
-    private translateSegment;
-    /**
      * Execute translation (called by queue)
      *
      * @see https://platform.openai.com/docs/api-reference/responses
@@ -195,6 +185,11 @@ export declare class UnifiedPipelineService extends EventEmitter {
      * パラグラフが完成したら高品質翻訳を開始
      * 🔴 ParagraphBuilderを一時的に無効化 - フロントエンドでのグループ化を優先
      */
+    /**
+     * Handle transcript segment from Deepgram
+     * Deepgramから受信したトランスクリプトセグメントを処理
+     */
+    private handleTranscriptSegment;
     /**
      * Execute history translation with higher quality
      * 履歴用の高品質翻訳を実行（より大きなコンテキストと高品質モデル）

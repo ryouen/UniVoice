@@ -1,8 +1,21 @@
 # 🚀 START HERE - UniVoice 2.0 開発ガイド
 
-**最終更新**: 2025-09-15 (Setup画面統一の緊急課題)  
-**状態**: 🟨 Phase 2 完了 / 🚧 Phase 3 Advanced Features実装中（50%） / 🔴 Setup画面統一作業中  
+**最終更新**: 2025-09-19（Clean Architectureリファクタリング開始）  
+**状態**: 🟨 リアルタイム機能完了（100%） / 🚧 高度機能実装中（70%） / 🔴 データ永続化一部実装（10%）  
 **開発環境**: Claude Code
+
+## 🔴 重要な更新（2025-09-19）
+- **Clean Architecture**: UniVoice.tsxのリファクタリング開始（型定義・定数分離完了）
+- **コード品質**: 重複関数定義を削除、カスタムフックで責務分離
+- **Setup画面遷移問題**: JavaScript hoistingによる関数重複が原因と判明・修正
+- **残課題**: コンポーネント分割、ディレクトリ構造再編（2890行→複数ファイルへ）
+
+## 📌 前回更新（2025-09-18）
+- **SentenceCombiner**: 実は統合済み・正常動作中（UnifiedPipelineService.ts:203）
+- **SessionStorageService**: 実装済みだが完全に未使用（データ永続化なし）
+- **SessionMemoryService**: 実装済み・部分統合完了（履歴の永続化は実装済み）
+- **セッション再開機能**: 簡略化実装完了（最新セッションを自動再開）
+- **実装進捗**: 正確には約55%（リアルタイム100%、高度機能70%、永続化10%）
 
 ## 📊 最新の実装評価（2025-09-10）
 
@@ -43,18 +56,29 @@
 | ⑦ | 重要語句の単語帳 | ❌ 0% | extractVocabulary()は実装済み |
 | ⑧ | Word/PDF/MD出力 | ❌ 0% | コメントアウト状態 |
 
-## 🚀 推奨される次のステップ
+## 🚀 推奨される次のステップ（優先順位順）
 
-### Phase 3-A: 要約機能の完成（1-2日）
+### Phase 0: データ永続化の実装（最優先）🔴
+1. **SessionMemoryServiceの完全統合** ✅ 部分完了
+   - useUnifiedPipelineへの統合済み
+   - 履歴データの自動保存実装済み
+2. **SessionStorageServiceの統合**（未実装）
+   - SetupSectionとの連携
+   - 言語設定の自動保存
+3. **セッション再開機能** ✅ 基本実装完了
+   - 「セッションを再開」ボタンで最新セッション自動再開
+   - 複雑な選択UIを排除してUX向上
+
+### Phase 1: 要約機能の完成（1-2日）
 1. **ProgressiveSummarySectionのデバッグ**
 2. **最終要約の統合**
 3. **要約データの永続化**
 
-### Phase 3-B: 語彙機能（1日）
+### Phase 2: 語彙機能（1日）
 1. **VocabularySectionの作成**
 2. **語彙抽出のUI統合**
 
-### Phase 3-C: エクスポート機能（2日）
+### Phase 3: エクスポート機能（2日）
 1. **exportUtils.tsの実装**
 2. **Word/PDF生成**
 
@@ -112,6 +136,23 @@ npm test
 
 ## 🎉 最近の成果
 
+### 2025-09-19
+- Clean Architectureに基づくUniVoice.tsxのリファクタリング開始
+  - 型定義を`src/types/univoice.types.ts`に分離
+  - 定数を`src/constants/layout.constants.ts`に分離
+  - ユーティリティ関数を`src/utils/`に分離
+  - カスタムフック作成（useSessionManagement, useWindowResize）
+- 重複関数定義の削除とビルドエラー解消
+- Setup画面遷移問題の根本原因特定と修正
+
+### 2025-09-18
+- SessionMemoryServiceをuseUnifiedPipelineに統合
+- セッション再開UIの簡略化実装（最新セッション自動再開）
+- 言語設定管理アーキテクチャの明確化
+  - SetupSection: 言語オプション定義と選択
+  - activeSession: 選択された言語設定の保持と参照
+- プロジェクトドキュメントの整合性向上
+
 ### 2025-09-15
 - Setup画面の無限ループ問題を構造的に解決
 - App.tsxでルーティング実装（#/setup, #/main）
@@ -137,26 +178,29 @@ npm test
 - データ永続化実装完了
 - 自動保存とセッション管理
 
-## 🚨 現在の主要課題
+## 🚨 現在の主要課題（優先順位順）
 
-1. **Setup画面の統一（緊急）**
-   - **問題**: 2つのSetup画面が混在（SetupScreen と SetupSection）
-   - **原因**: App.tsxで誤ってSetupScreenを使用、本来はUniVoice.tsx内のSetupSectionのみ使用すべき
-   - **解決方針**: 
-     - SetupScreen (`src/components/UniVoice/SetupScreen.tsx`) を削除
-     - App.tsxの条件分岐を削除し、常にUniVoiceコンポーネントを表示
-     - UniVoice.tsx内の既存ロジック（showSetup状態）でSetupSectionを制御
-   - **影響**: 画面遷移の正常化、無限ループの解消
+1. **データ永続化の部分的実装（継続中）**🟨
+   - **進捗**: 
+     - SessionMemoryService統合完了（履歴データ永続化）
+     - セッション再開機能の基本実装完了
+   - **残課題**: 
+     - SessionStorageServiceが未使用（設定データ永続化なし）
+     - アプリ再起動で設定情報が消失
+     - Setup画面374px問題の継続
+   - **次のステップ**: 
+     - SessionStorageServiceをSetupSectionに統合
+     - 設定データの自動保存実装
+     - ウィンドウ状態の適切な永続化
 
-2. **未実装IPCハンドラー**
-   - `check-today-session`
-   - `get-available-sessions`
-   - `load-session`
+2. **プログレッシブ要約のUI問題**
+   - **問題**: バックエンドは動作するがUIに表示されない
+   - **原因**: ProgressiveSummarySectionのデータバインディング
+   - **解決方針**: イベント受信とstate更新の修正
 
-3. **ウィンドウ管理の残タスク**
-   - 透明度の再有効化
-   - プロセス重複防止
-   - セッション管理統合
+3. **Setup画面の統一（解決済みだが要確認）**
+   - App.tsx → UniVoice → SetupSectionの流れを確認
+   - 無限ループ問題が本当に解決されているか検証
 
 ---
 *UniVoice 2.0 - Clean Architecture による次世代音声認識・翻訳・要約システム*

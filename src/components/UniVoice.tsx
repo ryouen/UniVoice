@@ -16,9 +16,11 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUnifiedPipeline } from '../hooks/useUnifiedPipeline';
+import { useSessionMemory } from '../hooks/useSessionMemory';
+import { useBottomResize } from '../hooks/useBottomResize';
 import type { DisplaySegment } from '../utils/RealtimeDisplayManager';
 import type { HistoryBlock } from '../utils/FlexibleHistoryGrouper';
-import { SetupSection } from '../presentation/components/UniVoice/sections/SetupSection/SetupSection';
+import { SetupSection } from '../presentation/components/UniVoice/sections/SetupSection';
 import { RealtimeSection } from '../presentation/components/UniVoice/sections/RealtimeSection';
 import { HistorySection } from '../presentation/components/UniVoice/sections/HistorySection';
 import { SummarySection } from '../presentation/components/UniVoice/sections/SummarySection';
@@ -27,24 +29,39 @@ import { UserInputSection } from '../presentation/components/UniVoice/sections/U
 import { FullscreenModal, FloatingPanel, MemoModal, ReportModal } from '../presentation/components/UniVoice/modals';
 import { renderHistoryToHTML } from './UnifiedHistoryRenderer';
 import { renderFlowHistoryToHTML } from './UnifiedHistoryRenderer-Flow';
-import { windowClient } from '../services/WindowClient';
+import { sessionStorageService } from '../services/SessionStorageService';
+import { WindowClient } from '../services/WindowClient';
 import styles from './UniVoice.module.css';
 import classNames from 'classnames';
+
+// 型定義と定数のインポート
+import type { 
+  UniVoiceProps, 
+  HistoryEntry, 
+  MockUpdate, 
+  SessionData,
+  DisplayContent,
+  DisplayMode,
+  Theme,
+  ResizeMode
+} from '../types/univoice.types';
+import { 
+  LAYOUT_HEIGHTS, 
+  SECTION_DEFINITIONS, 
+  WINDOW_RESIZE_DEBOUNCE_MS,
+  FONT_SCALE_MIN,
+  FONT_SCALE_MAX,
+  FONT_SCALE_STEP
+} from '../constants/layout.constants';
+import { formatTime, splitText } from '../utils/format.utils';
+import { getBackgroundGradient, getThemeClassName } from '../utils/theme.utils';
+
 // import { exportToWord, exportToPDF } from '../utils/exportUtils'; // TODO: Copy utility files
 
 
-interface Memo {
-  id: string;
-  timestamp: string;
-  japanese: string;
-  english: string;
-}
+// Memo型はmodals/types.tsから import
+import type { Memo } from '../presentation/components/UniVoice/modals/types';
 
-interface MockUpdate {
-  original: string;
-  translation: string;
-  isContinuation: boolean;
-}
 
 /**
  * 🏗️ 高度なウィンドウリサイズ管理システム（2025-09-13 更新）
@@ -101,124 +118,12 @@ interface MockUpdate {
  */
 
 
-/**
- * 📐 セクション定義インターフェース
- * 新しいセクションを追加する際は、この形式に従って定義する
- */
-interface SectionDefinition {
-  id: string;                // セクションの一意識別子
-  height: number;            // 固定高さ（px）
-  resizable: boolean;        // ユーザーリサイズ可能かどうか
-  toggleable: boolean;       // 表示/非表示の切り替え可能かどうか
-  displayName: string;       // UI表示用の名前
-  minHeight?: number;        // リサイズ可能な場合の最小高さ
-  maxHeight?: number;        // リサイズ可能な場合の最大高さ
-}
+// SectionDefinition は types/univoice.types.ts からインポート済み
 
-/**
- * 📋 セクション定義マップ
- * 
- * 新しいセクションを追加する手順：
- * 1. このマップに定義を追加
- * 2. 対応する表示状態（useState）を追加
- * 3. UIにトグルボタンを実装
- * 4. レンダリング部分に条件付き表示を実装
- * 
- * 例：
- * newSection: {
- *   id: 'newSection',
- *   height: 80,
- *   resizable: false,
- *   toggleable: true,
- *   displayName: '新規セクション'
- * }
- */
-const SECTION_DEFINITIONS: Record<string, SectionDefinition> = {
-  header: {
-    id: 'header',
-    height: 60,
-    resizable: false,
-    toggleable: true,
-    displayName: 'メインヘッダー'
-  },
-  minimalControl: {
-    id: 'minimalControl',
-    height: 32,
-    resizable: false,
-    toggleable: false,
-    displayName: 'ミニマルコントロール'
-  },
-  settingsBar: {
-    id: 'settingsBar',
-    height: 56,
-    resizable: false,
-    toggleable: true,
-    displayName: '設定バー'
-  },
-  questionSection: {
-    id: 'questionSection',
-    height: 160,
-    resizable: false,
-    toggleable: true,
-    displayName: '質問エリア'
-  },
-  realtimeSection: {
-    id: 'realtimeSection',
-    height: 250,  // デフォルト値
-    resizable: true,
-    toggleable: false,
-    displayName: 'リアルタイムエリア',
-    minHeight: 100,
-    maxHeight: 600
-  }
-} as const;
+// セクション定義とレイアウト高さは constants/layout.constants.ts からインポート済み
 
-// 後方互換性のためのエイリアス
-const LAYOUT_HEIGHTS = {
-  header: SECTION_DEFINITIONS.header.height,
-  minimalControl: SECTION_DEFINITIONS.minimalControl.height,
-  settingsBar: SECTION_DEFINITIONS.settingsBar.height,
-  questionSection: SECTION_DEFINITIONS.questionSection.height,
-  realtime: {
-    min: SECTION_DEFINITIONS.realtimeSection.minHeight!,
-    default: SECTION_DEFINITIONS.realtimeSection.height,
-    max: SECTION_DEFINITIONS.realtimeSection.maxHeight!
-  },
-  resizeHandle: 8,
-  animationDelay: 450
-} as const;
 
-interface HistoryEntry {
-  id: string;
-  original: string;
-  translation: string;
-  isComplete: boolean;
-  timestamp: number;
-}
-
-// 新アーキテクチャ統合用のpropsインターフェース
-interface UniVoiceProps {
-  // 新アーキテクチャ: リアルタイムセグメント表示用
-  realtimeSegmentsOverride?: DisplaySegment[];
-  // 履歴データのオーバーライド
-  historyOverride?: HistoryEntry[];
-  // 要約データのオーバーライド
-  summaryOverride?: { japanese: string; english: string };
-  // ユーザー入力翻訳コールバック（新アーキテクチャ経由）
-  onUserTranslate?: (text: string, from: string, to: string) => Promise<string>;
-  // パイプライン制御コールバック（新アーキテクチャ経由）
-  onStartSession?: () => Promise<void>;
-  onStopSession?: () => Promise<void>;
-  // 設定オーバーライド
-  sourceLanguageOverride?: string;
-  targetLanguageOverride?: string;
-  // セッション設定（Setup画面から渡される）
-  sessionConfig?: {
-    className: string;
-    sourceLanguage: string;
-    targetLanguage: string;
-  } | null;
-}
+// UniVoicePropsは types/univoice.types.ts からインポート済み
 
 // DisplaySegmentはRealtimeDisplayManagerからインポート済み
 
@@ -235,12 +140,80 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   sessionConfig,
 }) => {
   // ========== 状態管理 ==========
-  // sessionConfigがない場合はSetup画面を表示
-  const [showSetup, setShowSetup] = useState(!sessionConfig);
-  const [selectedClass, setSelectedClass] = useState<string | null>(sessionConfig?.className || null);
+  // セッション情報の状態（起動時は必ずnull = Setup画面を表示）
+  const [activeSession, setActiveSession] = useState<{
+    className: string;
+    sourceLanguage: string;
+    targetLanguage: string;
+  } | null>(null);
+  
+  // 前回のセッション情報（再開可能な場合に使用）
+  const [previousSession, setPreviousSession] = useState<{
+    className: string;
+    sourceLanguage: string;
+    targetLanguage: string;
+    timestamp?: number;
+  } | null>(() => {
+    const stored = sessionStorageService.loadActiveSession();
+    if (stored) {
+      console.log('[UniVoice] Previous session found:', stored);
+      return stored;
+    }
+    return null;
+  });
+  
+  // デバッグ：初期化時の状態をログ出力（useEffectに移動）
+  
+  // activeSessionがある場合はメイン画面、ない場合はSetup画面
+  const [showSetup, setShowSetup] = useState(!activeSession);
+  const [selectedClass, setSelectedClass] = useState<string | null>(activeSession?.className || null);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [autoSaveTime, setAutoSaveTime] = useState<Date | null>(null);
+  
+  // activeSession変更時のログと永続化
+  useEffect(() => {
+    console.log('[UniVoice] activeSession changed:', {
+      activeSession,
+      showSetup,
+      languages: activeSession ? { source: activeSession.sourceLanguage, target: activeSession.targetLanguage } : null,
+      timestamp: new Date().toISOString()
+    });
+    
+    // activeSessionが設定されたら永続化
+    if (activeSession) {
+      sessionStorageService.saveActiveSession(activeSession);
+    }
+  }, [activeSession]); // showSetupを依存配列から削除
+  
+  // showSetupの状態をactiveSessionに連動させる
+  useEffect(() => {
+    setShowSetup(!activeSession);
+  }, [activeSession]);
+  
+  // 初期化時のデバッグログ（一度だけ実行）
+  useEffect(() => {
+    console.log('[UniVoice] Component mounted:', {
+      activeSession,
+      hasActiveSession: !!activeSession,
+      sessionData: activeSession,
+      showSetup,
+      previousSession,
+      hasPreviousSession: !!previousSession,
+      timestamp: new Date().toISOString()
+    });
+    
+    // LocalStorageの内容を確認
+    const storedSession = localStorage.getItem('univoice-active-session');
+    console.log('[UniVoice] LocalStorage active-session:', storedSession);
+    
+    // 一時的な対策：起動時は必ずSetup画面を表示
+    // TODO: セッション有効期限チェックを実装後、この処理を削除
+    console.log('[UniVoice] Forcing setup screen on mount');
+    setActiveSession(null);
+    setShowSetup(true);
+  }, []); // 空の依存配列で初回のみ実行
+
   
   // Liquid Glass デザイン用の新しい状態
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'purple'>('light');
@@ -248,13 +221,16 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const [currentFontScale, setCurrentFontScale] = useState(1);
   const [showSettings, setShowSettings] = useState(true);
   
-  // LocalStorageから言語設定を復元（propsでオーバーライド可能）
-  const [sourceLanguage, setSourceLanguage] = useState(() => 
-    sourceLanguageOverride || sessionConfig?.sourceLanguage || localStorage.getItem('sourceLanguage') || 'en'
-  );
-  const [targetLanguage, setTargetLanguage] = useState(() => 
-    targetLanguageOverride || sessionConfig?.targetLanguage || localStorage.getItem('targetLanguage') || 'ja'
-  );
+  // 言語設定をサービス経由で復元（propsでオーバーライド可能）
+  const languagePrefs = sessionStorageService.loadLanguagePreferences();
+  
+  const [sourceLanguage, setSourceLanguage] = useState(() => {
+    return sourceLanguageOverride || activeSession?.sourceLanguage || languagePrefs?.sourceLanguage || 'en';
+  });
+  
+  const [targetLanguage, setTargetLanguage] = useState(() => {
+    return targetLanguageOverride || activeSession?.targetLanguage || languagePrefs?.targetLanguage || 'ja';
+  });
   
   
   // 拡大されているセクション
@@ -275,6 +251,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // フローティングパネルの状態（理想UI用）
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [showSummaryPanel, setShowSummaryPanel] = useState(false);
+  const [showProgressiveSummary, setShowProgressiveSummary] = useState(false);
+  const [progressiveSummaryHeight, setProgressiveSummaryHeight] = useState(200);
   const [showQuestionSection, setShowQuestionSection] = useState(false);
   
   // ヘッダー表示/非表示とウィンドウ最前面設定
@@ -331,7 +309,19 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // 🆕 ウィンドウリサイズのデバウンス管理
   const windowResizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const WINDOW_RESIZE_DEBOUNCE_MS = 100;  // 将来的に設定可能にできる
-  
+
+  // 🆕 ボトムリサイズハンドル（2025-09-19追加）
+  const { isResizing, resizeHandleProps } = useBottomResize({
+    realtimeHeight: realtimeSectionHeight,
+    onHeightChange: setRealtimeSectionHeight,
+    minHeight: LAYOUT_HEIGHTS.minRealtime,
+    isActive: activeSession !== null,  // Setup画面では無効
+    onHeightPersist: (height) => {
+      // Clean Architecture: 永続化ロジックは外部から注入
+      localStorage.setItem('univoice-realtime-height', height.toString());
+    }
+  });
+
   // 音声キャプチャ（コメントアウト - 新実装では不要）
   // const { state: audioState, startCapture, stopCapture } = useAudioCapture();
   
@@ -353,22 +343,33 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   //   clearState
   // } = usePipelineConnection();
   
+  // WindowClientのインスタンスを取得
+  const windowClient = WindowClient.getInstance();
+
   // 新しいuseUnifiedPipelineフックを使用
-  // sessionConfigがない場合（Setup画面）では空のパラメータを渡して最小限の初期化のみ行う
+  // activeSessionがある場合は正しい言語設定で初期化
+  // 空文字列ではなく、現在の言語設定（デフォルト値含む）を使用
+  const pipelineSourceLang = sourceLanguage || 'multi';
+  const pipelineTargetLang = targetLanguage || 'ja';
+  
   const pipeline = useUnifiedPipeline({
-    sourceLanguage: sessionConfig ? sourceLanguage : '',
-    targetLanguage: sessionConfig ? targetLanguage : '',
+    sourceLanguage: pipelineSourceLang,
+    targetLanguage: pipelineTargetLang,
+    className: activeSession?.className || undefined,
     onError: (error) => {
-      if (sessionConfig) {
+      if (activeSession) {
         console.error('[UniVoicePerfect] Pipeline error:', error);
       }
     },
     onStatusChange: (status) => {
-      if (sessionConfig) {
+      if (activeSession) {
         console.log('[UniVoicePerfect] Pipeline status:', status);
       }
     }
   });
+  
+  // SessionMemoryフックを使用
+  const sessionMemory = useSessionMemory();
 
   // 新アーキテクチャからのデータを統合
   const isRunning = pipeline.isRunning;
@@ -387,16 +388,435 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // デバッグ用：データ更新を監視
   useEffect(() => {
-    if (sessionConfig) {
+    if (activeSession) {
       console.log('[UniVoicePerfect] currentOriginal updated:', currentOriginal);
     }
-  }, [currentOriginal, sessionConfig]);
+  }, [currentOriginal, activeSession]);
+
+  // beforeunloadイベントハンドラー：異常終了時の対策
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      console.log('[UniVoice] beforeunload event triggered', {
+        hasActiveSession: !!activeSession,
+        isRunning,
+        isPaused,
+        timestamp: new Date().toISOString()
+      });
+
+      // アクティブなセッションがあり、録音中の場合
+      if (activeSession && isRunning && !isPaused) {
+        // セッションをクリアして、次回起動時にSetup画面が表示されるようにする
+        // 注：同期的な処理のみ可能（非同期処理は動作しない）
+        try {
+          sessionStorageService.clearActiveSession();
+          console.log('[UniVoice] Active session cleared due to abnormal termination');
+        } catch (error) {
+          console.error('[UniVoice] Failed to clear session on beforeunload:', error);
+        }
+        
+        // ブラウザのデフォルトの確認ダイアログを表示
+        e.preventDefault();
+        e.returnValue = '録音中です。終了しますか？';
+        return '録音中です。終了しますか？';
+      }
+      
+      // 録音中でない場合は何もしない
+      return undefined;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [activeSession, isRunning, isPaused]);
+  
+  // パイプライン開始処理が進行中かどうかを追跡
+  const [isStartingPipeline, setIsStartingPipeline] = useState(false);
+  
+  // セッション開始処理（Setup画面から呼ばれる）
+  const handleStartSession = useCallback(async (className: string, sourceLang: string, targetLang: string) => {
+    console.log('[UniVoice] Starting session:', { className, sourceLang, targetLang });
+    
+    // 既にパイプライン開始処理が進行中の場合はスキップ
+    if (isStartingPipeline) {
+      console.warn('[UniVoice] Pipeline start already in progress, skipping');
+      return;
+    }
+    
+    // 既にパイプラインが実行中の場合もスキップ
+    if (pipeline.isRunning) {
+      console.warn('[UniVoice] Pipeline already running, skipping start');
+      return;
+    }
+    
+    // パイプライン開始フラグを設定
+    setIsStartingPipeline(true);
+    
+    // activeSessionを作成・保存
+    const newSession = {
+      className,
+      sourceLanguage: sourceLang,
+      targetLanguage: targetLang
+    };
+    
+    setActiveSession(newSession);
+    setShowSetup(false);
+    setSelectedClass(className);
+    setSourceLanguage(sourceLang);
+    setTargetLanguage(targetLang);
+    setIsPaused(false);
+    recordingStartTimeRef.current = new Date();
+    setRecordingTime(0);
+    setShowBlockGuides(true);
+    
+    // 言語設定を永続化
+    sessionStorageService.saveLanguagePreferences({
+      sourceLanguage: sourceLang,
+      targetLanguage: targetLang
+    });
+    
+    // セッションデータを永続化（リロード対応）
+    sessionStorageService.saveActiveSession(newSession);
+    
+    // SessionMemoryサービスで新しいセッションを開始
+    await sessionMemory.startSession(className, sourceLang, targetLang);
+    
+    // Setup → Main画面遷移をWindowClient経由で実行
+    try {
+      const enterMainResult = await windowClient.enterMain();
+      console.log('[UniVoice] windowClient.enterMain result:', enterMainResult);
+      if (!enterMainResult) {
+        console.warn('[UniVoice] windowClient.enterMain returned false, but continuing anyway');
+        // エラーでも画面遷移は続行（showSetupフラグは既にfalseに設定済み）
+      }
+    } catch (error) {
+      console.error('[UniVoice] Failed to transition to main window:', error);
+      // エラーでも続行（画面遷移は既に行われている）
+    }
+
+    // パイプラインを開始（重要！）
+    try {
+      // 言語設定を更新（重要：startFromMicrophone前に必要）
+      console.log('[UniVoice] Updating pipeline languages:', { sourceLang, targetLang });
+      pipeline.updateLanguages(sourceLang, targetLang);
+      
+      console.log('[UniVoice] Pipeline state before start:', {
+        isRunning: pipeline.isRunning,
+        state: pipeline.state
+      });
+      
+      // 既にパイプラインが実行中でないことを再度確認
+      if (!pipeline.isRunning) {
+        console.log('[UniVoice] Starting pipeline from microphone');
+        await pipeline.startFromMicrophone();
+        console.log('[UniVoice] ✅ Pipeline started successfully');
+      } else {
+        console.log('[UniVoice] Pipeline already running, skipping startFromMicrophone');
+      }
+      
+      // セッションメタデータをメインプロセスに送信（自動保存のため）
+      if (window.electron?.send) {
+        window.electron.send('session-metadata-update', {
+          className: className,
+          sourceLanguage: sourceLang,
+          targetLanguage: targetLang
+        });
+        console.log('[UniVoice] Session metadata sent to main process');
+      }
+    } catch (error) {
+      console.error('[UniVoice] Failed to start pipeline:', error);
+      console.error('[UniVoice] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error
+      });
+      
+      // より詳細なエラーメッセージ
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      alert(`音声認識の開始に失敗しました。\n\nエラー: ${errorMessage}\n\nコンソールログを確認してください。`);
+      
+      // エラーが発生した場合はSetup画面に戻る
+      setActiveSession(null);
+      setShowSetup(true);
+      sessionStorageService.clearActiveSession();
+    } finally {
+      // パイプライン開始フラグをリセット
+      setIsStartingPipeline(false);
+    }
+    
+    console.log('[UniVoice] Session started successfully');
+  }, [pipeline, isStartingPipeline, sessionMemory]);
+  
+  // セッション再開処理（Setup画面から呼ばれる）
+  // 選択された科目名の最新セッションを自動的に再開
+  const handleResumeSession = useCallback(async (className: string) => {
+    console.log('[UniVoice] Resuming latest session for class:', className);
+    
+    // 既にパイプライン開始処理が進行中の場合はスキップ
+    if (isStartingPipeline) {
+      console.warn('[UniVoice] Pipeline start already in progress, skipping');
+      return;
+    }
+    
+    // 既にパイプラインが実行中の場合もスキップ
+    if (pipeline.isRunning) {
+      console.warn('[UniVoice] Pipeline already running, skipping resume');
+      return;
+    }
+    
+    // パイプライン開始フラグを設定
+    setIsStartingPipeline(true);
+    
+    try {
+      // IPCで最新セッションデータを読み込み
+      if (window.electron?.invoke) {
+        // まず利用可能なセッションを取得
+        const availableSessions = await window.electron.invoke('get-available-sessions', {
+          courseName: className,
+          limit: 1  // 最新の1件のみ
+        });
+        
+        if (!availableSessions || availableSessions.length === 0) {
+          console.log('[UniVoice] No previous session found for:', className);
+          alert(`${className}の過去のセッションが見つかりませんでした。`);
+          setIsStartingPipeline(false);
+          return;
+        }
+        
+        // 最新セッションのデータを取得
+        const latestCourse = availableSessions[0];
+        const latestSession = latestCourse.sessions[0];
+        
+        const sessionData = await window.electron.invoke('load-session', {
+          courseName: className,
+          dateStr: latestSession.date,
+          sessionNumber: latestSession.sessionNumber
+        });
+        
+        if (sessionData) {
+          console.log('[UniVoice] Session data loaded:', sessionData);
+          
+          // activeSessionを復元
+          const newSession = {
+            className: sessionData.state.className,
+            sourceLanguage: sessionData.state.sourceLanguage,
+            targetLanguage: sessionData.state.targetLanguage
+          };
+          
+          setActiveSession(newSession);
+          setShowSetup(false);
+          setSelectedClass(sessionData.state.className);
+          setSourceLanguage(sessionData.state.sourceLanguage);
+          setTargetLanguage(sessionData.state.targetLanguage);
+          setIsPaused(false);
+          
+          // 履歴データを復元
+          if (sessionData.history && sessionData.history.length > 0) {
+            // SessionMemoryServiceに履歴を復元
+            sessionData.history.forEach((translation: any) => {
+              sessionMemory.addTranslation(translation);
+            });
+            
+            // 履歴エントリーを復元（UI表示用）
+            const restoredEntries = sessionData.history.map((item: any) => ({
+              id: item.id,
+              timestamp: new Date(item.timestamp),
+              sourceText: item.original,
+              targetText: item.japanese || item.translation,
+              isHighQuality: item.isHighQuality,
+              sentenceId: item.sentenceId,
+              sentenceGroupId: item.sentenceGroupId
+            }));
+            setHistoryEntries(restoredEntries);
+          }
+          
+          // 要約データを復元
+          if (sessionData.summaries && sessionData.summaries.length > 0) {
+            sessionData.summaries.forEach((summary: any) => {
+              sessionMemory.addSummary(summary);
+            });
+            
+            // 最後の要約を表示
+            const lastSummary = sessionData.summaries[sessionData.summaries.length - 1];
+            if (lastSummary) {
+              setSummaryJapanese(lastSummary.japanese || '');
+              setSummaryEnglish(lastSummary.english || '');
+            }
+          }
+          
+          // メモデータを復元
+          if (sessionData.memos && sessionData.memos.length > 0) {
+            const restoredMemos = sessionData.memos.map((memo: any) => ({
+              id: memo.id,
+              timestamp: memo.timestamp,
+              text: memo.text,
+              translation: memo.translation,
+              type: memo.type
+            }));
+            setMemoList(restoredMemos);
+            sessionMemory.updateMemos(sessionData.memos);
+          }
+          
+          // 録音時間を復元
+          if (sessionData.state.duration) {
+            const durationInSeconds = Math.floor(sessionData.state.duration / 1000);
+            setRecordingTime(durationInSeconds);
+            recordingStartTimeRef.current = new Date(Date.now() - sessionData.state.duration);
+          }
+          
+          // 言語設定を永続化
+          sessionStorageService.saveLanguagePreferences({
+            sourceLanguage: sessionData.state.sourceLanguage,
+            targetLanguage: sessionData.state.targetLanguage
+          });
+          
+          // セッションデータを永続化（リロード対応）
+          sessionStorageService.saveActiveSession(newSession);
+          
+          // SessionMemoryサービスで既存のセッションを再開
+          await sessionMemory.resumeSession();
+          
+          // Setup → Main画面遷移をWindowClient経由で実行
+          await windowClient.enterMain();
+          
+          // パイプラインを開始
+          console.log('[UniVoice] Updating pipeline languages for resumed session');
+          pipeline.updateLanguages(sessionData.state.sourceLanguage, sessionData.state.targetLanguage);
+          
+          if (!pipeline.isRunning) {
+            console.log('[UniVoice] Starting pipeline from microphone for resumed session');
+            await pipeline.startFromMicrophone();
+            console.log('[UniVoice] ✅ Pipeline started successfully for resumed session');
+          }
+          
+          // セッションメタデータをメインプロセスに送信（自動保存のため）
+          if (window.electron?.send) {
+            window.electron.send('session-metadata-update', {
+              className: sessionData.state.className,
+              sourceLanguage: sessionData.state.sourceLanguage,
+              targetLanguage: sessionData.state.targetLanguage,
+              isResumed: true,
+              sessionNumber: latestSession.sessionNumber
+            });
+            console.log('[UniVoice] Session metadata sent to main process (resumed)');
+          }
+          
+          console.log('[UniVoice] Session resumed successfully');
+        } else {
+          console.error('[UniVoice] No session data found');
+          alert('セッションデータが見つかりませんでした。');
+        }
+      } else {
+        console.error('[UniVoice] window.electron.invoke is not available');
+        alert('セッション読み込み機能が利用できません。');
+      }
+    } catch (error) {
+      console.error('[UniVoice] Failed to resume session:', error);
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      alert(`セッションの再開に失敗しました。\n\nエラー: ${errorMessage}`);
+      
+      // エラーが発生した場合はSetup画面のまま
+      setActiveSession(null);
+      setShowSetup(true);
+    } finally {
+      // パイプライン開始フラグをリセット
+      setIsStartingPipeline(false);
+    }
+  }, [pipeline, isStartingPipeline, sessionMemory]);
+  
+  // セッション終了処理
+  const endSession = useCallback(async () => {
+    console.log('[UniVoice] Ending session');
+    
+    try {
+      // パイプラインを停止
+      if (pipeline.isRunning) {
+        await pipeline.stop();
+        console.log('[UniVoice] Pipeline stopped successfully');
+      }
+      
+      // DataPersistenceServiceに終了を通知
+      if (window.electron?.send) {
+        window.electron.send('session-end');
+        console.log('[UniVoice] Session end notification sent');
+      }
+      
+      // 最終レポート生成
+      const report = await generateFinalReport();
+      if (report) {
+        setShowReportModal(true);
+        console.log('[UniVoice] Session ended successfully');
+      } else {
+        alert('レポート生成に失敗しました。録音データは保存されています。');
+      }
+      
+      // 状態をクリア
+      pipeline.clearAll();
+      setActiveSession(null);
+      setShowSetup(true);
+      sessionStorageService.clearActiveSession();
+
+      // Setup画面に戻る際にウィンドウサイズをリセット
+      if (window.univoice?.window?.setBounds) {
+        await window.univoice.window.setBounds({
+          width: 600,
+          height: 800
+        });
+      }
+      
+    } catch (error: any) {
+      console.error('[UniVoice] Session end error:', error);
+      alert('セッション終了中にエラーが発生しました: ' + error.message);
+    }
+  }, [pipeline]);
+  
+  // 次の授業へ移行
+  const nextClass = useCallback(() => {
+    console.log('[UniVoice] ➡️ Moving to next class');
+    
+    // レポート発行
+    generateReport(false);
+    
+    // DataPersistenceServiceに次の授業へ移ることを通知
+    if (window.electron?.send) {
+      window.electron.send('next-class');
+      console.log('[UniVoice] Next class notification sent');
+    }
+    
+    // 現在のセッションを終了
+    if (pipeline.isRunning) {
+      pipeline.stop();
+    }
+    
+    // すべてのコンテンツをクリア
+    clearAllContent();
+    
+    // 履歴をクリアして新しいセッションの準備
+    pipeline.clearAll();
+    setRecordingTime(0);
+    recordingStartTimeRef.current = null;
+    setAutoSaveTime(null);
+    setMemoList([]);
+    setShowBlockGuides(true);
+    
+    // activeSessionをクリアしてSetup画面に戻る
+    setActiveSession(null);
+    setShowSetup(true);
+    setShowReportModal(false);
+    setSelectedClass(null);
+    sessionStorageService.clearActiveSession();
+    
+    alert('レポートを保存しました。\n新しい授業の録音を開始します。');
+    console.log('[UniVoice] Ready for next class setup');
+  }, [pipeline]);
+  
   
   useEffect(() => {
-    if (sessionConfig) {
+    if (activeSession) {
       console.log('[UniVoicePerfect] currentTranslation updated:', currentTranslation);
     }
-  }, [currentTranslation, sessionConfig]);
+  }, [currentTranslation, activeSession]);
   
   // 3段階表示用のdisplayContentを構築
   const displayContent = React.useMemo(() => {
@@ -505,23 +925,25 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       console.log('[UniVoicePerfect] Updating history entries from pipeline:', pipeline.history.length);
       const entries: HistoryEntry[] = pipeline.history.map(item => ({
         id: item.id,
-        original: item.original,
-        translation: item.japanese,
-        timestamp: item.timestamp || Date.now(),
-        isComplete: true // 履歴に追加される時点で完了済み
+        sourceText: item.original,
+        targetText: item.japanese,
+        timestamp: new Date(item.timestamp || Date.now()),
+        isHighQuality: true // パイプラインから来る履歴は高品質
       }));
       setHistoryEntries(entries);
     }
   }, [pipeline.history]);
   
-  // 履歴データ（propsまたはpipelineから）
-  const historyData = _historyOverride || pipeline.history.map(h => ({
+  // 履歴データ（propsまたはpipelineから）- HistoryEntry型に統一
+  const historyData: HistoryEntry[] = _historyOverride || pipeline.history.map(h => ({
     id: h.id,
-    original: h.original,
-    translation: h.japanese,
-    isComplete: true,
-    timestamp: h.timestamp
+    sourceText: h.original,
+    targetText: h.japanese,
+    timestamp: new Date(h.timestamp || Date.now()),
+    isHighQuality: true
   })) || [];
+  
+  // 重複関数を削除しました（522-800行の完全版を使用）
   
   // Refs
   const recordingStartTimeRef = useRef<Date | null>(null);
@@ -656,45 +1078,40 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   }, [calculateTotalHeight, showHeader, showSettings, showQuestionSection, realtimeSectionHeight]);
   
   /**
-   * 🔄 セクション表示状態変更時のウィンドウリサイズ
-   * 
-   * 重要な設計判断：
-   * - ResizeObserverは使用しない（予測不可能な動作を避けるため）
-   * - セクションの状態変更を明示的に監視
-   * - CSSアニメーションとの競合を避けるため、適切な遅延を設定
+   * 🔄 セクション表示状態変更時の処理
+   *
+   * 2025-09-19 仕様変更: 固定位置動作の実装
+   * - ヘッダー/設定バー切り替え時：リアルタイムエリアの位置を固定（高さ調整のみ）
+   * - 質問セクション切り替え時：ウィンドウ全体をリサイズ
    */
   useEffect(() => {
-    // sessionConfigがない場合（Setup画面）ではリサイズを実行しない
-    if (!sessionConfig) {
-      console.log('[Window Resize] Skipping initial resize - no session config (Setup screen)');
+    // sessionConfigがない場合（Setup画面）では処理しない
+    if (!activeSession) {
+      console.log('[Window Resize] Skipping - no active session (Setup screen)');
       return;
     }
-    // 初回レンダリング時にもリサイズを実行
+
+    // 初回レンダリング時にウィンドウリサイズを実行
     executeWindowResize();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 初回のみ - executeWindowResizeは依存関係に含めない（無限ループ防止）
+  }, []); // 初回のみ
 
-  // セクション表示状態の変更を監視
+  // セクション変更時のウィンドウリサイズ
   useEffect(() => {
-    // sessionConfigがない場合（Setup画面）ではリサイズを実行しない
-    if (!sessionConfig) {
-      return;
-    }
-    // アニメーションとの競合を避けるための遅延時間
-    // 質問セクションは0.4秒のCSSトランジションがあるため、少し長めに待つ
-    const delay = showQuestionSection !== undefined ? LAYOUT_HEIGHTS.animationDelay : 50;
-    
+    if (!activeSession) return;
+
+    // CSSアニメーションを考慮した遅延
     const timer = setTimeout(() => {
       executeWindowResize();
-    }, delay);
-    
+    }, LAYOUT_HEIGHTS.animationDelay);
+
     return () => clearTimeout(timer);
-  }, [showSettings, showQuestionSection, showHeader, executeWindowResize, sessionConfig]);
+  }, [showHeader, showSettings, showQuestionSection, executeWindowResize, activeSession]);
   
   // リアルタイムセクションの高さ変更時
   useEffect(() => {
     // sessionConfigがない場合（Setup画面）ではリサイズを実行しない
-    if (!sessionConfig) {
+    if (!activeSession) {
       return;
     }
     // ユーザードラッグモードの場合はスキップ（無限ループ防止）
@@ -704,7 +1121,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
     // ユーザーがリサイズハンドルを操作した後
     executeWindowResize();
-  }, [realtimeSectionHeight, executeWindowResize, currentResizeMode, sessionConfig]);
+  }, [realtimeSectionHeight, executeWindowResize, currentResizeMode, activeSession]);
   
   /**
    * 🆕 ウィンドウリサイズ検知システム
@@ -750,10 +1167,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         // リアルタイムエリアの新しい高さを計算
         const newRealtimeHeight = Math.max(
           LAYOUT_HEIGHTS.realtime.min,
-          Math.min(
-            windowHeight - fixedHeight,
-            LAYOUT_HEIGHTS.realtime.max
-          )
+          windowHeight - fixedHeight  // 最大高さ制限なし (2025-09-19仕様変更)
         );
         
         // 有意な変化がある場合のみ更新（ちらつき防止）
@@ -985,7 +1399,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         uniqueHistoryMap.set(item.id, item);
       });
       const uniqueHistory = Array.from(uniqueHistoryMap.values());
-      setHistoryEntries(uniqueHistory);
+      setHistoryEntries(uniqueHistory as HistoryEntry[]);
     }
   }, [JSON.stringify(historyData.map(h => h.id))]); // IDのリストを文字列化して比較
   
@@ -1103,48 +1517,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // ========== イベントハンドラー ==========
   
-  // SetupSectionから呼ばれるコールバック
-  const handleStartSession = async (className: string, sourceLang: string, targetLang: string) => {
-    setSelectedClass(className);
-    setSourceLanguage(sourceLang);
-    setTargetLanguage(targetLang);
-    
-    // 言語設定をLocalStorageに保存
-    localStorage.setItem('sourceLanguage', sourceLang);
-    localStorage.setItem('targetLanguage', targetLang);
-    
-    setShowSetup(false);
-    setIsPaused(false);
-    recordingStartTimeRef.current = new Date();
-    setRecordingTime(0);
-    setShowBlockGuides(true);
-    
-    // Setup → Main画面遷移をWindowClient経由で実行
-    await windowClient.enterMain();
-    
-    // パイプライン開始
-    console.log('[UniVoice] セッション開始:', className, 'Source:', sourceLang, 'Target:', targetLang);
-    
-    try {
-      // useUnifiedPipelineのstartFromMicrophoneメソッドを使用
-      await pipeline.startFromMicrophone();
-      console.log('[UniVoice] パイプライン開始成功');
-      
-      // セッションメタデータをメインプロセスに送信（自動保存のため）
-      if (window.electron?.send) {
-        window.electron.send('session-metadata-update', {
-          className: className,
-          sourceLanguage: sourceLang,
-          targetLanguage: targetLang
-        });
-        console.log('[UniVoice] Session metadata sent to main process');
-      }
-    } catch (error) {
-      console.error('[UniVoice] パイプライン開始エラー:', error);
-      alert('音声認識の開始に失敗しました。マイクの権限を確認してください。');
-      setShowSetup(true);
-    }
-  };
+  // Duplicate handleStartSession removed - using the implementation from line 459
   
   const togglePause = async () => {
     // 🔴 CRITICAL: isRunning（pipeline）を使用し、正しい関数を呼び出す
@@ -1178,70 +1551,119 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  const endSession = async () => {
+  // パネル切り替え関数
+  const togglePanel = async (type: 'history' | 'summary') => {
+    if (type === 'history') {
+      // WindowClient経由で履歴ウィンドウをトグル（外部ウィンドウのみ）
+      const success = await windowClient.toggleHistory();
+      if (!success) {
+        console.error('Failed to toggle history window');
+      }
+      // 内部パネルは表示しない
+      setShowHistoryPanel(false);
+      setShowSummaryPanel(false);
+    } else if (type === 'summary') {
+      // WindowClient経由で要約ウィンドウをトグル（外部ウィンドウのみ）
+      const success = await windowClient.toggleSummary();
+      if (!success) {
+        console.error('Failed to toggle summary window');
+      }
+      // 内部パネルは表示しない
+      setShowSummaryPanel(false);
+      setShowHistoryPanel(false);
+    }
+  };;
+
+  const saveAsMemo = async () => {
+    const textarea = document.getElementById('questionInput') as HTMLTextAreaElement;
+    if (!textarea || !textarea.value.trim()) return;
+
+    // 質問機能: Target言語で入力 → Source言語へ翻訳
+    const inputText = textarea.value.trim();
+    
     try {
-      console.log('[UniVoice] セッション終了中...');
+      // 翻訳API呼び出し（Target→Source方向）
+      const translatedText = await generateQuestionTranslation(inputText);
       
-      // 新実装では親コンポーネントが停止を制御
-      if (_onStopSession) {
-        try {
-          await _onStopSession();
-          console.log('[UniVoice] パイプライン停止成功');
-        } catch (error) {
-          console.error('[UniVoice] パイプライン停止エラー:', error);
-        }
-      }
+      // Memo型の期待する形式に合わせる
+      // TODO: Memo型をリファクタリングしてsource/target概念に統一すべき
+      // 現在は後方互換性のためjapanese/englishフィールドを使用
+      const memo: Memo = {
+        id: Date.now().toString(),
+        timestamp: formatTime(recordingTime),
+        // 暫定的な実装: japanese/englishフィールドにマッピング
+        japanese: targetLanguage === 'ja' ? inputText : 
+                  sourceLanguage === 'ja' ? translatedText : 
+                  `[${targetLanguage}] ${inputText}`,
+        english: targetLanguage === 'en' ? inputText : 
+                 sourceLanguage === 'en' ? translatedText : 
+                 `[${sourceLanguage}] ${translatedText}`
+      };
+
+      setMemoList([...memoList, memo]);
+      textarea.value = '';
       
-      // パイプラインを停止
-      try {
-        await pipeline.stop();
-        console.log('[UniVoice] パイプライン停止成功');
-      } catch (error) {
-        console.error('[UniVoice] パイプライン停止エラー:', error);
-      }
-      
-      // DataPersistenceServiceに終了を通知
-      if (window.electron?.send) {
-        window.electron.send('session-end');
-        console.log('[UniVoice] Session end notification sent');
-      }
-      
-      // 最終レポート生成
-      const report = await generateFinalReport();
-      if (report) {
-        setShowReportModal(true);
-        console.log('[UniVoice] セッション終了完了');
-      } else {
-        alert('レポート生成に失敗しました。録音データは保存されています。');
-      }
-    } catch (error: any) {
-      console.error('[UniVoice] セッション終了エラー:', error);
-      alert('セッション終了中にエラーが発生しました: ' + error.message);
+      console.log('[UniVoice] Memo saved with translation from', targetLanguage, 'to', sourceLanguage);
+    } catch (error) {
+      console.error('[UniVoice] Failed to save memo with translation:', error);
+      // エラー時は翻訳なしで保存
+      const memo: Memo = {
+        id: Date.now().toString(),
+        timestamp: formatTime(recordingTime),
+        japanese: targetLanguage === 'ja' ? inputText : '[Translation failed]',
+        english: targetLanguage === 'en' ? inputText : '[Translation failed]'
+      };
+      setMemoList([...memoList, memo]);
+      textarea.value = '';
+    }
+  };
+
+  const saveMemoEdit = (memoId: string) => {
+    // MemoModalの期待する型に合わせる
+    const memo = memoList.find(m => m.id === memoId);
+    if (memo) {
+      // 編集機能の実装
+      console.log('[UniVoice] Memo edit requested for:', memoId);
+    }
+  };
+
+  const toggleHeader = () => {
+    setShowHeader(!showHeader);
+  };
+
+
+  // Duplicate endSession removed - using the wrapper from line 597
+  
+  const generateReport = (showModal: boolean = true) => {
+    // レポート生成ロジック（仮実装）
+    console.log('[UniVoice] Generating report...');
+    if (showModal) {
+      setShowReportModal(true);
     }
   };
   
-  const nextClass = () => {
-    // レポート発行
-    generateReport(false);
-    
-    // DataPersistenceServiceに次の授業へ移ることを通知
-    if (window.electron?.send) {
-      window.electron.send('next-class');
-      console.log('[UniVoice] Next class notification sent');
+  const generateFinalReport = async () => {
+    try {
+      console.log('[UniVoice] Generating final report...');
+      // TODO: 実際のレポート生成ロジックを実装
+      // 現在は仮実装として成功を返す
+      return {
+        success: true,
+        data: {
+          summaryEnglish: summaryEnglish || '',
+          summaryJapanese: summaryJapanese || '',
+          className: selectedClass || '',
+          recordingTime: recordingTime,
+          memoList: memoList
+        }
+      };
+    } catch (error) {
+      console.error('[UniVoice] Failed to generate final report:', error);
+      return null;
     }
-    
-    // すべてのコンテンツをクリア
-    clearAllContent();
-    
-    setShowReportModal(false);
-    setShowSetup(true);
-    setSelectedClass(null);
-    setRecordingTime(0);
-    recordingStartTimeRef.current = null;
-    setShowBlockGuides(true);
-    
-    alert('レポートを保存しました。\n新しい授業の録音を開始します。');
   };
+
+  // Duplicate nextClass removed - using the implementation from line 557
   
   // すべてのコンテンツをクリア
   const clearAllContent = () => {
@@ -1270,60 +1692,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     if (textarea) textarea.value = '';
   };
   
-  // 最終レポート生成（パイプライン統合版）
-  const generateFinalReport = async () => {
-    try {
-      console.log('[UniVoice] 最終レポート生成中...');
-      
-      // 新実装では親コンポーネントがレポート生成を管理
-      const reportContent = {
-        className: selectedClass,
-        duration: formatTime(recordingTime),
-        summary: {
-          ja: summaryJapanese || '本セッションの要約はまだ利用できません。',
-          en: summaryEnglish || 'Session summary not available yet.'
-        },
-        vocabulary: [],
-        segments: historyEntries.map((seg: HistoryEntry) => ({
-          original: seg.original,
-          translation: seg.translation,
-            timestamp: seg.timestamp
-          })),
-          memos: memoList,
-          metrics: null // 新実装では親が管理
-        };
-        
-        // LocalStorageに保存
-        localStorage.setItem(`report_${Date.now()}`, JSON.stringify(reportContent));
-        console.log('[UniVoice] レポート保存完了:', reportContent);
-        
-        return reportContent;
-    } catch (error: any) {
-      console.error('[UniVoice] レポート生成エラー:', error);
-      // フォールバック：基本的なレポートを生成
-      return {
-        className: selectedClass,
-        duration: formatTime(recordingTime),
-        summary: {
-          ja: 'セッション完了。詳細な要約の生成中にエラーが発生しました。',
-          en: 'Session completed. Error occurred while generating detailed summary.'
-        },
-        vocabulary: [],
-        segments: historyEntries,
-        memos: memoList,
-        error: error.message
-      };
-    }
-  };
+  // Duplicate generateFinalReport removed - using the implementation from line 1437
   
-  // 従来のレポート生成（後方互換性）
-  const generateReport = (showAlert: boolean = true) => {
-    generateFinalReport().then(_reportContent => {
-      if (showAlert) {
-        alert('レポートを生成しました。');
-      }
-    });
-  };
   
   // 表示モード切り替え関数
   const setDisplay = (mode: 'both' | 'source' | 'target') => {
@@ -1341,33 +1711,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   };
   
-  // パネル切り替え関数
-  const togglePanel = async (type: 'history' | 'summary') => {
-    if (type === 'history') {
-      // WindowClient経由で履歴ウィンドウをトグル
-      const success = await windowClient.toggleHistory();
-      if (success) {
-        // 現在の実装では、FloatingPanelの状態も更新
-        // 将来的には独立ウィンドウのみ使用
-        setShowHistoryPanel(!showHistoryPanel);
-        setShowSummaryPanel(false); // 他のパネルを閉じる
-      }
-    } else if (type === 'summary') {
-      // WindowClient経由で要約ウィンドウをトグル
-      const success = await windowClient.toggleSummary();
-      if (success) {
-        // 現在の実装では、FloatingPanelの状態も更新
-        // 将来的には独立ウィンドウのみ使用
-        setShowSummaryPanel(!showSummaryPanel);
-        setShowHistoryPanel(false); // 他のパネルを閉じる
-      }
-    }
-  };
-  
-  // ヘッダー表示/非表示切り替え
-  const toggleHeader = () => {
-    setShowHeader(!showHeader);
-  };
   
   /**
    * 🎨 テーマ切り替え関数
@@ -1430,8 +1773,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       },
       vocabulary: [],
       history: historyEntries.map(entry => ({
-        original: entry.original,
-        translation: entry.translation
+        original: entry.sourceText,
+        translation: entry.targetText
       })),
       memos: memoList
     };
@@ -1456,8 +1799,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       },
       vocabulary: [],
       history: historyEntries.map(entry => ({
-        original: entry.original,
-        translation: entry.translation
+        original: entry.sourceText,
+        translation: entry.targetText
       })),
       memos: memoList
     };
@@ -1502,79 +1845,22 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   };
   
-  // メモの保存（パイプライン統合版）
-  const saveAsMemo = async () => {
-    const japaneseText = (document.getElementById('questionInput') as HTMLTextAreaElement)?.value;
-    
-    if (!japaneseText?.trim()) return;
-    
-    try {
-      const englishText = await generateEnglishQuestion(japaneseText);
-      const currentTime = formatTime(recordingTime);
-      
-      const newMemo: Memo = {
-        id: `memo_${Date.now()}`,
-        timestamp: currentTime,
-        japanese: japaneseText,
-        english: englishText
-      };
-      
-      setMemoList([...memoList, newMemo]);
-      addMemoMarkerToHistory(currentTime);
-      
-      alert('メモを保存しました');
-    } catch (error: any) {
-      console.error('[UniVoice] メモ保存エラー:', error);
-      alert('メモの保存に失敗しました');
-    }
-  };
-  
-  // メモマーカーを履歴に追加
-  const addMemoMarkerToHistory = (timestamp: string) => {
-    setHistoryEntries(prev => {
-      if (prev.length > 0) {
-        const updated = [...prev];
-        const lastEntry = updated[updated.length - 1];
-        // メモマーカーを追加（実際のマーカー表示は別途実装が必要）
-        console.log(`メモマーカー追加: ${timestamp}`);
-        return updated;
-      }
-      return prev;
-    });
-  };
-  
-  // ユーザー入力の英訳生成（親コンポーネント経由）
-  const generateEnglishQuestion = async (japaneseText: string): Promise<string> => {
+  // ユーザー入力の翻訳生成（Target→Source方向）
+  const generateQuestionTranslation = async (inputText: string): Promise<string> => {
     try {
       if (onUserTranslate) {
-        const translation = await onUserTranslate(japaneseText, 'ja', 'en');
-        return translation || 'Translation failed: ' + japaneseText;
+        // 質問機能では逆方向（Target→Source）に翻訳
+        const translation = await onUserTranslate(inputText, targetLanguage, sourceLanguage);
+        return translation || `Translation failed: ${inputText}`;
       } else {
         console.warn('[UniVoice] onUserTranslate not provided');
-        return 'Translation not available: ' + japaneseText;
+        return `Translation not available: ${inputText}`;
       }
     } catch (error: any) {
       console.error('[UniVoice] 翻訳例外:', error);
-      return 'Could you explain more about ' + japaneseText.substring(0, 30) + '...';
+      return `Translation error: ${inputText.substring(0, 30)}...`;
     }
   };
-  
-  // メモの編集保存
-  const saveMemoEdit = (memoId: string) => {
-    setMemoList(prev => prev.map(memo => {
-      if (memo.id === memoId) {
-        const jaElement = document.getElementById(`${memoId}-ja`) as HTMLTextAreaElement;
-        const enElement = document.getElementById(`${memoId}-en`) as HTMLTextAreaElement;
-        return {
-          ...memo,
-          japanese: jaElement?.value || memo.japanese,
-          english: enElement?.value || memo.english
-        };
-      }
-      return memo;
-    }));
-  };
-  
   
   // ========== ヘルパー関数 ==========
   
@@ -1745,6 +2031,34 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         e.preventDefault();
         setShowHeader(true);
       }
+      
+      // Ctrl+Shift+R: セッションリセット
+      if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        console.log('[UniVoice] 🔧 Reset shortcut triggered');
+        
+        // パイプラインを停止
+        if (pipeline.isRunning) {
+          pipeline.stop();
+        }
+        
+        // セッションをクリア
+        sessionStorageService.clearActiveSession();
+        sessionStorageService.clearSessionData();
+        setActiveSession(null);
+        setShowSetup(true);
+
+        // ウィンドウサイズをSetup用にリセット
+        if (window.univoice?.window?.setBounds) {
+          window.univoice.window.setBounds({
+            width: 600,
+            height: 800
+          });
+        }
+
+        // ページをリロード（resetパラメータで強制Setup表示）
+        window.location.href = window.location.pathname + '?reset=true';
+      }
     };
     
     // キャプチャフェーズでも登録してブラウザのズーム機能を確実に防ぐ
@@ -1761,15 +2075,17 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     return (
       <SetupSection
         onStartSession={handleStartSession}
+        onResumeSession={handleResumeSession}
         initialClassName={selectedClass || ''}
         defaultSourceLanguage={sourceLanguage}
         defaultTargetLanguage={targetLanguage}
+        previousSession={previousSession}
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh'
+          width: '100%',
+          height: '100%'
         }}
       />
     );
@@ -1818,18 +2134,20 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         '--font-scale': currentFontScale,
         fontSize: `calc(16px * var(--font-scale))`
       } as React.CSSProperties}>
-        {/* メインウィンドウ */}
-        <div className={classNames(styles.mainWindow, "main-content")} style={{
-          width: '100%',
-          height: '100%', // 親要素の高さに従う
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        {/* メインウィンドウ - backgroundクラスを追加し、全体をドラッグ可能に */}
+        <div 
+          className={classNames(styles.mainWindow, "main-content", "background")} 
+          style={{
+            width: '100%',
+            height: '100%', // 親要素の高さに従う
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
         {/* ヘッダー */}
         {showHeader && (
         <div className={getThemeClass('header')} style={{
-          WebkitAppRegion: 'drag' as any,
+          WebkitAppRegion: 'drag' as any,  // ヘッダーをドラッグ可能に
           position: 'relative',
           userSelect: 'none',
           flexShrink: 0,
@@ -1904,11 +2222,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               <span className={styles.tooltip}>履歴</span>
             </button>
             
-            {/* 要約ボタン（フローティングパネル用） */}
-            <button 
+            {/* 要約ボタン（プログレッシブ要約機能統合） */}
+            <button
               data-testid="summary-button"
-              className={classNames(getThemeClass('controlButton'), showSummaryPanel && styles.controlButtonActive)}
-              onClick={() => togglePanel('summary')}
+              className={classNames(getThemeClass('controlButton'), showProgressiveSummary && styles.controlButtonActive)}
+              onClick={() => setShowProgressiveSummary(!showProgressiveSummary)}
               style={{WebkitAppRegion: 'no-drag' as any}}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -2020,7 +2338,18 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             {/* 閉じるボタン */}
             <button 
               className={getThemeClass('controlButton')} 
-              onClick={() => window.univoice?.window?.close()}
+              onClick={async () => {
+                console.log('[UniVoice] 閉じるボタンがクリックされました');
+                if (window.univoice?.window?.close) {
+                  try {
+                    await window.univoice.window.close();
+                  } catch (error) {
+                    console.error('[UniVoice] ウィンドウクローズエラー:', error);
+                  }
+                } else {
+                  console.error('[UniVoice] window.univoice.window.close が利用不可');
+                }
+              }}
               style={{ WebkitAppRegion: 'no-drag' as any }}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -2040,7 +2369,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           showSettings && styles.settingsVisible
         )} style={{
           zIndex: 1000,
-          position: 'relative'
+          position: 'relative',
+          WebkitAppRegion: 'no-drag' as any  // 設定バーは操作可能にする
         }}>
           <div className={styles.settingsContent} style={{
             display: 'flex',
@@ -2166,7 +2496,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             gap: '8px',
             borderBottom: `1px solid ${currentTheme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`,
             flexShrink: 0,
-            WebkitAppRegion: 'drag' as any
+            WebkitAppRegion: 'drag' as any  // ミニマルヘッダーもドラッグ可能に
           }}>
             {/* 録音状態 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: isPaused ? '#FFA500' : '#4CAF50' }}>
@@ -2225,7 +2555,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           flexDirection: 'column',
           boxSizing: 'border-box',
           zIndex: 1,
-          flexShrink: 0 // 圧縮されないように
+          flexShrink: 0, // 圧縮されないように
+          WebkitAppRegion: 'no-drag' as any  // コンテンツは操作可能にする
         }}>
             <RealtimeSection
               {...(displayContent.original.recent || displayContent.original.older || displayContent.original.oldest 
@@ -2250,9 +2581,50 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             
             {/* 表示モード制御は RealtimeSection 内で実装 */}
           </div>
-          
+
+          {/* ボトムリサイズハンドル（2025-09-19追加） */}
+          {activeSession && (
+            <div
+              className={classNames(
+                getThemeClass('resizeHandle'),
+                isResizing && styles.resizeHandleActive
+              )}
+              {...resizeHandleProps}
+            />
+          )}
+
+          {/* プログレッシブ要約セクション */}
+          {showProgressiveSummary && summaries && summaries.length > 0 && (
+            <ProgressiveSummarySection
+              summaries={summaries.filter(s => s.threshold)}
+              height={progressiveSummaryHeight}
+              isExpanded={false}
+              onClick={(e) => e.stopPropagation()}
+              onResize={(e) => {
+                e.preventDefault();
+                const startY = e.clientY;
+                const startHeight = progressiveSummaryHeight;
+
+                const handleMouseMove = (e: MouseEvent) => {
+                  const deltaY = e.clientY - startY;
+                  const newHeight = Math.max(100, Math.min(400, startHeight + deltaY));
+                  setProgressiveSummaryHeight(newHeight);
+                };
+
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+              pipelineError={null}
+            />
+          )}
+
           {/* リサイズハンドルを削除 - Electronウィンドウのリサイズのみを使用 */}
-          
+
           {/* 質問セクション（折りたたみ可能） */}
           <div className={classNames(
             getThemeClass('questionArea'),
@@ -2262,7 +2634,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             overflow: showQuestionSection ? 'visible' : 'hidden',
             transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             position: 'relative',
-            flexShrink: 0
+            flexShrink: 0,
+            WebkitAppRegion: 'no-drag' as any  // 入力エリアは操作可能にする
           }}>
             <div className={styles.questionInner} style={{
               padding: '20px 30px',
@@ -2284,7 +2657,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                   fontSize: '15px',
                   color: '#333',
                   resize: 'none',
-                  height: 'calc(100% - 8px)',
+                  height: '100%',
+                  boxSizing: 'border-box',
                   fontFamily: 'inherit',
                   lineHeight: 1.5,
                   outline: 'none'

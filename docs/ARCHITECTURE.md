@@ -174,7 +174,64 @@ npm run test:golden-master
 - complete ≤ 2000ms
 - UI更新頻度削減 ≥ 50%
 
+## 🪟 ウィンドウ管理アーキテクチャ（2025-09-18追加）
+
+### 独立ウィンドウ設計の原則
+
+各ウィンドウは**完全に独立**して動作する必要があります：
+
+```
+┌─────────────────┐    ┌──────────────┐    ┌──────────────┐
+│   Setup Window  │    │  Main Window │    │History Window│
+│    (600x800)    │ => │  (1200x400)  │ ⇄  │  (600x800)   │
+│   初期設定画面   │    │ リアルタイム  │    │  履歴一覧    │
+└─────────────────┘    └──────────────┘    └──────────────┘
+      単独表示             同時表示可能（ユーザビリティ重視）
+```
+
+### React Router導入の決定（2025-09-18）
+
+**選択理由：**
+1. **コンポーネント再利用性** - 既存のReactコンポーネントを活用
+2. **型安全性の維持** - TypeScriptの恩恵を完全に受けられる
+3. **Clean Architecture適合** - Presentation層の適切な分離
+4. **保守性** - 統一されたビルドパイプラインとテスト戦略
+
+**却下した代替案とその理由：**
+- **シンプルHTML案** - コンポーネント再利用不可、型安全性の喪失
+- **条件付きレンダリング案** - 単一責任原則違反、UniVoice.tsxの更なる肥大化
+
+### 実装構造
+
+```typescript
+// src/App.tsx - ルーティング定義
+<HashRouter>
+  <Routes>
+    <Route path="/" element={<UniVoice />} />        // Main画面
+    <Route path="/history" element={<HistoryView />} /> // 履歴画面
+    <Route path="/summary" element={<SummaryView />} /> // 要約画面
+  </Routes>
+</HashRouter>
+
+// electron/main/WindowRegistry.ts - ウィンドウ管理
+class WindowRegistry {
+  openHistory(): BrowserWindow {
+    const window = this.createOrShow('history');
+    window.loadURL(this.resolveUrl('#/history')); // React Routerが処理
+    return window;
+  }
+}
+```
+
+### メモリとパフォーマンス考慮事項
+
+各ウィンドウが独立したReactアプリケーションインスタンスを持つため：
+- **メモリ使用量**: 各ウィンドウ約50-100MB（React + ビジネスロジック）
+- **最適化戦略**:
+  - コード分割（lazy loading）でバンドルサイズ削減
+  - 履歴/要約専用の軽量バンドル作成（将来）
+
 ---
 
-最終更新: 2025-09-14
+最終更新: 2025-09-18
 バージョン: 1.0.0

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>UniVoice Window Resize Debug</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .check-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f8f8;
+            border-left: 4px solid #ddd;
+        }
+        .check-item.pass {
+            border-left-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        .check-item.fail {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            background: #eee;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #currentSize {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UniVoice Window Resize 動作確認</h1>
+        
+        <h2>現在のウィンドウサイズ</h2>
+        <div id="currentSize">計測中...</div>
+        
+        <h2>確認項目</h2>
+        <div id="checklist"></div>
+        
+        <h2>テスト操作</h2>
+        <button onclick="checkSetupSize()">1. Setup画面サイズ確認</button>
+        <button onclick="simulateSessionStart()">2. セッション開始シミュレート</button>
+        <button onclick="toggleSections()">3. セクション切替テスト</button>
+        <button onclick="checkReload()">4. リロード動作確認</button>
+        
+        <h2>ログ</h2>
+        <div id="log"></div>
+        
+        <h2>window-bounds.json 確認</h2>
+        <button onclick="checkBoundsFile()">ファイル内容確認</button>
+        <div id="boundsContent"></div>
+    </div>
+
+    <script>
+        const log = (message, type = 'info') => {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            console.log(message);
+        };
+
+        const updateWindowSize = () => {
+            const size = `幅: ${window.innerWidth}px, 高さ: ${window.innerHeight}px`;
+            document.getElementById('currentSize').textContent = size;
+            return { width: window.innerWidth, height: window.innerHeight };
+        };
+
+        // 初期化
+        window.addEventListener('load', () => {
+            updateWindowSize();
+            window.addEventListener('resize', () => {
+                const size = updateWindowSize();
+                log(`ウィンドウリサイズ検出: ${size.width}x${size.height}`);
+            });
+            
+            // 初期チェック
+            performInitialChecks();
+        });
+
+        const performInitialChecks = () => {
+            const checks = [
+                {
+                    name: 'Setup画面の初期サイズ',
+                    check: () => {
+                        const size = updateWindowSize();
+                        const expected = { width: 600, height: 800 };
+                        const tolerance = 50;
+                        return Math.abs(size.width - expected.width) <= tolerance && 
+                               Math.abs(size.height - expected.height) <= tolerance;
+                    }
+                },
+                {
+                    name: 'CSS min-height: 100vh が削除されているか',
+                    check: () => {
+                        const appElements = document.querySelectorAll('.app');
+                        for (let elem of appElements) {
+                            const style = window.getComputedStyle(elem);
+                            if (style.minHeight === '100vh') {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                },
+                {
+                    name: 'LocalStorage activeSession 確認',
+                    check: () => {
+                        const activeSession = localStorage.getItem('univoice_activeSession');
+                        log(`activeSession: ${activeSession || 'なし'}`);
+                        return true;
+                    }
+                }
+            ];
+
+            const checklistDiv = document.getElementById('checklist');
+            checks.forEach(check => {
+                const div = document.createElement('div');
+                div.className = 'check-item';
+                try {
+                    const result = check.check();
+                    div.classList.add(result ? 'pass' : 'fail');
+                    div.textContent = `${result ? '✓' : '✗'} ${check.name}`;
+                } catch (e) {
+                    div.classList.add('fail');
+                    div.textContent = `✗ ${check.name} - エラー: ${e.message}`;
+                }
+                checklistDiv.appendChild(div);
+            });
+        };
+
+        const checkSetupSize = () => {
+            const size = updateWindowSize();
+            log(`Setup画面サイズ: ${size.width}x${size.height}`, 'info');
+            
+            // 期待値との比較
+            const expected = { width: 600, height: 800 };
+            const diff = {
+                width: size.width - expected.width,
+                height: size.height - expected.height
+            };
+            
+            if (Math.abs(diff.width) > 50 || Math.abs(diff.height) > 50) {
+                log(`⚠️ サイズが期待値と大きく異なります。期待: ${expected.width}x${expected.height}, 差分: ${diff.width}x${diff.height}`, 'error');
+            } else {
+                log(`✓ サイズは適切です`, 'success');
+            }
+        };
+
+        const simulateSessionStart = () => {
+            log('セッション開始をシミュレート...', 'info');
+            
+            // activeSession を設定
+            const mockSession = {
+                className: 'テストクラス',
+                sourceLanguage: 'ja',
+                targetLanguage: 'en',
+                timestamp: Date.now()
+            };
+            localStorage.setItem('univoice_activeSession', JSON.stringify(mockSession));
+            log('activeSession を設定しました', 'success');
+            
+            // ウィンドウサイズ監視
+            const beforeSize = updateWindowSize();
+            setTimeout(() => {
+                const afterSize = updateWindowSize();
+                if (beforeSize.width !== afterSize.width || beforeSize.height !== afterSize.height) {
+                    log(`⚠️ セッション開始でウィンドウサイズが変更されました: ${beforeSize.width}x${beforeSize.height} → ${afterSize.width}x${afterSize.height}`, 'error');
+                } else {
+                    log('✓ ウィンドウサイズは維持されています', 'success');
+                }
+            }, 100);
+        };
+
+        const toggleSections = () => {
+            log('セクション切替テスト開始...', 'info');
+            const beforeSize = updateWindowSize();
+            
+            // 実際のトグル動作をシミュレート
+            const testToggle = (name, callback) => {
+                setTimeout(() => {
+                    log(`${name} をトグル`, 'info');
+                    callback();
+                    
+                    setTimeout(() => {
+                        const afterSize = updateWindowSize();
+                        if (beforeSize.width !== afterSize.width || beforeSize.height !== afterSize.height) {
+                            log(`⚠️ ${name}でサイズ変更: ${beforeSize.width}x${beforeSize.height} → ${afterSize.width}x${afterSize.height}`, 'error');
+                        } else {
+                            log(`✓ ${name}でサイズ維持`, 'success');
+                        }
+                    }, 100);
+                }, 500);
+            };
+            
+            testToggle('設定セクション', () => {
+                // 実際のアプリではshowSettingsをトグル
+            });
+        };
+
+        const checkReload = () => {
+            log('リロード前の状態を保存...', 'info');
+            const beforeSize = updateWindowSize();
+            sessionStorage.setItem('reloadTest', JSON.stringify({
+                beforeSize,
+                timestamp: Date.now()
+            }));
+            log('ページをリロードします...', 'info');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        };
+
+        // リロード後のチェック
+        if (sessionStorage.getItem('reloadTest')) {
+            const data = JSON.parse(sessionStorage.getItem('reloadTest'));
+            const afterSize = updateWindowSize();
+            log(`リロード前: ${data.beforeSize.width}x${data.beforeSize.height}`, 'info');
+            log(`リロード後: ${afterSize.width}x${afterSize.height}`, 'info');
+            
+            if (data.beforeSize.width === afterSize.width && data.beforeSize.height === afterSize.height) {
+                log('✓ リロード後もサイズが維持されています', 'success');
+            } else {
+                log('⚠️ リロード後にサイズが変更されました', 'error');
+            }
+            sessionStorage.removeItem('reloadTest');
+        }
+
+        const checkBoundsFile = async () => {
+            try {
+                // Electron環境でのみ動作
+                if (window.electron && window.electron.readBoundsFile) {
+                    const content = await window.electron.readBoundsFile();
+                    document.getElementById('boundsContent').innerHTML = 
+                        `<pre>${JSON.stringify(content, null, 2)}</pre>`;
+                    
+                    if (content.windows && content.windows.setup) {
+                        log('⚠️ window-bounds.json に setup エントリが存在します', 'error');
+                    } else {
+                        log('✓ window-bounds.json に setup エントリがありません', 'success');
+                    }
+                } else {
+                    document.getElementById('boundsContent').textContent = 
+                        'Electron環境でのみ確認可能です';
+                }
+            } catch (error) {
+                log(`エラー: ${error.message}`, 'error');
+            }
+        };
+    </script>
+</body>
+</html>

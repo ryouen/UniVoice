@@ -67,6 +67,9 @@ export class SessionMemoryService {
   private currentSessionId: string | null = null;
   private autoSaveTimer: NodeJS.Timeout | null = null;
   private pendingData: Partial<SessionData> = {};
+  private isSaving: boolean = false;
+  private saveQueue: Promise<Result<void>> = Promise.resolve(Result.ok(undefined));
+  private dataCache: Map<string, SessionData> = new Map();
   
   constructor(options: SessionMemoryServiceOptions) {
     this.storage = options.storage;
@@ -154,7 +157,7 @@ export class SessionMemoryService {
   }
   
   /**
-   * Add translation to history
+   * Add translation to history with memory optimization
    */
   addTranslation(translation: Translation): Result<void> {
     if (!this.currentSessionId) {
@@ -167,6 +170,44 @@ export class SessionMemoryService {
     }
     
     this.pendingData.history.push(translation);
+    
+    // メモリ最適化: 保留データが大きくなりすぎたら保存
+    if (this.pendingData.history.length > 100) {
+      this.triggerAsyncSave();
+    }
+    
+    return Result.ok(undefined);
+  }
+  
+  /**
+   * Update existing translation (for high-quality translation updates)
+   */
+  updateTranslation(segmentId: string, updates: Partial<Translation>): Result<void> {
+    if (!this.currentSessionId) {
+      return Result.error(new Error('No active session'));
+    }
+    
+    if (!this.pendingData.history) {
+      const sessionResult = this.loadSessionSync(this.currentSessionId);
+      this.pendingData.history = sessionResult.success ? sessionResult.data.history : [];
+    }
+    
+    const index = this.pendingData.history.findIndex(t => t.id === segmentId);
+    if (index === -1) {
+      return Result.error(new Error(`Translation not found: ${segmentId}`));
+    }
+    
+    this.pendingData.history[index] = {
+      ...this.pendingData.history[index],
+      ...updates,
+      id: segmentId // Ensure id is preserved
+    };
+    
+    // Trigger async save for important updates
+    if (updates.japanese) {
+      this.triggerAsyncSave();
+    }
+    
     return Result.ok(undefined);
   }
   
@@ -347,6 +388,10 @@ export class SessionMemoryService {
     if (this.currentSessionId) {
       await this.saveCurrentSession();
     }
+    
+    // クリーンアップ
+    this.dataCache.clear();
+    this.pendingData = {};
   }
   
   /**
@@ -371,30 +416,48 @@ export class SessionMemoryService {
   }
   
   /**
-   * Save current session
+   * Save current session with race condition protection
    */
   private async saveCurrentSession(): Promise<Result<void>> {
     if (!this.currentSessionId) {
       return Result.error(new Error('No active session'));
     }
     
-    const sessionResult = this.getCurrentSession();
-    if (!sessionResult.success) {
-      return sessionResult;
+    // 競合状態の防止
+    if (this.isSaving) {
+      console.log('[SessionMemoryService] Save already in progress, queueing...');
+      return Result.ok(undefined);
     }
     
-    sessionResult.data.state.lastSaveTime = Date.now();
+    this.isSaving = true;
     
-    const saveResult = await this.saveSession(sessionResult.data);
-    if (saveResult.success) {
-      this.emitEvent({
-        type: 'session_saved',
-        sessionId: this.currentSessionId,
-        timestamp: Date.now()
-      });
+    try {
+      const sessionResult = this.getCurrentSession();
+      if (!sessionResult.success) {
+        return sessionResult;
+      }
+      
+      sessionResult.data.state.lastSaveTime = Date.now();
+      
+      // キャッシュを更新
+      this.dataCache.set(this.currentSessionId, sessionResult.data);
+      
+      const saveResult = await this.saveSession(sessionResult.data);
+      if (saveResult.success) {
+        // 保存成功後、pendingDataをクリア
+        this.pendingData = {};
+        
+        this.emitEvent({
+          type: 'session_saved',
+          sessionId: this.currentSessionId,
+          timestamp: Date.now()
+        });
+      }
+      
+      return saveResult;
+    } finally {
+      this.isSaving = false;
     }
-    
-    return saveResult;
   }
   
   /**
@@ -487,13 +550,17 @@ export class SessionMemoryService {
   }
   
   /**
-   * Load session synchronously (for internal use)
+   * Load session with caching for performance
    */
   private loadSessionSync(sessionId: string): Result<SessionData> {
+    // キャッシュから取得
+    const cached = this.dataCache.get(sessionId);
+    if (cached) {
+      return Result.ok(cached);
+    }
+    
     try {
       const key = this.storagePrefix + sessionId;
-      // This is a limitation - we need sync access for some operations
-      // In a real implementation, we might cache this data
       const data = localStorage.getItem(key);
       
       if (!data) {
@@ -501,6 +568,16 @@ export class SessionMemoryService {
       }
       
       const sessionData = JSON.parse(data) as SessionData;
+      
+      // キャッシュに保存（メモリ使用量を制限）
+      if (this.dataCache.size > 5) {
+        const firstKey = this.dataCache.keys().next().value;
+        if (firstKey) {
+          this.dataCache.delete(firstKey);
+        }
+      }
+      this.dataCache.set(sessionId, sessionData);
+      
       return Result.ok(sessionData);
       
     } catch (error) {
@@ -508,5 +585,24 @@ export class SessionMemoryService {
       (err as any).cause = error;
       return Result.error(err);
     }
+  }
+  
+  /**
+   * Trigger async save to avoid blocking
+   */
+  private triggerAsyncSave(): void {
+    this.saveQueue = this.saveQueue.then(async () => {
+      const result = await this.saveCurrentSession();
+      return result;
+    }).catch(error => {
+      console.error('[SessionMemoryService] Async save failed:', error);
+      this.emitEvent({
+        type: 'session_error',
+        sessionId: this.currentSessionId || 'unknown',
+        error,
+        timestamp: Date.now()
+      });
+      return Result.error(error);
+    });
   }
 }

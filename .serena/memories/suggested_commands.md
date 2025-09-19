@@ -1,28 +1,32 @@
-# UniVoice 2.0 推奨コマンド集
+# UniVoice 2.0 開発コマンド集
 
-## 開発環境セットアップ
+## 開発環境の起動
 ```bash
-# 環境変数設定（必須）
-cp .env.example .env
-# .envファイルを編集してAPIキーを設定
+# 環境変数設定（初回のみ）
+copy .env.example .env
 
 # 依存関係インストール
 npm install
 
-# 開発サーバー起動（2ターミナル必要）
-npm run dev          # ターミナル1: Viteサーバー
-npm run electron     # ターミナル2: Electronアプリ
+# 開発サーバー起動（Vite）
+npm run dev
 
-# 1コマンドで両方起動
+# Electronアプリ起動（別ターミナル）
+npm run electron
+
+# 同時起動（推奨）
 npm start
 ```
 
-## ビルドとチェック
+## ビルド関連
 ```bash
-# TypeScript型チェック（必須）
+# TypeScript型チェック
 npm run typecheck
 
-# 本番ビルド（メモリ4GB必要）
+# 型定義同期（contracts.ts）
+npm run sync-contracts
+
+# プロダクションビルド
 npm run build
 
 # クリーンビルド
@@ -43,129 +47,86 @@ npm run test:integration
 # パフォーマンステスト
 npm run test:performance
 
-# 特定のテストファイル実行
-npx jest tests/unit/StreamCoalescer.test.ts
-
-# 個別の重要なテスト
-node tests/unit/test-display-segment-interim.js    # interim/final表示
-node tests/unit/test-grouped-history.js            # グループ化履歴
-node tests/unit/test-progressive-summary.js        # 段階的要約
-node tests/unit/test-final-report-vocabulary.js    # 単語帳・レポート
+# E2Eテスト（Playwright）
+npm run test:e2e
+npm run test:e2e:ui  # UIモード
 ```
 
-## デバッグとトラブルシューティング
+## デバッグ・ログ確認
 ```bash
-# Electronのデバッグモード
-npm run electron -- --inspect
+# 最新ログ確認（PowerShell）
+Get-Content logs\univoice-$(Get-Date -Format "yyyy-MM-dd").jsonl -Tail 50 -Wait
 
-# ログ確認
-tail -f logs/univoice-$(date +%Y-%m-%d).jsonl
+# エラーログのみ抽出
+Select-String '"level":"error"' logs\univoice-*.jsonl
 
-# プロセス確認（Windows）
-tasklist | findstr electron
-tasklist | findstr node
-
-# メモリ使用量確認
-wmic process where name="electron.exe" get WorkingSetSize,Name
+# プロセス確認
+Get-Process | Where-Object {$_.Name -like "*electron*"}
 ```
 
-## Git操作
+## Git操作（Windows）
 ```bash
-# ブランチ作成
-git checkout -b feature/your-feature-name
-
-# 変更確認
+# 状態確認
 git status
+
+# 差分確認
 git diff
 
-# コミット（conventional commits形式）
+# ステージング
 git add .
-git commit -m "feat: add new feature"
-git commit -m "fix: resolve translation delay"
-git commit -m "docs: update README"
 
-# リモートにプッシュ
-git push -u origin feature/your-feature-name
+# コミット
+git commit -m "コメント"
+
+# プッシュ
+git push origin main
 ```
 
-## 環境変数の確認
+## Windows特有のコマンド
 ```bash
-# 環境変数の存在確認（Windows）
+# ディレクトリ一覧
+dir
+
+# ファイル検索
+dir /s /b *.ts
+
+# テキスト検索
+findstr /s /i "SearchText" *.ts
+
+# 環境変数確認
 echo %OPENAI_API_KEY%
-echo %DEEPGRAM_API_KEY%
 
-# PowerShell
-$env:OPENAI_API_KEY
-$env:DEEPGRAM_API_KEY
-
-# .envファイルの確認
-type .env | findstr API_KEY
+# プロセス終了
+taskkill /F /IM electron.exe
 ```
 
-## パフォーマンス計測
+## クリーンアップ
 ```bash
-# メトリクス計測（存在する場合）
-npm run metrics
+# ビルド成果物削除
+npm run clean
 
-# ベンチマーク実行（存在する場合）
-npm run benchmark
-
-# メモリプロファイリング
-node --inspect tests/performance/streaming-performance.test.ts
-```
-
-## プロジェクト構造確認
-```bash
-# ディレクトリ構造表示
-tree /F electron\services
-tree /F src\components
-
-# ファイル検索（Windows）
-dir /s /b *.ts | findstr /i "pipeline"
-dir /s /b *.tsx | findstr /i "univoice"
-
-# PowerShell版
-Get-ChildItem -Recurse -Filter "*.ts" | Select-String "UnifiedPipeline"
-```
-
-## エラー時の対処
-```bash
 # node_modules再インストール
 rmdir /s /q node_modules
 npm install
-
-# TypeScriptキャッシュクリア
-rmdir /s /q dist
-rmdir /s /q dist-electron
-npm run build
 
 # Electronキャッシュクリア
 rmdir /s /q "%APPDATA%\univoice"
 ```
 
-## プロダクションビルド
+## トラブルシューティング
 ```bash
-# Windows用パッケージング（package.jsonに定義されている場合）
-npm run package
+# TypeScriptビルドエラー時
+npm run typecheck
 
-# インストーラー作成（設定がある場合）
-npm run make
+# 型定義不整合時
+npm run sync-contracts
+
+# Electron起動失敗時
+taskkill /F /IM electron.exe
+npm run electron
 ```
 
-## 重要な確認コマンド
-```bash
-# Node.jsバージョン確認（18以上必須）
-node -v
-
-# npmバージョン確認
-npm -v
-
-# TypeScriptバージョン確認
-npx tsc -v
-
-# 依存関係の脆弱性チェック
-npm audit
-
-# 依存関係の更新確認
-npm outdated
-```
+## 重要な注意点
+- 必ず`npm run typecheck`でビルドエラーがないことを確認
+- コミット前に`npm run sync-contracts`で型定義を同期
+- Setup画面で問題が発生したら`%APPDATA%\univoice`を削除

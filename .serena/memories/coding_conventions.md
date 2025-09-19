@@ -1,6 +1,6 @@
-# UniVoice 2.0 コーディング規約と重要事項
+# UniVoice 2.0 コーディング規約
 
-## TypeScript設定（厳格モード）
+## TypeScript設定
 ```json
 {
   "strict": true,
@@ -12,24 +12,30 @@
 ```
 
 ## 命名規則
-- **コンポーネント**: PascalCase（例: UniVoice.tsx）
-- **フック**: camelCase + use prefix（例: useUnifiedPipeline.ts）
-- **型定義ファイル**: kebab-case（例: advanced-features.types.ts）
-- **禁止事項**:
-  - UniVoicePerfect.tsx のような格好悪い命名
-  - service_improved.ts のようなアンダースコア接尾辞
-  - temp-fix.ts のような一時的な名前
+- **コンポーネント**: PascalCase（例: `UniVoice.tsx`, `SetupSection.tsx`）
+- **フック**: camelCase + use prefix（例: `useUnifiedPipeline.ts`）
+- **サービスクラス**: PascalCase + Service suffix（例: `UnifiedPipelineService`）
+- **型定義**: PascalCase（例: `TranscriptSegment`, `Translation`）
+- **定数**: UPPER_SNAKE_CASE（例: `ENABLE_LEGACY_CHANNELS`）
+- **ファイル名**: コンポーネントはPascalCase、その他はkebab-case
 
-## エラーハンドリング（Result型パターン）
+## 型定義の原則
+- `any`型の使用は原則禁止
+- Discriminated Union型でイベント契約を定義
+- Zodスキーマによる実行時型検証（IPC通信）
+- インターフェースよりtype aliasを優先
+
+## エラーハンドリング
 ```typescript
+// Result型パターンを使用
 type Result<T, E = Error> = 
   | { success: true; data: T }
   | { success: false; error: E };
 
-// 例外ではなくResult型を使用
-async function translateText(text: string): Promise<Result<string>> {
+// 例外ではなくResult型を返す
+async function operation(): Promise<Result<Data>> {
   try {
-    const result = await openai.responses.create({...});
+    const result = await someOperation();
     return { success: true, data: result };
   } catch (error) {
     return { success: false, error: error as Error };
@@ -37,98 +43,81 @@ async function translateText(text: string): Promise<Result<string>> {
 }
 ```
 
-## 重要な実装パターン
-
-### 1. 型の重複定義禁止
-- DisplaySegment等の型は必ず元ファイルからインポート
-- 独自定義は禁止
-
-### 2. IPC通信は必ずZod検証
+## イベント駆動アーキテクチャ
 ```typescript
-// 正しい例
-const validated = StartSessionCommand.parse(data);
+// イベント名は定数として定義
+export const IPC_EVENTS = {
+  SEGMENT_UPDATE: 'segment-update',
+  TRANSLATION_UPDATE: 'translation-update',
+  // ...
+} as const;
 
-// 禁止例
-const data = event.data as any; // ❌ any型禁止
+// イベントペイロードは型定義
+export type SegmentUpdateEvent = {
+  type: 'segment-update';
+  payload: {
+    segmentId: string;
+    text: string;
+    timestamp: number;
+  };
+};
 ```
 
-### 3. 状態管理の一元化
-- currentDisplay等の状態変数が複数箇所で定義されないよう注意
-- 単一責任原則の遵守
+## クラス設計の原則
+- Single Responsibility Principle（単一責任の原則）
+- Dependency Injection（依存性注入）
+- インターフェース分離原則
 
-## 親フォルダ参照の絶対禁止
+## コメント規約
+- コードは自己文書化を心がける
+- 複雑なロジックには説明コメントを追加
+- TODOコメントは必ず作成者と日付を記載
+- 日本語コメントOK（プロジェクトが日本語中心）
 
-### ❌ 禁止事項
+## インポート順序
+1. Node.js標準モジュール
+2. 外部ライブラリ
+3. 内部モジュール（絶対パス）
+4. 内部モジュール（相対パス）
+5. 型定義
+
 ```typescript
-// 絶対にやってはいけない
-import { Something } from '../../realtime_transtrator/...';
-import { Config } from '../src/...';
+// 例
+import path from 'node:path';
+import { app, BrowserWindow } from 'electron';
+import { z } from 'zod';
+import { UnifiedPipelineService } from '@/services/domain/UnifiedPipelineService';
+import { logger } from '../utils/logger';
+import type { Translation } from './types';
 ```
 
-### ✅ 正しい方法
+## React コンポーネントの原則
+- 関数コンポーネントを使用
+- React.FC型は使用しない（children推論のため）
+- useEffectの依存配列は正確に記載
+- カスタムフックでロジックを分離
+
+## 非同期処理
+- async/awaitを優先使用
+- Promise.allで並列処理を活用
+- エラーは必ずキャッチして処理
+
+## ログ出力
 ```typescript
-// 必要なコードはUniVoice内にコピー
-import { Something } from './domain/Something';
-// 参照用データは docs/parent-reference/ を見る
+// コンポーネント固有のloggerを作成
+const logger = getLogger('UnifiedPipelineService');
+
+// 構造化ログを使用
+logger.info('Processing segment', {
+  segmentId: segment.id,
+  wordCount: segment.words,
+  correlationId: this.currentCorrelationId
+});
 ```
 
-## パフォーマンス関連
-
-### 必須の計測
-- first paint ≤ 1000ms
-- 全ての変更後にメトリクス計測
-- `npm run metrics` で確認
-
-### UI更新の最適化
-- StreamCoalescerを通じた更新
-- 直接的なsetState呼び出しは避ける
-- バッチ処理を活用
-
-## テスト作成規則
-
-### テストファイルの配置
-- unit/: 単体テスト
-- integration/: 統合テスト
-- performance/: パフォーマンステスト
-- e2e/: エンドツーエンドテスト
-
-### テストの命名
-- *.test.ts: TypeScriptテスト
-- test-*.js: JavaScriptテスト（レガシー）
-
-## ビルドとデプロイ
-
-### メモリ設定
-```bash
-# ビルド時に4GB必要
-NODE_OPTIONS=--max-old-space-size=4096
-```
-
-### ビルドコマンド
-```bash
-npm run typecheck  # 型チェック（必須）
-npm run build      # 本番ビルド
-npm run test       # テスト実行
-```
-
-## ログ規約
-
-### ログレベル
-- error: エラー情報
-- warn: 警告
-- info: 重要な情報
-- debug: デバッグ情報
-
-### ログ出力先
-- logs/univoice-YYYY-MM-DD.jsonl（JSON Lines形式）
-
-## セキュリティ
-
-### APIキー管理
-- 環境変数で管理（.env）
-- ハードコーディング禁止
-- コミットに含めない
-
-### データ保護
-- 音声データは一時的にのみ保持
-- 個人情報の永続化は避ける
+## 禁止事項
+- ❌ console.log（本番コード）
+- ❌ any型（やむを得ない場合はコメント必須）
+- ❌ // @ts-ignore（型エラーは必ず解決）
+- ❌ 無意味な略語（例: temp, val, ret）
+- ❌ マジックナンバー（定数化する）

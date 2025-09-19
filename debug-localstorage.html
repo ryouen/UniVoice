@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UniVoice LocalStorage Debug</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .item { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .key { font-weight: bold; color: #0066cc; }
+        .value { color: #333; white-space: pre-wrap; }
+        button { margin: 5px; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <h1>UniVoice LocalStorage Debug</h1>
+    <div>
+        <button onclick="refreshData()">Refresh</button>
+        <button onclick="clearActiveSession()">Clear Active Session</button>
+        <button onclick="clearAllUnivoice()">Clear All UniVoice Data</button>
+    </div>
+    <div id="content"></div>
+    
+    <script>
+        function refreshData() {
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            
+            // Find all localStorage keys
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('univoice') || key.includes('language')) {
+                    const value = localStorage.getItem(key);
+                    const item = document.createElement('div');
+                    item.className = 'item';
+                    
+                    // Try to parse JSON
+                    let displayValue = value;
+                    try {
+                        const parsed = JSON.parse(value);
+                        displayValue = JSON.stringify(parsed, null, 2);
+                    } catch (e) {
+                        // Not JSON, display as-is
+                    }
+                    
+                    item.innerHTML = `
+                        <div class="key">${key}</div>
+                        <div class="value">${displayValue}</div>
+                    `;
+                    content.appendChild(item);
+                }
+            }
+            
+            if (content.innerHTML === '') {
+                content.innerHTML = '<p>No UniVoice data found in localStorage</p>';
+            }
+        }
+        
+        function clearActiveSession() {
+            localStorage.removeItem('univoice-active-session');
+            alert('Active session cleared!');
+            refreshData();
+        }
+        
+        function clearAllUnivoice() {
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('univoice') || key.includes('language')) {
+                    keys.push(key);
+                }
+            }
+            keys.forEach(key => localStorage.removeItem(key));
+            alert('All UniVoice data cleared!');
+            refreshData();
+        }
+        
+        // Initial load
+        refreshData();
+    </script>
+</body>
+</html>

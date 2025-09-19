@@ -20,6 +20,8 @@ export interface TranscriptSegment {
   text: string;
   timestamp: number;
   isFinal: boolean;
+  startMs?: number;
+  endMs?: number;
 }
 
 export interface CombinedSentence {

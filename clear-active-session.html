@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear UniVoice Session</title>
+</head>
+<body>
+    <h1>UniVoice Session Manager</h1>
+    <p>Current active session:</p>
+    <pre id="current-session"></pre>
+    
+    <button onclick="clearSession()">Clear Active Session</button>
+    <button onclick="showSession()">Refresh Display</button>
+    
+    <script>
+        function showSession() {
+            const session = localStorage.getItem('univoice-active-session');
+            document.getElementById('current-session').textContent = session || 'No active session';
+        }
+        
+        function clearSession() {
+            localStorage.removeItem('univoice-active-session');
+            alert('Active session cleared!');
+            showSession();
+        }
+        
+        // Show on load
+        showSession();
+    </script>
+</body>
+</html>

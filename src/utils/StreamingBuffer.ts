@@ -1,10 +1,10 @@
 /**
- * StreamingBuffer - 180分対応のストリーミングバッファ
+ * StreamingBuffer - リアルタイムストリーミングデータのバッファリング
  * 
- * 大学の授業（最大180分）に対応するための効率的なバッファリング
- * - メモリ効率的なリングバッファ実装
- * - タイムスタンプベースの管理
- * - セグメント単位での保存
+ * 用途:
+ * - 長時間のストリーミングセッションのデータ管理
+ * - メモリ効率的なセグメント管理
+ * - 定期的なコンパクション
  */
 
 export interface BufferSegment {
@@ -14,263 +14,139 @@ export interface BufferSegment {
   translation: string;
   metadata?: {
     wordCount?: number;
-    confidence?: number;
-    language?: string;
+    [key: string]: any;
   };
 }
 
-export interface BufferStats {
-  totalSegments: number;
-  totalDuration: number; // milliseconds
-  memoryUsage: number; // bytes (estimated)
-  oldestTimestamp: number;
-  newestTimestamp: number;
-}
-
 interface StreamingBufferOptions {
-  maxDurationMs?: number; // Default: 180 minutes
-  maxSegments?: number; // Default: 10000
-  compactionInterval?: number; // Default: 5 minutes
+  maxDurationMs?: number;      // バッファの最大保持時間
+  maxSegments?: number;        // 最大セグメント数
+  compactionInterval?: number; // コンパクション間隔
 }
 
 export class StreamingBuffer {
-  private segments: Map<string, BufferSegment>;
-  private segmentOrder: string[]; // Maintains insertion order
-  private maxDurationMs: number;
-  private maxSegments: number;
-  private compactionInterval: number;
+  private segments: BufferSegment[] = [];
+  private readonly maxDurationMs: number;
+  private readonly maxSegments: number;
+  private readonly compactionInterval: number;
   private compactionTimer: NodeJS.Timeout | null = null;
-  private startTime: number | null = null;
-  
+  private startTime: number = Date.now();
+
   constructor(options: StreamingBufferOptions = {}) {
-    this.maxDurationMs = options.maxDurationMs ?? 180 * 60 * 1000; // 180 minutes
+    this.maxDurationMs = options.maxDurationMs ?? 3 * 60 * 60 * 1000; // 3時間
     this.maxSegments = options.maxSegments ?? 10000;
-    this.compactionInterval = options.compactionInterval ?? 5 * 60 * 1000; // 5 minutes
-    
-    this.segments = new Map();
-    this.segmentOrder = [];
-    
-    // Start periodic compaction
-    this.startCompactionTimer();
+    this.compactionInterval = options.compactionInterval ?? 5 * 60 * 1000; // 5分
+
+    this.startCompaction();
   }
-  
+
   /**
-   * Add a new segment to the buffer
+   * セグメントを追加
    */
   addSegment(segment: BufferSegment): void {
-    if (!this.startTime) {
-      this.startTime = segment.timestamp;
+    this.segments.push(segment);
+
+    // 即座のサイズ制限チェック
+    if (this.segments.length > this.maxSegments) {
+      const removeCount = Math.floor(this.maxSegments * 0.1); // 10%削除
+      this.segments.splice(0, removeCount);
     }
-    
-    // Remove if already exists (update case)
-    if (this.segments.has(segment.id)) {
-      const index = this.segmentOrder.indexOf(segment.id);
-      if (index > -1) {
-        this.segmentOrder.splice(index, 1);
-      }
-    }
-    
-    // Add to buffer
-    this.segments.set(segment.id, segment);
-    this.segmentOrder.push(segment.id);
-    
-    // Check constraints
-    this.enforceConstraints();
   }
-  
+
   /**
-   * Update an existing segment
+   * 現在のセグメントを取得
    */
-  updateSegment(id: string, updates: Partial<BufferSegment>): void {
-    const segment = this.segments.get(id);
-    if (segment) {
-      this.segments.set(id, { ...segment, ...updates });
-    }
+  getSegments(): BufferSegment[] {
+    return [...this.segments];
   }
-  
+
   /**
-   * Get a segment by ID
-   */
-  getSegment(id: string): BufferSegment | undefined {
-    return this.segments.get(id);
-  }
-  
-  /**
-   * Get segments within a time range
+   * 時間範囲でセグメントを取得
    */
   getSegmentsByTimeRange(startTime: number, endTime: number): BufferSegment[] {
-    const result: BufferSegment[] = [];
-    
-    for (const id of this.segmentOrder) {
-      const segment = this.segments.get(id);
-      if (segment && segment.timestamp >= startTime && segment.timestamp <= endTime) {
-        result.push(segment);
-      }
-    }
-    
-    return result;
+    return this.segments.filter(
+      segment => segment.timestamp >= startTime && segment.timestamp <= endTime
+    );
   }
-  
+
   /**
-   * Get recent segments
+   * 最後のNセグメントを取得
    */
-  getRecentSegments(count: number): BufferSegment[] {
-    const startIndex = Math.max(0, this.segmentOrder.length - count);
-    const recentIds = this.segmentOrder.slice(startIndex);
-    
-    return recentIds
-      .map(id => this.segments.get(id))
-      .filter((segment): segment is BufferSegment => segment !== undefined);
+  getLastSegments(count: number): BufferSegment[] {
+    return this.segments.slice(-count);
   }
-  
+
   /**
-   * Get all segments (for export)
-   */
-  getAllSegments(): BufferSegment[] {
-    return this.segmentOrder
-      .map(id => this.segments.get(id))
-      .filter((segment): segment is BufferSegment => segment !== undefined);
-  }
-  
-  /**
-   * Get buffer statistics
-   */
-  getStats(): BufferStats {
-    const segments = this.getAllSegments();
-    
-    if (segments.length === 0) {
-      return {
-        totalSegments: 0,
-        totalDuration: 0,
-        memoryUsage: 0,
-        oldestTimestamp: 0,
-        newestTimestamp: 0
-      };
-    }
-    
-    const oldestTimestamp = segments[0].timestamp;
-    const newestTimestamp = segments[segments.length - 1].timestamp;
-    
-    // Estimate memory usage (rough approximation)
-    const memoryUsage = segments.reduce((total, segment) => {
-      const textSize = (segment.original.length + segment.translation.length) * 2; // 2 bytes per char
-      const metadataSize = 100; // Rough estimate for metadata
-      return total + textSize + metadataSize;
-    }, 0);
-    
-    return {
-      totalSegments: segments.length,
-      totalDuration: newestTimestamp - oldestTimestamp,
-      memoryUsage,
-      oldestTimestamp,
-      newestTimestamp
-    };
-  }
-  
-  /**
-   * Clear the buffer
+   * バッファをクリア
    */
   clear(): void {
-    this.segments.clear();
-    this.segmentOrder = [];
-    this.startTime = null;
+    this.segments = [];
+    this.startTime = Date.now();
   }
-  
+
   /**
-   * Destroy the buffer and clean up resources
+   * 統計情報を取得
+   */
+  getStats() {
+    const totalWordCount = this.segments.reduce(
+      (sum, segment) => sum + (segment.metadata?.wordCount || 0),
+      0
+    );
+
+    return {
+      segmentCount: this.segments.length,
+      totalWordCount,
+      duration: Date.now() - this.startTime,
+      oldestTimestamp: this.segments[0]?.timestamp,
+      newestTimestamp: this.segments[this.segments.length - 1]?.timestamp
+    };
+  }
+
+  /**
+   * バッファの破棄
    */
   destroy(): void {
-    if (this.compactionTimer) {
-      clearInterval(this.compactionTimer);
-      this.compactionTimer = null;
-    }
+    this.stopCompaction();
     this.clear();
   }
-  
+
   /**
-   * Enforce buffer constraints (max duration and max segments)
+   * コンパクション開始
    */
-  private enforceConstraints(): void {
-    const now = Date.now();
-    
-    // Remove old segments beyond max duration
-    if (this.startTime) {
-      const cutoffTime = now - this.maxDurationMs;
-      
-      while (this.segmentOrder.length > 0) {
-        const oldestId = this.segmentOrder[0];
-        const oldestSegment = this.segments.get(oldestId);
-        
-        if (oldestSegment && oldestSegment.timestamp < cutoffTime) {
-          this.segments.delete(oldestId);
-          this.segmentOrder.shift();
-        } else {
-          break;
-        }
-      }
-    }
-    
-    // Remove excess segments beyond max count
-    while (this.segmentOrder.length > this.maxSegments) {
-      const oldestId = this.segmentOrder.shift();
-      if (oldestId) {
-        this.segments.delete(oldestId);
-      }
-    }
-  }
-  
-  /**
-   * Start periodic compaction timer
-   */
-  private startCompactionTimer(): void {
+  private startCompaction(): void {
+    this.stopCompaction();
+
     this.compactionTimer = setInterval(() => {
       this.compact();
     }, this.compactionInterval);
   }
-  
+
   /**
-   * Compact the buffer to save memory
+   * コンパクション停止
+   */
+  private stopCompaction(): void {
+    if (this.compactionTimer) {
+      clearInterval(this.compactionTimer);
+      this.compactionTimer = null;
+    }
+  }
+
+  /**
+   * バッファのコンパクション
    */
   private compact(): void {
-    // Re-enforce constraints
-    this.enforceConstraints();
-    
-    // Additional compaction logic could be added here
-    // For example: merging very short segments, removing duplicates, etc.
-    
-    // Log stats for monitoring
-    const stats = this.getStats();
-    console.log('[StreamingBuffer] Compaction complete:', {
-      segments: stats.totalSegments,
-      duration: Math.floor(stats.totalDuration / 1000 / 60) + ' minutes',
-      memory: Math.floor(stats.memoryUsage / 1024) + ' KB'
-    });
-  }
-  
-  /**
-   * Export buffer for persistence
-   */
-  export(): { segments: BufferSegment[], metadata: { startTime: number | null, exportTime: number } } {
-    return {
-      segments: this.getAllSegments(),
-      metadata: {
-        startTime: this.startTime,
-        exportTime: Date.now()
-      }
-    };
-  }
-  
-  /**
-   * Import buffer from persistence
-   */
-  import(data: { segments: BufferSegment[], metadata: { startTime: number | null } }): void {
-    this.clear();
-    this.startTime = data.metadata.startTime;
-    
-    // Re-add all segments
-    for (const segment of data.segments) {
-      this.segments.set(segment.id, segment);
-      this.segmentOrder.push(segment.id);
+    const now = Date.now();
+    const cutoffTime = now - this.maxDurationMs;
+
+    // 古いセグメントを削除
+    const beforeCount = this.segments.length;
+    this.segments = this.segments.filter(
+      segment => segment.timestamp > cutoffTime
+    );
+
+    const removed = beforeCount - this.segments.length;
+    if (removed > 0) {
+      console.log(`[StreamingBuffer] Compacted: removed ${removed} old segments`);
     }
   }
 }

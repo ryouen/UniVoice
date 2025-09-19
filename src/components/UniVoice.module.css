@@ -67,16 +67,20 @@
   pointer-events: none;
 }
 
-/* App Container */
+/* App Container - Consolidated definition */
 .app {
   --font-scale: 1; /* デフォルトのフォントスケール */
   font-size: calc(16px * var(--font-scale));
   line-height: 1.5;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   position: relative;
-  min-height: 100vh;
+  width: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
   border-radius: 12px; /* 四隅の角丸 */
   overflow: hidden; /* 角丸の内側に収める */
+  /* Removed min-height: 100vh to prevent window resize issues */
 }
 
 /* グラスモーフィズムの基本効果 */
@@ -134,14 +138,7 @@
    Layout Components
    ======================================== */
 
-/* Application Container */
-.app {
-  width: 100%;
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+/* Application Container - Moved to consolidated definition above */
 
 /* Main Header */
 .header {
@@ -534,6 +531,54 @@
   margin: 4px 0;
 }
 
+/* Bottom Resize Handle - フレームレスウィンドウ用 */
+.resizeHandle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  background: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 100;
+  -webkit-app-region: no-drag; /* Electronドラッグ領域から除外 */
+}
+
+.resizeHandle:hover {
+  background: rgba(102, 126, 234, 0.2); /* プライマリカラーの半透明 */
+}
+
+.resizeHandle:active,
+.resizeHandleActive {
+  background: rgba(102, 126, 234, 0.4); /* ドラッグ中は濃く */
+}
+
+/* 各テーマ用のリサイズハンドル */
+.resizeHandleThemeLight {
+  composes: resizeHandle;
+}
+
+.resizeHandleThemeLight:hover {
+  background: rgba(102, 126, 234, 0.3);
+}
+
+.resizeHandleThemeDark {
+  composes: resizeHandle;
+}
+
+.resizeHandleThemeDark:hover {
+  background: rgba(102, 179, 255, 0.3);
+}
+
+.resizeHandleThemePurple {
+  composes: resizeHandle;
+}
+
+.resizeHandleThemePurple:hover {
+  background: rgba(179, 217, 255, 0.3);
+}
+
 /* Question Input Area */
 .questionArea {
   overflow: hidden;
@@ -566,6 +611,15 @@
 .questionHidden {
   height: 0;
   overflow: hidden;
+}
+
+/* Question Inner Container */
+.questionInner {
+  padding: 20px 30px;
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 /* Compact Header (when main header is hidden) */
@@ -610,7 +664,8 @@
   font-size: 15px;
   color: #333;
   resize: none;
-  height: calc(100% - 8px);
+  height: 100%;
+  box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   transition: all 0.2s;
 }
@@ -784,4 +839,168 @@
 @keyframes fadeOut {
   from { opacity: 1; }
   to { opacity: 0; }
+}
+
+/* ========== Question Section ========== */
+.questionArea {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+  z-index: 10;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.questionAreaThemeDark {
+  background: rgba(25, 25, 30, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.questionAreaThemePurple {
+  background: rgba(107, 100, 125, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.questionVisible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.questionHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.questionInner {
+  padding: 20px 30px;
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.questionInput {
+  flex: 1;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  font-size: 15px;
+  color: #333;
+  resize: none;
+  height: 100%;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.questionInputThemeDark {
+  background: rgba(40, 40, 45, 0.9);
+  color: #e0e0e0;
+  border-color: rgba(102, 126, 234, 0.4);
+}
+
+.questionInputThemePurple {
+  background: rgba(140, 130, 160, 0.3);
+  color: #f0f0f0;
+  border-color: rgba(187, 153, 255, 0.4);
+}
+
+.questionInput:focus {
+  border-color: rgba(102, 126, 234, 0.6);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.questionInputThemeDark:focus {
+  background: rgba(50, 50, 55, 0.9);
+  border-color: rgba(102, 126, 234, 0.7);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+}
+
+.questionInputThemePurple:focus {
+  background: rgba(150, 140, 170, 0.4);
+  border-color: rgba(187, 153, 255, 0.7);
+  box-shadow: 0 0 0 4px rgba(187, 153, 255, 0.2);
+}
+
+.questionInput::placeholder {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.questionInputThemeDark::placeholder {
+  color: #777;
+}
+
+.questionInputThemePurple::placeholder {
+  color: #bbb;
+}
+
+.questionActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.qBtnPrimary {
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.qBtnPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.qBtnPrimary:active {
+  transform: translateY(0);
+}
+
+.qBtnSecondary {
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.05);
+  color: #666;
+}
+
+.qBtnSecondary:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.qBtnSecondaryThemeDark {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+}
+
+.qBtnSecondaryThemeDark:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.qBtnSecondaryThemePurple {
+  background: rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+}
+
+.qBtnSecondaryThemePurple:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

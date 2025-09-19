@@ -1,25 +1,40 @@
 # 🚨 新セッション必読 - 重要事実集
 
 **これは新しいClaude Codeセッションで最初に読むべきファイルです**
+*最終更新: 2025-09-19（Clean Architectureリファクタリング開始・セッション再開機能実装）*
 
-## 🔴 絶対に知っておくべき3つの事実
+## 🔴 絶対に知っておくべき5つの事実
 
 ### 1. AdvancedFeatureServiceは既に初期化済み（2025-09-04確認）
 - ❌ 誤: 「初期化されていない」（古いドキュメントの情報）
 - ✅ 正: main.ts:384-398で完全に初期化されている
 - 📝 詳細: `docs/ADVANCED-FEATURE-SERVICE-VERIFICATION-20250904.md`
 
-### 2. パラグラフモードは現在無効化中（2025-09-10確認）
-- ❌ 誤: 「パラグラフモード実装済み」（古いドキュメントの情報）
-- ✅ 正: ParagraphBuilderは無効化、文単位（1-2文）表示のまま
-- 📝 詳細: `docs/PARAGRAPH-MODE-IMPLEMENTATION-SUMMARY.md`
-- 📝 改善計画: `docs/PARAGRAPH-MODE-IMPROVEMENT-PLAN.md`
+### 2. SentenceCombinerは統合済み・正常動作中（2025-09-17確認）
+- ❌ 誤: 「SentenceCombiner未統合」（古いドキュメントの誤情報）
+- ✅ 正: UnifiedPipelineService.ts:203で初期化、正常動作中
+- ✅ 正: CombinedSentenceEventがフロントエンドで正しく受信されている
+- 📝 注意: ParagraphBuilderは無効化中、文単位（1-2文）表示を使用
 
-### 3. すべてのコア機能が実装済み
-- ✅ 音声認識（Deepgram）
-- ✅ リアルタイム翻訳（GPT-5-nano）
-- ✅ データ永続化（C:\Users\{username}\UniVoice\）
-- ✅ 要約・語彙・レポート（AdvancedFeatureService）
+### 3. コア機能の実装状況（2025-09-19更新）
+- ✅ 音声認識（Deepgram Nova-3、10言語対応）
+- ✅ リアルタイム翻訳（二段階: GPT-5-nano/GPT-5-mini）
+- ✅ セッション情報永続化（SessionStorageService使用中）
+- 🆕 履歴データ永続化（SessionMemoryService統合済み - 2025-09-18）
+- 🆕 セッション再開機能（最新セッション自動再開 - 2025-09-18）
+- 🚧 Clean Architectureリファクタリング進行中（2025-09-19）
+- 🟨 要約・語彙・レポート（バックエンド実装済み、UI統合に課題）
+
+### 4. ウィンドウ管理問題は解決済み（2025-09-17確認）
+- ✅ Setup画面374px問題: BoundsStore/WindowRegistryで修正済み
+- ✅ 無限レンダリング: isStartingPipelineフラグで解決
+- ✅ セッション管理: 24時間有効期限とbeforeunloadハンドラー実装
+- 📝 詳細: `docs/WINDOW-RESIZE-FIXES-SUMMARY-20250917.md`
+
+### 5. 文字化け問題は存在しない（2025-09-17確認）
+- ✅ バックエンドは正常に日本語を処理（ログで確認）
+- ✅ OpenAI APIレスポンスも正常
+- ⚠️ UI層での表示確認が残タスク
 
 ## 📁 必ず確認すべきファイル（順番通りに）
 
@@ -33,8 +48,12 @@
 | 誤解 | 正しい理解 |
 |------|-----------|
 | AdvancedFeatureService未初期化 | 既に修正済み（main.ts:384） |
-| 要約機能が動かない | 完全動作中（10分ごと） |
-| SentenceCombiner未実装 | 実装済みだが現在は無効化 |
+| 要約機能が動かない | バックエンドは動作、UI統合に課題 |
+| SentenceCombiner未統合 | 統合済み・正常動作中（UnifiedPipelineService.ts:203） |
+| SessionStorageService未使用 | セッション情報保存に使用中（UniVoice.tsx） |
+| SessionMemoryService未使用 | 履歴データ永続化に統合済み（2025-09-18） |
+| セッション再開が複雑 | 簡略化実装完了（最新セッションを自動再開） |
+| 言語設定がハードコード | SetupSectionでの定義は適切（選択のみの場所） |
 | パラグラフモード実装済み | 実際は無効化中（要改善） |
 
 ## 📊 ログファイルの場所
@@ -53,13 +72,16 @@ grep '"level":"error"' logs/univoice-$(date +%Y-%m-%d).jsonl
 ## 🎯 現在の作業フェーズ
 
 **Phase 3: UI/UX改善フェーズ**
-- バックエンドは全機能実装済み
-- 残タスクはすべてフロントエンドUI
+- バックエンドはほぼ実装済み（要約・語彙・レポート生成は動作）
+- 主な課題：UI統合とデータ永続化
 
-### 優先タスク
-1. セッション再開UI（データは保存済み）
-2. レポート表示UI（生成は動作中）
-3. 語彙テーブルUI（抽出は動作中）
+### 優先タスク（2025-09-18更新）
+1. ✅ データ永続化機構の統合（SessionMemoryService統合完了）
+2. ✅ セッション再開UI（基本実装完了、簡略化されたUI）
+3. SessionStorageServiceの統合（設定データ永続化）
+4. プログレッシブ要約のUI修正
+5. レポート表示UI（生成は動作中）
+6. 語彙テーブルUI（抽出は動作中）
 
 ## ⚡ クイックスタート
 
@@ -77,12 +99,33 @@ npm run build
 npm run typecheck
 ```
 
-## 💡 前回セッション（2025-09-10）の成果
+## 💡 最近の成果
 
+### 2025-09-19（Clean Architectureリファクタリング開始）
+1. ✅ UniVoice.tsx（2890行）の構造分析完了
+2. ✅ 型定義・定数・ユーティリティの分離実装
+3. ✅ カスタムフック作成（useSessionManagement, useWindowResize）
+4. ✅ 重複関数定義の削除とビルドエラー解消
+5. 📝 残課題：コンポーネント分割、ディレクトリ構造再編
+
+### 2025-09-18（セッション再開機能実装）
+1. ✅ SessionMemoryServiceの統合実装完了
+2. ✅ 履歴データ（翻訳・要約）の永続化実現
+3. ✅ セッション再開UI実装（「セッションを再開」ボタンで最新セッション自動再開）
+4. ✅ 言語設定管理アーキテクチャの明確化
+   - SetupSection: 言語オプション定義と選択UI
+   - activeSession: 選択された言語設定の保持と他コンポーネントでの参照
+
+### 2025-09-17（深層分析による発見）
+1. ✅ SentenceCombinerが実際は統合済み・正常動作中と確認
+2. ✅ SessionStorageServiceが実際は使用中であることを発見
+3. ✅ プロジェクト全体の実装状況を正確に把握（約50%完了）
+4. ✅ 誤解を招く古いドキュメントの特定と更新開始
+
+### 2025-09-10
 1. ✅ パラグラフモード実装状況の再調査（実際は無効化中と判明）
 2. ✅ 履歴表示が短い原因を特定（SentenceCombiner + FlexibleHistoryGrouper）
 3. ✅ ドキュメントを実際のコードに基づいて更新
-4. ✅ パラグラフモード改善計画を作成
 
 ## 🚨 Setup画面統一の緊急課題（2025-09-15）
 
@@ -135,9 +178,29 @@ npm run typecheck
 - `COMPREHENSIVE-ISSUE-REPORT-20250914.md` - 問題の詳細分析と解決策
 - `docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md` - 実装ガイド（v1.2.0に更新済み）
 
+## 📝 重要な技術的発見（2025-09-17）
+
+### SentenceCombiner統合の実際
+```typescript
+// UnifiedPipelineService.ts:203-210
+this.sentenceCombiner = new SentenceCombiner(
+  (combinedSentence) => this.handleCombinedSentence(combinedSentence),
+  {
+    maxSegments: 10,
+    timeoutMs: 2000,
+    minSegments: 1  // DEEP-THINK修正: 短い文も履歴に含める
+  }
+);
+```
+
+### データ永続化の問題
+- `src/services/SessionStorageService.ts`は存在するが未使用
+- `import`文が1つも存在しない = 完全に孤立したコード
+- 結果：全ての設定・履歴がセッション限り
+
 ---
 
 **重要**: このファイルの情報が最も正確です。
 古いドキュメントと矛盾がある場合は、このファイルを信じてください。
 
-最終更新: 2025-09-15
+最終更新: 2025-09-19（Clean Architectureリファクタリング開始・問題発生と修正）

@@ -192,6 +192,21 @@ export class WindowClient {
       return false;
     }
   }
+  
+  /**
+   * ウィンドウサイズ設定
+   */
+  async setBounds(bounds: { width: number; height: number }): Promise<void> {
+    try {
+      if (!window.univoice?.window) {
+        console.warn('[WindowClient] window API not available');
+        return;
+      }
+      await window.univoice.window.setBounds(bounds);
+    } catch (error) {
+      console.error('[WindowClient] Failed to set bounds:', error);
+    }
+  }
 }
 
 // Export singleton instance for convenience

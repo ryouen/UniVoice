@@ -10,7 +10,6 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SessionResumeModal } from '../../modals';
 import { windowClient } from '../../../../../services/WindowClient';
 
 // 言語オプションの定義（LanguageConfigに依存せず直接定義）
@@ -102,9 +101,16 @@ interface CourseMetadata {
 
 export interface SetupSectionProps {
   onStartSession: (className: string, sourceLanguage: string, targetLanguage: string) => void;
+  onResumeSession?: (className: string) => void;
   initialClassName?: string;
   defaultSourceLanguage?: string;
   defaultTargetLanguage?: string;
+  previousSession?: {
+    className: string;
+    sourceLanguage: string;
+    targetLanguage: string;
+    timestamp?: number;
+  } | null;
   style?: React.CSSProperties;
 }
 
@@ -269,9 +275,11 @@ const saveLabels = (labels: string[]): void => {
 
 export const SetupSection: React.FC<SetupSectionProps> = ({
   onStartSession,
+  onResumeSession,
   initialClassName = '',
   defaultSourceLanguage = 'en',
   defaultTargetLanguage = 'ja',
+  previousSession,
   style = {}
 }) => {
   const [courses, setCourses] = useState<CourseMetadata[]>([]);
@@ -291,7 +299,6 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
   const [targetLanguage, setTargetLanguage] = useState(
     localStorage.getItem('targetLanguage') || defaultTargetLanguage
   );
-  const [showSessionResumeModal, setShowSessionResumeModal] = useState(false);
   const [checkingSession, setCheckingSession] = useState(false);
   const [todaySession, setTodaySession] = useState<{
     exists: boolean;
@@ -365,33 +372,46 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
     localStorage.setItem('targetLanguage', targetLanguage);
   }, [targetLanguage]);
   
-  // 当日セッション検出
+  // 前回セッション検出
   useEffect(() => {
-    const checkTodaySession = async () => {
+    const checkPreviousSession = async () => {
       const course = courses.find(c => c.id === selectedCourse);
-      if (!course) return;
+      if (!course) {
+        setTodaySession({ exists: false });
+        return;
+      }
       
       setCheckingSession(true);
-      // TODO: Implement check-today-session IPC handler
-      /*
       try {
         if (window.electron?.invoke) {
-          const result = await window.electron.invoke('check-today-session', course.name);
-          setTodaySession(result || { exists: false });
+          // 選択した科目の最新セッションを取得
+          const availableSessions = await window.electron.invoke('get-available-sessions', {
+            courseName: course.name,
+            limit: 1
+          });
+          
+          if (availableSessions && availableSessions.length > 0 && availableSessions[0].sessions.length > 0) {
+            const latestSession = availableSessions[0].sessions[0];
+            setTodaySession({
+              exists: true,
+              sessionNumber: latestSession.sessionNumber
+            });
+          } else {
+            setTodaySession({ exists: false });
+          }
         }
       } catch (error) {
-        console.error('Failed to check today session:', error);
+        console.error('Failed to check previous session:', error);
         setTodaySession({ exists: false });
       } finally {
         setCheckingSession(false);
       }
-      */
-      setTodaySession({ exists: false });
-      setCheckingSession(false);
     };
     
     if (selectedCourse) {
-      checkTodaySession();
+      checkPreviousSession();
+    } else {
+      setTodaySession({ exists: false });
     }
   }, [selectedCourse, courses]);
   
@@ -545,40 +565,16 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
     }
   };
   
-  // セッション選択からの再開処理
-  const handleSelectSession = async (courseName: string, dateStr: string, sessionNumber: number) => {
-    // TODO: Implement load-session IPC handler
-    /*
-    try {
-      if (window.electron) {
-        const sessionData = await window.electron.invoke('load-session', {
-          courseName,
-          dateStr,
-          sessionNumber
-        });
-        
-        if (sessionData) {
-          setSourceLanguage(sessionData.metadata.sourceLanguage);
-          setTargetLanguage(sessionData.metadata.targetLanguage);
-          onStartSession(courseName, sessionData.metadata.sourceLanguage, sessionData.metadata.targetLanguage);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load session:', error);
+  // セッション再開処理
+  const handleResumeSession = async () => {
+    if (onResumeSession && selectedCourse) {
+      // セッション再開ハンドラーを呼び出し（科目名のみ渡す）
+      onResumeSession(selectedCourse);
     }
-    */
-    // For now, just start the session with current language settings
-    onStartSession(courseName, sourceLanguage, targetLanguage);
   };
   
   return (
     <>
-      <SessionResumeModal
-        isOpen={showSessionResumeModal}
-        onClose={() => setShowSessionResumeModal(false)}
-        onSelectSession={handleSelectSession}
-      />
-      
       <div 
         className="setup-screen"
         style={{
@@ -822,52 +818,55 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
             marginBottom: '20px'
           }}>
             <div style={{
-              display: 'flex',
-              gap: '16px',
-              alignItems: 'center',
               fontSize: '14px'
             }}>
-              <span style={{ color: '#666' }}>言語設定:</span>
-              <select
-                value={sourceLanguage}
-                onChange={(e) => setSourceLanguage(e.target.value)}
-                style={{
-                  width: '180px',
-                  padding: '6px 10px',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '4px',
-                  background: 'white',
-                  fontSize: '13px'
-                }}
-              >
-                {SOURCE_LANGUAGE_OPTIONS.map(lang => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.name === lang.nativeName ? lang.nativeName : `${lang.name} (${lang.nativeName})`}
-                  </option>
-                ))}
-              </select>
-              
-              <span style={{ color: '#999' }}>→</span>
-              
-              <select
-                value={targetLanguage}
-                onChange={(e) => setTargetLanguage(e.target.value)}
-                style={{
-                  width: '180px',
-                  padding: '6px 10px',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '4px',
-                  background: 'white',
-                  fontSize: '13px'
-                }}
-              >
-                {TARGET_LANGUAGE_OPTIONS.filter(lang => lang.code !== sourceLanguage).map(lang => (
+              <span style={{ color: '#666', display: 'block', marginBottom: '12px' }}>言語設定:</span>
+              <div style={{
+                display: 'flex',
+                gap: '16px',
+                alignItems: 'center'
+              }}>
+                <select
+                  value={sourceLanguage}
+                  onChange={(e) => setSourceLanguage(e.target.value)}
+                  style={{
+                    width: '180px',
+                    padding: '6px 10px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '4px',
+                    background: 'white',
+                    fontSize: '13px'
+                  }}
+                >
+                  {SOURCE_LANGUAGE_OPTIONS.map(lang => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.name === lang.nativeName ? lang.nativeName : `${lang.name} (${lang.nativeName})`}
+                    </option>
+                  ))}
+                </select>
+                
+                <span style={{ color: '#999' }}>→</span>
+                
+                <select
+                  value={targetLanguage}
+                  onChange={(e) => setTargetLanguage(e.target.value)}
+                  style={{
+                    width: '180px',
+                    padding: '6px 10px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '4px',
+                    background: 'white',
+                    fontSize: '13px'
+                  }}
+                >
+                  {TARGET_LANGUAGE_OPTIONS.filter(lang => lang.code !== sourceLanguage).map(lang => (
                   <option key={lang.code} value={lang.code}>
                     {lang.name === lang.nativeName ? lang.nativeName : `${lang.name} (${lang.nativeName})`}
                   </option>
                 ))}
               </select>
             </div>
+          </div>
             
             {sourceLanguage === targetLanguage && (
               <p style={{
@@ -943,29 +942,32 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
              '開始 (Space)'}
           </button>
           
-          <button
-            onClick={() => setShowSessionResumeModal(true)}
-            style={{
-              width: '100%',
-              marginTop: '8px',
-              padding: '12px',
-              background: 'transparent',
-              color: '#667eea',
-              border: '1px solid #667eea',
-              borderRadius: '8px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#667eea10';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            過去のセッションから選択
-          </button>
+          {/* 選択した科目に前回のセッションがある場合のみ表示 */}
+          {selectedCourse && todaySession.exists && onResumeSession && (
+            <button
+              onClick={() => onResumeSession(selectedCourse)}
+              style={{
+                width: '100%',
+                marginTop: '8px',
+                padding: '12px',
+                background: 'transparent',
+                color: '#43cea2',
+                border: '1px solid #43cea2',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#43cea210';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              前回のセッション（第{todaySession.sessionNumber}回）を再開
+            </button>
+          )}
         </div>
         
         {/* 新規授業追加ダイアログ */}
@@ -1218,6 +1220,8 @@ export const SetupSection: React.FC<SetupSectionProps> = ({
             </div>
           </div>
         )}
+        
+        {/* セッション再開モーダルは削除 - シンプルな再開ボタンを使用 */}
       </div>
     </>
   );

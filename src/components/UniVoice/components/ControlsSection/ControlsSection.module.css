@@ -1,0 +1,347 @@
+/**
+ * ControlsSection Component Styles
+ * Clean Architecture: Presentation Layer
+ */
+
+.controlsSection {
+  position: relative;
+  background: var(--controls-bg, rgba(255, 255, 255, 0.98));
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  padding: 12px 20px;
+  transition: all 0.3s ease;
+}
+
+/* Toggle Button */
+.toggleButton {
+  position: absolute;
+  top: -40px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--toggle-bg, rgba(255, 255, 255, 0.95));
+  border: 1px solid var(--toggle-border, rgba(0, 0, 0, 0.1));
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: var(--toggle-color, #666);
+  z-index: 10;
+}
+
+.toggleButton:hover {
+  background: var(--toggle-hover-bg, rgba(0, 0, 0, 0.05));
+  border-color: var(--toggle-hover-border, rgba(0, 0, 0, 0.2));
+  color: var(--toggle-hover-color, #333);
+}
+
+.toggleLabel {
+  font-weight: 500;
+}
+
+/* Controls Content */
+.controlsContent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Control Group */
+.controlGroup {
+  flex: 1;
+  min-width: 200px;
+}
+
+.controlLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--label-color, #666);
+  margin-bottom: 8px;
+}
+
+/* Button Groups */
+.buttonGroup {
+  display: flex;
+  gap: 4px;
+  border-radius: 6px;
+  background: var(--group-bg, rgba(0, 0, 0, 0.02));
+  padding: 2px;
+}
+
+.themeButton,
+.modeButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--button-color, #666);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.themeButton:hover,
+.modeButton:hover {
+  background: var(--button-hover-bg, rgba(0, 0, 0, 0.05));
+  color: var(--button-hover-color, #333);
+}
+
+.themeButton.active,
+.modeButton.active {
+  background: var(--button-active-bg, white);
+  color: var(--button-active-color, #333);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+}
+
+/* Font Scale Control */
+.fontScaleControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scaleButton {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--scale-btn-bg, white);
+  border: 1px solid var(--scale-btn-border, rgba(0, 0, 0, 0.2));
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scaleButton:hover:not(:disabled) {
+  background: var(--scale-btn-hover-bg, rgba(0, 0, 0, 0.05));
+  border-color: var(--scale-btn-hover-border, rgba(0, 0, 0, 0.3));
+}
+
+.scaleButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scaleValue {
+  min-width: 50px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--scale-value-color, #333);
+}
+
+.resetButton {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--reset-btn-border, rgba(0, 0, 0, 0.2));
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--reset-btn-color, #666);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.resetButton:hover {
+  background: var(--reset-btn-hover-bg, rgba(0, 0, 0, 0.05));
+  border-color: var(--reset-btn-hover-border, rgba(0, 0, 0, 0.3));
+  color: var(--reset-btn-hover-color, #333);
+}
+
+/* Language Control */
+.languageControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.languageSelect {
+  flex: 1;
+}
+
+.selectInput {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--select-bg, white);
+  border: 1px solid var(--select-border, rgba(0, 0, 0, 0.2));
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--select-color, #333);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selectInput:hover {
+  border-color: var(--select-hover-border, rgba(0, 0, 0, 0.3));
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: var(--select-focus-border, #4CAF50);
+  box-shadow: 0 0 0 2px var(--select-focus-shadow, rgba(76, 175, 80, 0.2));
+}
+
+.swapButton {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--swap-btn-bg, white);
+  border: 1px solid var(--swap-btn-border, rgba(0, 0, 0, 0.2));
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.swapButton:hover {
+  background: var(--swap-btn-hover-bg, rgba(0, 0, 0, 0.05));
+  border-color: var(--swap-btn-hover-border, rgba(0, 0, 0, 0.3));
+  transform: rotate(180deg);
+}
+
+/* Keyboard Shortcuts */
+.shortcutsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--shortcut-color, #666);
+}
+
+.shortcut kbd {
+  padding: 2px 6px;
+  background: var(--kbd-bg, white);
+  border: 1px solid var(--kbd-border, rgba(0, 0, 0, 0.2));
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--kbd-shadow, rgba(0, 0, 0, 0.1));
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--kbd-color, #333);
+}
+
+/* Screen Reader Only */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Theme Variations */
+.themeLight {
+  --controls-bg: rgba(255, 255, 255, 0.98);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --label-color: #666;
+  --button-color: #666;
+  --button-hover-color: #333;
+  --button-active-bg: white;
+  --button-active-color: #333;
+}
+
+.themeDark {
+  --controls-bg: rgba(30, 30, 30, 0.98);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --label-color: #999;
+  --button-color: #999;
+  --button-hover-color: #fff;
+  --button-active-bg: rgba(255, 255, 255, 0.1);
+  --button-active-color: #fff;
+  --select-bg: rgba(255, 255, 255, 0.05);
+  --select-border: rgba(255, 255, 255, 0.2);
+  --select-color: #fff;
+  --kbd-bg: rgba(255, 255, 255, 0.1);
+  --kbd-border: rgba(255, 255, 255, 0.2);
+  --kbd-color: #fff;
+}
+
+.themePurple {
+  --controls-bg: rgba(88, 44, 124, 0.98);
+  --border-color: rgba(255, 255, 255, 0.2);
+  --label-color: rgba(255, 255, 255, 0.8);
+  --button-color: rgba(255, 255, 255, 0.8);
+  --button-hover-color: #fff;
+  --button-active-bg: rgba(255, 255, 255, 0.2);
+  --button-active-color: #fff;
+  --select-bg: rgba(255, 255, 255, 0.1);
+  --select-border: rgba(255, 255, 255, 0.3);
+  --select-color: #fff;
+  --kbd-bg: rgba(255, 255, 255, 0.2);
+  --kbd-border: rgba(255, 255, 255, 0.3);
+  --kbd-color: #fff;
+}
+
+/* Compact Layout */
+.compact .controlsContent {
+  flex-direction: column;
+}
+
+.compact .controlGroup {
+  min-width: auto;
+}
+
+.compact .buttonGroup {
+  flex-wrap: wrap;
+}
+
+.compact .languageControl {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compact .swapButton {
+  align-self: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .controlsSection {
+    padding: 10px 15px;
+  }
+
+  .toggleButton {
+    top: -35px;
+    right: 15px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .controlGroup {
+    min-width: auto;
+  }
+}
