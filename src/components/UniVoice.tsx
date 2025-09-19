@@ -18,6 +18,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUnifiedPipeline } from '../hooks/useUnifiedPipeline';
 import { useSessionMemory } from '../hooks/useSessionMemory';
 import { useBottomResize } from '../hooks/useBottomResize';
+// 段階的リファクタリング: useSessionControlフックを並行実装用にインポート
+// TODO: 段階的に既存のセッション管理コードと置き換え
+// import { useSessionControl } from './components/UniVoice/hooks/useSessionControl';
 import type { DisplaySegment } from '../utils/RealtimeDisplayManager';
 import type { HistoryBlock } from '../utils/FlexibleHistoryGrouper';
 import { SetupSection } from '../presentation/components/UniVoice/sections/SetupSection';
