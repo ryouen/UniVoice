@@ -150,6 +150,7 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   position: relative;
   -webkit-app-region: drag;
+  overflow: visible;
 }
 
 .header button {
@@ -252,7 +253,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
-  z-index: 10000;
+  z-index: 10003;
   visibility: hidden;
 }
 
@@ -350,6 +351,7 @@
 
 .settingsVisible {
   height: var(--settings-bar-height);
+  overflow: visible;
 }
 
 .settingsBarThemeLight {
@@ -451,7 +453,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
-  z-index: 10000;
+  z-index: 10003;
   visibility: hidden;
 }
 

@@ -269,7 +269,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // 段階的移行: 既存のsetterを新しいフックのsetterでオーバーライド
   // これにより、既存のコードは動作し続けながら、新しいロジックをテストできる
-  const USE_NEW_HEADER_CONTROLS = true; // リファクタリング進行フラグ
   
   // 設定バーの表示/非表示はすでに142行目で宣言済み
   
@@ -1313,7 +1312,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       // ヘッダー表示/非表示切り替え（Alt + H）
       if (e.altKey && !e.ctrlKey && !e.shiftKey && (e.key === 'h' || e.key === 'H')) {
         e.preventDefault();
-        toggleHeader();
+        headerControls.toggleHeader();
       }
       
       // Escキーでヘッダーを再表示
@@ -1639,9 +1638,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   };
 
-  const toggleHeader = () => {
-    setShowHeader(!showHeader);
-  };
 
   // ウィンドウを閉じるハンドラー（Clean Architecture リファクタリング用）
   const handleCloseWindow = async () => {
@@ -2035,7 +2031,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           setDisplay('both');
         } else if (e.key === 'h' || e.key === 'H') {
           e.preventDefault();
-          toggleHeader();
+          headerControls.toggleHeader();
         }
       }
       
@@ -2295,123 +2291,29 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </div>
           
           {/* 右側のボタン群 - 固定位置 */}
-          {USE_NEW_HEADER_CONTROLS ? (
-            // 新しいHeaderControlsコンポーネントを使用
-            <HeaderControls
-              showHeader={showHeader}
-              showSettings={showSettings}
-              isAlwaysOnTop={isAlwaysOnTop}
-              onExpandClick={() => {
-                if (!showHeader) {
-                  setShowHeader(true);
-                } else {
-                  setShowSettings(true);
-                }
-              }}
-              onCollapseClick={() => {
-                if (showSettings) {
-                  setShowSettings(false);
-                } else {
-                  setShowHeader(false);
-                }
-              }}
-              onAlwaysOnTopToggle={async () => { await headerControls.toggleAlwaysOnTop(); }}
-              onClose={handleCloseWindow}
-              getThemeClass={getThemeClass}
-              currentTheme={currentTheme}
-            />
-          ) : (
-            // 既存の実装（段階的移行のため保持）
-            <div style={{ 
-              position: 'absolute',
-              right: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              {/* 設定ボタン - 設定バーの[-]の真上 */}
-              <button className={getThemeClass('controlButton')} onClick={() => {
-                setShowSettings(!showSettings);
-              }} style={{WebkitAppRegion: 'no-drag' as any}}>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
-                  <path d="M10 3.5v-2m0 17v-2m6.5-6.5h2m-17 0h2m12.02-4.52l1.41-1.41M4.93 15.07l1.41-1.41m0-7.32L4.93 4.93m11.14 11.14l1.41 1.41"/>
-                </svg>
-                <span className={styles.tooltip}>設定</span>
-              </button>
-              
-              {/* 最前面固定ボタン - 設定バーの[+]の真上 */}
-              <button 
-              className={classNames(getThemeClass('controlButton'), isAlwaysOnTop && styles.controlButtonActive)}
-              onClick={async () => {
-                const newState = !isAlwaysOnTop;
-                const windowAPI = window.univoice?.window;
-                if (windowAPI?.setAlwaysOnTop) {
-                  await windowAPI.setAlwaysOnTop(newState);
-                  setIsAlwaysOnTop(newState);
-                }
-              }}
-              style={{ WebkitAppRegion: 'no-drag' as any }}
-            >
-              <svg width="16" height="16" viewBox="0 0 18 18" 
-                fill={isAlwaysOnTop ? "currentColor" : "none"} 
-                stroke="currentColor" 
-                strokeWidth="1.5"
-              >
-                <path d="M7 3 L11 3 L11 9 L13 11 L9 15 L5 11 L7 9 Z" 
-                  fill={isAlwaysOnTop ? "currentColor" : "none"} 
-                  opacity={isAlwaysOnTop ? "0.3" : "1"}
-                />
-                <line x1="9" y1="15" x2="9" y2="18"/>
-              </svg>
-              <span className={styles.tooltip}>最前面に固定</span>
-            </button>
-            
-            {/* メニューを隠すボタン */}
-            <button 
-              className={getThemeClass('controlButton')}
-              onClick={() => {
+          <HeaderControls
+            showHeader={showHeader}
+            showSettings={showSettings}
+            isAlwaysOnTop={isAlwaysOnTop}
+            onExpandClick={() => {
+              if (!showHeader) {
+                setShowHeader(true);
+              } else {
+                setShowSettings(true);
+              }
+            }}
+            onCollapseClick={() => {
+              if (showSettings) {
+                setShowSettings(false);
+              } else {
                 setShowHeader(false);
-              }}
-              style={{ WebkitAppRegion: 'no-drag' as any }}
-            >
-              <svg width="16" height="16" viewBox="0 0 18 18" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="1.5"
-              >
-                <rect x="3" y="3" width="12" height="12" rx="1"/>
-                <path d="M6 7 L9 10 L12 7" strokeLinecap="round"/>
-              </svg>
-                <span className={styles.tooltip}>メニューを隠す (Esc で戻る)</span>
-              </button>
-              
-              <div style={{ width: '20px' }} />
-              
-              {/* 閉じるボタン */}
-              <button 
-                className={getThemeClass('controlButton')} 
-                onClick={async () => {
-                  console.log('[UniVoice] 閉じるボタンがクリックされました');
-                  if (window.univoice?.window?.close) {
-                    try {
-                      await window.univoice.window.close();
-                    } catch (error) {
-                      console.error('[UniVoice] ウィンドウクローズエラー:', error);
-                    }
-                  } else {
-                    console.error('[UniVoice] window.univoice.window.close が利用不可');
-                  }
-                }}
-                style={{ WebkitAppRegion: 'no-drag' as any }}
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                </svg>
-                <span className={styles.tooltip}>閉じる</span>
-              </button>
-            </div>
-          )}
+              }
+            }}
+            onAlwaysOnTopToggle={async () => { await headerControls.toggleAlwaysOnTop(); }}
+            onClose={handleCloseWindow}
+            getThemeClass={getThemeClass}
+            currentTheme={currentTheme}
+          />
         </div>
         )}
         
@@ -2549,7 +2451,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             
             {/* ヘッダー復元ボタン */}
             <button 
-              onClick={toggleHeader}
+              onClick={headerControls.toggleHeader}
               style={{
                 width: '24px',
                 height: '24px',
