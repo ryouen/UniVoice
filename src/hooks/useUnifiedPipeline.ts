@@ -1328,82 +1328,82 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       mediaStreamRef.current = stream;
 
       // WebAudio 初期化
-      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
-      const ctx: AudioContext = new AudioCtx({ sampleRate: 16000 });
+      const ctx = new AudioContext({ sampleRate: 16000 });
       audioContextRef.current = ctx;
+
+      // AudioWorkletが未サポートの場合はエラー
+      if (!ctx.audioWorklet) {
+        throw new Error('AudioWorklet is not supported in this browser. Please use a modern browser.');
+      }
+
+      // AudioWorkletモジュールを読み込み
+      await ctx.audioWorklet.addModule('/audio-processor.js');
 
       const source = ctx.createMediaStreamSource(stream);
 
-      // 非推奨だが互換のため ScriptProcessorNode を継続利用
-      const frameSamples = 512; // 32ms@16k
-      const processor = ctx.createScriptProcessor(frameSamples, 1, 1);
-      processorRef.current = processor;
-
-      // 簡易リサンプル: ctx.sampleRate != 16000なら 16k へダウンサンプル
-      const targetRate = 16000;
-      const needResample = Math.abs(ctx.sampleRate - targetRate) > 1;
-      const resampleTo16k = (input: Float32Array, inRate: number): Int16Array => {
-        if (!needResample) {
-          // 変換のみ
-          const out = new Int16Array(input.length);
-          for (let i = 0; i < input.length; i++) {
-            const s = Math.max(-1, Math.min(1, input[i]));
-            out[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-          }
-          return out;
+      // AudioWorkletNodeを作成（UIブロックしない）
+      const workletNode = new AudioWorkletNode(ctx, 'audio-processor', {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        outputChannelCount: [1],
+        processorOptions: {
+          targetSampleRate: 16000,
+          bufferSize: 512,
+          debug: false
         }
-        // 線形補間の単純ダウンサンプル（十分な品質）
-        const ratio = inRate / targetRate;
-        const outLen = Math.floor(input.length / ratio);
-        const out = new Int16Array(outLen);
-        let pos = 0;
-        for (let i = 0; i < outLen; i++) {
-          const idx = i * ratio;
-          const idx0 = Math.floor(idx);
-          const idx1 = Math.min(idx0 + 1, input.length - 1);
-          const frac = idx - idx0;
-          const sample = input[idx0] * (1 - frac) + input[idx1] * frac;
-          const s = Math.max(-1, Math.min(1, sample));
-          out[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
-        return out;
-      };
+      });
+      processorRef.current = workletNode as any;
 
-      // 🔴 音声処理カウンター
+      // AudioWorkletからのメッセージを処理
+
       let audioProcessCount = 0;
       
-      processor.onaudioprocess = (e: AudioProcessingEvent) => {
-        const float = e.inputBuffer.getChannelData(0);
-        const pcm16 = resampleTo16k(float, ctx.sampleRate);
+      workletNode.port.onmessage = (event) => {
+        const { type, data } = event.data;
+
+        switch (type) {
+          case 'initialized':
+            console.log('[useUnifiedPipeline] AudioWorklet initialized:', data);
+            break;
+
+          case 'audio':
+            // PCM16データを受信
+            const pcm16 = new Int16Array(data.pcm16);
+            
+            audioProcessCount++;
+            if (audioProcessCount % 50 === 1) {
+              console.log('[useUnifiedPipeline] Audio processing:', {
+                frameCount: audioProcessCount,
+                pcm16Length: pcm16.length,
+                sampleRate: data.sampleRate,
+                timestamp: data.timestamp,
+                hasElectronAPI: !!window.electron,
+                hasSendAudioChunk: !!window.electron?.sendAudioChunk
+              });
+            }
         
-        audioProcessCount++;
-        if (audioProcessCount % 50 === 1) { // 50フレームごとにログ
-          console.log('[useUnifiedPipeline] Audio processing:', {
-            frameCount: audioProcessCount,
-            floatLength: float.length,
-            pcm16Length: pcm16.length,
-            hasElectronAPI: !!window.electron,
-            hasSendAudioChunk: !!window.electron?.sendAudioChunk,
-            sampleRate: ctx.sampleRate
-          });
-        }
-        
-        if (window.electron?.sendAudioChunk) {
-          // TypedArrayを送信（preload.tsで適切に処理される）
-          window.electron.sendAudioChunk(pcm16);
-          
-          if (audioProcessCount % 50 === 1) {
-            console.log('[useUnifiedPipeline] Sending audio chunk to main process');
-          }
-        } else {
-          if (audioProcessCount % 50 === 1) {
-            console.error('[useUnifiedPipeline] Cannot send audio - electron API not available');
-          }
+            if (window.electron?.sendAudioChunk) {
+              window.electron.sendAudioChunk(pcm16);
+              
+              if (audioProcessCount % 50 === 1) {
+                console.log('[useUnifiedPipeline] Sending audio chunk to main process');
+              }
+            } else {
+              if (audioProcessCount % 50 === 1) {
+                console.error('[useUnifiedPipeline] Cannot send audio - electron API not available');
+              }
+            }
+            break;
+
+          case 'error':
+            console.error('[useUnifiedPipeline] AudioWorklet error:', data);
+            break;
         }
       };
 
-      source.connect(processor);
-      processor.connect(ctx.destination);
+      // 音声グラフを接続
+      source.connect(workletNode);
+      // workletNode.connect(ctx.destination); // 必要に応じて出力（モニタリング用）
       console.log('[useUnifiedPipeline] Audio capture started. ctx.sampleRate=', ctx.sampleRate);
     } catch (err) {
       console.error('[useUnifiedPipeline] Audio capture failed:', err);
@@ -1416,6 +1416,11 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       console.log('[useUnifiedPipeline] Stopping audio capture...');
       
       if (processorRef.current) {
+        // AudioWorkletNodeに停止メッセージを送信
+        if ('port' in processorRef.current) {
+          (processorRef.current as AudioWorkletNode).port.postMessage({ type: 'stop' });
+        }
+        
         processorRef.current.disconnect();
         processorRef.current = null;
       }
