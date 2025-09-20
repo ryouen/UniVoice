@@ -124,7 +124,7 @@ async function createWindow() {
             type: 'normal', // toolbarではなくnormalに設定
             skipTaskbar: false,
             hasShadow: false, // 影を無効化（フォーカス問題の回避）
-            thickFrame: false, // フレームを無効化（透過ウィンドウとの相性改善）
+            // thickFrameはWindowRegistryでresizable設定に基づいて制御
             acceptFirstMouse: true, // 最初のクリックを受け入れる
             // Windows 11での透過ウィンドウのフォーカス問題を回避
             ...(supportsTransparency ? {
@@ -291,27 +291,8 @@ async function createWindow() {
     // Remove focus event handlers completely - they may interfere with natural focus behavior
     // Transparent windows on Windows have known focus issues, and event handlers can make it worse
     // Remove leave-full-screen handler as it's not relevant for our use case
-    // Custom drag implementation for better focus handling
-    electron_1.ipcMain.on('window:startDrag', () => {
-        if (process.platform === 'win32') {
-            const currentWindow = getMainWindow();
-            if (currentWindow && !currentWindow.isDestroyed()) {
-                // Use Electron's native startDrag for Windows
-                currentWindow.webContents.send('window:dragStarted');
-            }
-        }
-    });
-    electron_1.ipcMain.on('window:endDrag', () => {
-        if (process.platform === 'win32') {
-            const currentWindow = getMainWindow();
-            if (currentWindow && !currentWindow.isDestroyed()) {
-                // Simply ensure the window can receive mouse events
-                currentWindow.setIgnoreMouseEvents(false);
-                // Removed opacity manipulation to prevent focus issues
-                // Let Windows handle focus naturally
-            }
-        }
-    });
+    // Note: Custom drag handlers removed - not being used by frontend
+    // Electron's built-in drag behavior works well with our current setup
     mainLogger.info('createWindow completed successfully');
     // IPC Gateway and Pipeline Service are setup in app.whenReady()
     // Auto-approve media device permissions

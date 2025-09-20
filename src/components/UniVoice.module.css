@@ -81,6 +81,11 @@
   border-radius: 12px; /* 四隅の角丸 */
   overflow: hidden; /* 角丸の内側に収める */
   /* Removed min-height: 100vh to prevent window resize issues */
+  
+  /* フレームレスウィンドウ: デフォルトでドラッグ不可 */
+  -webkit-app-region: no-drag;
+  -webkit-user-select: none; /* ドラッグ中のテキスト選択を防ぐ */
+  user-select: none;
 }
 
 /* グラスモーフィズムの基本効果 */
@@ -147,6 +152,10 @@
   align-items: center;
   padding: 12px 20px;
   gap: 10px;
+  
+  /* フレームレスウィンドウ: ヘッダーはドラッグ可能 */
+  -webkit-app-region: drag;
+  cursor: move;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   position: relative;
   /* Remove app-region from entire header */
@@ -203,8 +212,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  /* フレームレスウィンドウ: ボタンはドラッグ不可 */
+  -webkit-app-region: no-drag;
   transition: var(--transition-default);
   position: relative;
+}
+
+/* すべてのインタラクティブ要素をドラッグ不可に */
+button,
+input,
+textarea,
+select,
+a,
+[role="button"] {
+  -webkit-app-region: no-drag;
 }
 
 .controlButtonLight {
@@ -399,6 +421,9 @@
   justify-content: space-between;
   height: 100%;
   padding: 0 20px;
+  
+  /* フレームレスウィンドウ: 設定エリアはドラッグ不可 */
+  -webkit-app-region: no-drag;
 }
 
 .settingsGroupLeft,
@@ -499,6 +524,9 @@
   box-sizing: border-box;
   z-index: 1;
   flex-shrink: 0;
+  
+  /* フレームレスウィンドウ: コンテンツエリアはドラッグ不可 */
+  -webkit-app-region: no-drag;
 }
 
 .realtimeAreaThemeLight {
@@ -610,6 +638,9 @@
   transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   flex-shrink: 0;
+  
+  /* フレームレスウィンドウ: 質問エリアはドラッグ不可 */
+  -webkit-app-region: no-drag;
 }
 
 .questionAreaThemeLight {

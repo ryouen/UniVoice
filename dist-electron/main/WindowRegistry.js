@@ -93,6 +93,8 @@ class WindowRegistry {
             existing.focus();
             return existing;
         }
+        // ロール別のデフォルト設定を先に取得
+        const roleDefaults = this.getRoleDefaults(role);
         // デフォルト設定
         const defaults = {
             show: false,
@@ -100,6 +102,10 @@ class WindowRegistry {
             transparent: true, // 透過を有効化（グラスモーフィズム効果）
             backgroundColor: '#00000000', // 完全透明の背景
             focusable: true, // フォーカス可能を明示
+            // Windowsでのリサイズ制御: resizable設定に基づいてthickFrameを決定
+            ...(process.platform === 'win32' ? {
+                thickFrame: roleDefaults.resizable !== false // resizableがfalseでなければthickFrame有効
+            } : {}),
             webPreferences: {
                 preload: path.join(__dirname, '..', 'preload.js'),
                 contextIsolation: true,
@@ -107,8 +113,6 @@ class WindowRegistry {
                 sandbox: false
             }
         };
-        // ロール別のデフォルト設定
-        const roleDefaults = this.getRoleDefaults(role);
         console.log(`[WindowRegistry] Creating window for role: ${role}`, {
             defaults: { width: defaults.width, height: defaults.height },
             roleDefaults,
