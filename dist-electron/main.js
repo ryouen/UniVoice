@@ -123,8 +123,9 @@ async function createWindow() {
         ...(isWindows ? {
             type: 'normal', // toolbarではなくnormalに設定
             skipTaskbar: false,
-            hasShadow: true,
+            hasShadow: false, // 影を無効化（フォーカス問題の回避）
             thickFrame: false, // フレームを無効化（透過ウィンドウとの相性改善）
+            acceptFirstMouse: true, // 最初のクリックを受け入れる
             // Windows 11での透過ウィンドウのフォーカス問題を回避
             ...(supportsTransparency ? {
                 backgroundMaterial: 'none'
@@ -287,27 +288,8 @@ async function createWindow() {
             mainLogger.error('mainWindow is null or destroyed in ready-to-show');
         }
     });
-    // Handle focus issues with transparent windows on Windows
-    mainWindow.on('blur', () => {
-        mainLogger.debug('Window lost focus');
-        // Do NOT call blur() in the blur event - it causes recursion
-        if (process.platform === 'win32') {
-            // Release any captured mouse state
-            mainWindow.setIgnoreMouseEvents(false);
-            // Even when always on top, allow other windows to receive focus
-            // The window stays on top visually but doesn't steal focus
-            mainWindow.setFocusable(true);
-        }
-    });
-    mainWindow.on('focus', () => {
-        mainLogger.debug('Window gained focus');
-        // Do NOT call focus() in the focus event - it causes recursion
-        if (process.platform === 'win32') {
-            // Ensure window accepts mouse events
-            mainWindow.setIgnoreMouseEvents(false);
-            mainWindow.setFocusable(true);
-        }
-    });
+    // Remove focus event handlers completely - they may interfere with natural focus behavior
+    // Transparent windows on Windows have known focus issues, and event handlers can make it worse
     // Remove leave-full-screen handler as it's not relevant for our use case
     // Custom drag implementation for better focus handling
     electron_1.ipcMain.on('window:startDrag', () => {
@@ -325,12 +307,8 @@ async function createWindow() {
             if (currentWindow && !currentWindow.isDestroyed()) {
                 // Simply ensure the window can receive mouse events
                 currentWindow.setIgnoreMouseEvents(false);
-                // Force Windows to re-evaluate window focus
-                // This helps with transparent window issues
-                currentWindow.setOpacity(0.99);
-                setTimeout(() => {
-                    currentWindow.setOpacity(1);
-                }, 10);
+                // Removed opacity manipulation to prevent focus issues
+                // Let Windows handle focus naturally
             }
         }
     });
@@ -427,13 +405,16 @@ function setupWindowControls() {
                 // Windows specific: Use 'floating' level for better focus behavior
                 // 'floating' allows other windows to receive focus while keeping this window on top
                 if (process.platform === 'win32') {
-                    mainWindow.setAlwaysOnTop(true, 'floating');
+                    // Use 'normal' level for better focus behavior on Windows
+                    // Based on recent Electron behavior, 'normal' works better than 'floating'
+                    mainWindow.setAlwaysOnTop(true, 'normal');
                     // Ensure window remains in taskbar
                     mainWindow.setSkipTaskbar(false);
                     // Allow the window to lose focus
                     mainWindow.setFocusable(true);
                 }
                 else {
+                    // Keep 'floating' for other platforms
                     mainWindow.setAlwaysOnTop(true, 'floating');
                 }
             }

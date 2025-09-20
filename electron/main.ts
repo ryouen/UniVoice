@@ -133,8 +133,9 @@ async function createWindow() {
     ...(isWindows ? {
       type: 'normal', // toolbarではなくnormalに設定
       skipTaskbar: false,
-      hasShadow: true,
+      hasShadow: false, // 影を無効化（フォーカス問題の回避）
       thickFrame: false, // フレームを無効化（透過ウィンドウとの相性改善）
+      acceptFirstMouse: true, // 最初のクリックを受け入れる
       // Windows 11での透過ウィンドウのフォーカス問題を回避
       ...(supportsTransparency ? {
         backgroundMaterial: 'none'
@@ -294,18 +295,8 @@ async function createWindow() {
     }
   });
 
-  // Handle focus events - simplified to prevent recursion
-  mainWindow.on('blur', () => {
-    mainLogger.debug('Window lost focus');
-    // Simplified handler - let Electron handle focus naturally
-    // No manipulation of window state to prevent recursion
-  });
-
-  mainWindow.on('focus', () => {
-    mainLogger.debug('Window gained focus');
-    // Simplified handler - let Electron handle focus naturally
-    // No manipulation of window state to prevent recursion
-  });
+  // Remove focus event handlers completely - they may interfere with natural focus behavior
+  // Transparent windows on Windows have known focus issues, and event handlers can make it worse
 
   // Remove leave-full-screen handler as it's not relevant for our use case
 
