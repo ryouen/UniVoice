@@ -793,6 +793,39 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   }, [pipeline]);
   
+  // ウィンドウを閉じる処理
+  const handleCloseWindow = useCallback(async () => {
+    console.log('[UniVoice] handleCloseWindow called');
+    console.log('[UniVoice] window object:', window);
+    console.log('[UniVoice] window.univoice:', window.univoice);
+    console.log('[UniVoice] window.univoice?.window:', window.univoice?.window);
+    console.log('[UniVoice] window.univoice?.window?.close:', window.univoice?.window?.close);
+    
+    // 型チェックのため分解
+    const univoiceApi = (window as any).univoice;
+    console.log('[UniVoice] univoiceApi (raw):', univoiceApi);
+    
+    if (univoiceApi?.window?.close) {
+      try {
+        console.log('[UniVoice] Calling window.close()');
+        const result = await univoiceApi.window.close();
+        console.log('[UniVoice] window.close() result:', result);
+      } catch (error) {
+        console.error('[UniVoice] Error closing window:', error);
+      }
+    } else {
+      console.error('[UniVoice] window.univoice.window.close is not available');
+      // WindowClient経由も試す
+      try {
+        console.log('[UniVoice] Trying WindowClient.close()');
+        const windowClient = new WindowClient();
+        await windowClient.close();
+      } catch (error) {
+        console.error('[UniVoice] WindowClient.close() error:', error);
+      }
+    }
+  }, []);
+
   // 次の授業へ移行
   const nextClass = useCallback(() => {
     console.log('[UniVoice] ➡️ Moving to next class');
@@ -1651,19 +1684,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   };
 
 
-  // ウィンドウを閉じるハンドラー（Clean Architecture リファクタリング用）
-  const handleCloseWindow = async () => {
-    console.log('[UniVoice] 閉じるボタンがクリックされました');
-    if (window.univoice?.window?.close) {
-      try {
-        await window.univoice.window.close();
-      } catch (error) {
-        console.error('[UniVoice] ウィンドウクローズエラー:', error);
-      }
-    } else {
-      console.error('[UniVoice] window.univoice.window.close が利用不可');
-    }
-  };
 
 
   // Duplicate endSession removed - using the wrapper from line 597
@@ -2044,6 +2064,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         } else if (e.key === 'h' || e.key === 'H') {
           e.preventDefault();
           headerControls.toggleHeader();
+        } else if (e.key === 'F4') {
+          // Alt + F4: アプリケーションを閉じる
+          console.log('[UniVoice] Alt+F4 pressed');
+          e.preventDefault();
+          handleCloseWindow();
         }
       }
       
@@ -2102,7 +2127,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keydown', handleKeyDown, false);
     };
-  }, [showHeader]);
+  }, [showHeader, handleCloseWindow]);
   
   // ========== セットアップ画面 ==========
   if (showSetup) {
@@ -2442,9 +2467,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             alignItems: 'center',
             padding: '0 16px',
             gap: '8px',
-            borderBottom: `1px solid ${currentTheme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`,
             flexShrink: 0,
-            WebkitAppRegion: 'drag' as any  // ミニマルヘッダーもドラッグ可能に
+            WebkitAppRegion: 'drag' as any,  // ミニマルヘッダーもドラッグ可能に
+            // borderBottomはCSS Modulesで管理するため削除
+            position: 'relative',
+            top: 0,  // 明示的に位置を指定
+            marginTop: 0,  // 上部マージンを無効化
+            paddingTop: 0  // 上部パディングを無効化
           }}>
             {/* 録音状態 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: isPaused ? '#FFA500' : '#4CAF50' }}>

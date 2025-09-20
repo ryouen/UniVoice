@@ -687,6 +687,13 @@ a,
   gap: 8px;
   flex-shrink: 0;
   position: relative;
+  /* 上部に完全に密着させる */
+  margin-top: 0;
+  padding-top: 0;
+  top: 0;
+  /* border-radiusによる隙間を防ぐ */
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 /* Compact header drag handle */
@@ -710,21 +717,57 @@ a,
 }
 
 .headerCompactThemeLight {
-  composes: headerCompact themeLight;
+  composes: headerCompact;
   background: rgba(255, 255, 255, 0.5);  /* コンパクトメニュー Opacity 0.5 */
+  border: none;  /* 上部の境界線を無効化 */
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  /* glassmorphismから継承される可能性のあるスタイルを明示的に無効化 */
+  box-shadow: none !important;
+  outline: none !important;
+  /* backdrop-filterはそのまま維持（グラスモーフィズム効果） */
+  backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  /* グラデーション背景は削除 */
+  background-image: none;
 }
 
 .headerCompactThemeDark {
-  composes: headerCompact themeDark;
+  composes: headerCompact;
   background: rgba(30, 30, 30, 0.5);  /* コンパクトメニュー Opacity 0.5 */
+  border: none;  /* 上部の境界線を無効化 */
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  /* glassmorphismから継承される可能性のあるスタイルを明示的に無効化 */
+  box-shadow: none !important;
+  outline: none !important;
+  /* backdrop-filterはそのまま維持（グラスモーフィズム効果） */
+  backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  /* グラデーション背景は削除 */
+  background-image: none;
 }
 
 .headerCompactThemePurple {
-  composes: headerCompact themePurple;
+  composes: headerCompact;
   background: rgba(102, 51, 153, 0.5);  /* コンパクトメニュー Opacity 0.5 */
+  border: none;  /* 上部の境界線を無効化 */
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  /* glassmorphismから継承される可能性のあるスタイルを明示的に無効化 */
+  box-shadow: none !important;
+  outline: none !important;
+  /* backdrop-filterはそのまま維持（グラスモーフィズム効果） */
+  backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  /* グラデーション背景は削除 */
+  background-image: none;
 }
 
 /* ========================================

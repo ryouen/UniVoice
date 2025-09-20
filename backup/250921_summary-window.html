@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniVoice - Summary</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Light Theme Variables */
+            --theme-light-bg: rgba(255, 255, 255, 0.95);
+            --theme-light-bg-secondary: rgba(248, 250, 252, 0.98);
+            --theme-light-border: rgba(226, 232, 240, 0.8);
+            --theme-light-text-primary: #1e293b;
+            --theme-light-text-secondary: #64748b;
+            --theme-light-source-color: #334155;
+            --theme-light-target-color: #1e40af;
+            --theme-light-accent: #3b82f6;
+            --theme-light-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            --theme-light-hover: rgba(59, 130, 246, 0.08);
+            --theme-light-button-bg: rgba(0, 0, 0, 0.06);
+            --theme-light-button-hover: rgba(0, 0, 0, 0.1);
+            
+            /* Dark Theme Variables */
+            --theme-dark-bg: rgba(15, 23, 42, 0.95);
+            --theme-dark-bg-secondary: rgba(30, 41, 59, 0.98);
+            --theme-dark-border: rgba(51, 65, 85, 0.6);
+            --theme-dark-text-primary: #f1f5f9;
+            --theme-dark-text-secondary: #94a3b8;
+            --theme-dark-source-color: #e2e8f0;
+            --theme-dark-target-color: #60a5fa;
+            --theme-dark-accent: #3b82f6;
+            --theme-dark-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --theme-dark-hover: rgba(59, 130, 246, 0.15);
+            --theme-dark-button-bg: rgba(255, 255, 255, 0.15);
+            --theme-dark-button-hover: rgba(255, 255, 255, 0.25);
+            
+            /* Purple Theme Variables */
+            --theme-purple-bg: rgba(88, 28, 135, 0.95);
+            --theme-purple-bg-secondary: rgba(107, 33, 168, 0.98);
+            --theme-purple-border: rgba(147, 51, 234, 0.6);
+            --theme-purple-text-primary: #faf5ff;
+            --theme-purple-text-secondary: #e9d5ff;
+            --theme-purple-source-color: #f3e8ff;
+            --theme-purple-target-color: #c4b5fd;
+            --theme-purple-accent: #8b5cf6;
+            --theme-purple-shadow: 0 8px 32px rgba(88, 28, 135, 0.3);
+            --theme-purple-hover: rgba(139, 92, 246, 0.15);
+            --theme-purple-button-bg: rgba(255, 255, 255, 0.2);
+            --theme-purple-button-hover: rgba(255, 255, 255, 0.3);
+            
+            /* Common Variables */
+            --blur-amount: 10px;
+            --saturate-amount: 200%;
+            --transition-default: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Font Scale - メイン画面と連動 */
+            --font-scale: 1;
+            
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+            font-size: calc(16px * var(--font-scale));
+        }
+
+        /* Theme Application */
+        .theme-light {
+            --current-bg: var(--theme-light-bg);
+            --current-bg-secondary: var(--theme-light-bg-secondary);
+            --current-border: var(--theme-light-border);
+            --current-text-primary: var(--theme-light-text-primary);
+            --current-text-secondary: var(--theme-light-text-secondary);
+            --current-source-color: var(--theme-light-source-color);
+            --current-target-color: var(--theme-light-target-color);
+            --current-accent: var(--theme-light-accent);
+            --current-shadow: var(--theme-light-shadow);
+            --current-hover: var(--theme-light-hover);
+            --current-button-bg: var(--theme-light-button-bg);
+            --current-button-hover: var(--theme-light-button-hover);
+        }
+
+        .theme-dark {
+            --current-bg: var(--theme-dark-bg);
+            --current-bg-secondary: var(--theme-dark-bg-secondary);
+            --current-border: var(--theme-dark-border);
+            --current-text-primary: var(--theme-dark-text-primary);
+            --current-text-secondary: var(--theme-dark-text-secondary);
+            --current-source-color: var(--theme-dark-source-color);
+            --current-target-color: var(--theme-dark-target-color);
+            --current-accent: var(--theme-dark-accent);
+            --current-shadow: var(--theme-dark-shadow);
+            --current-hover: var(--theme-dark-hover);
+            --current-button-bg: var(--theme-dark-button-bg);
+            --current-button-hover: var(--theme-dark-button-hover);
+        }
+
+        .theme-purple {
+            --current-bg: var(--theme-purple-bg);
+            --current-bg-secondary: var(--theme-purple-bg-secondary);
+            --current-border: var(--theme-purple-border);
+            --current-text-primary: var(--theme-purple-text-primary);
+            --current-text-secondary: var(--theme-purple-text-secondary);
+            --current-source-color: var(--theme-purple-source-color);
+            --current-target-color: var(--theme-purple-target-color);
+            --current-accent: var(--theme-purple-accent);
+            --current-shadow: var(--theme-purple-shadow);
+            --current-hover: var(--theme-purple-hover);
+            --current-button-bg: var(--theme-purple-button-bg);
+            --current-button-hover: var(--theme-purple-button-hover);
+        }
+
+        /* Main Container */
+        .summary-window {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--current-bg);
+            backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+            border: 1px solid var(--current-border);
+            box-shadow: var(--current-shadow);
+            color: var(--current-text-primary);
+            transition: var(--transition-default);
+        }
+
+        /* Header Bar - メイン画面のヘッダー高さと統一 */
+        .header-bar {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: var(--current-bg-secondary);
+            border-bottom: 1px solid var(--current-border);
+            user-select: none;
+            -webkit-app-region: drag;
+        }
+
+        /* Left Group - 表示モード + テーマ */
+        .left-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            -webkit-app-region: no-drag;
+        }
+
+        .display-mode-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .mode-button {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--current-button-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-default);
+            color: var(--current-text-primary);
+        }
+
+        .mode-button:hover {
+            background: var(--current-button-hover);
+        }
+
+        .mode-button.active {
+            background: var(--current-accent);
+            color: white;
+        }
+
+        .theme-button {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--current-button-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-default);
+            color: var(--current-text-primary);
+            margin-left: 6px;
+        }
+
+        .theme-button:hover {
+            background: var(--current-button-hover);
+        }
+
+        /* Center Group - ナビゲーション */
+        .center-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            -webkit-app-region: no-drag;
+        }
+
+        .nav-button {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--current-button-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-default);
+            color: var(--current-text-primary);
+        }
+
+        .nav-button:hover {
+            background: var(--current-button-hover);
+        }
+
+        .nav-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .nav-button svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        .stage-indicator {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--current-text-primary);
+            min-width: 100px;
+            text-align: center;
+        }
+
+        /* Right Group - フォント + 閉じる */
+        .right-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            -webkit-app-region: no-drag;
+        }
+
+        .font-button {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--current-button-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-default);
+            color: var(--current-text-primary);
+        }
+
+        .font-button:hover {
+            background: var(--current-button-hover);
+        }
+
+        .close-button {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--current-button-bg);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-default);
+            margin-left: 6px;
+        }
+
+        .close-button:hover {
+            background: var(--current-button-hover);
+        }
+
+        .close-button svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 24px;
+        }
+
+        .content-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .content-area::-webkit-scrollbar-thumb {
+            background: var(--current-border);
+            border-radius: 4px;
+        }
+
+        .content-area::-webkit-scrollbar-thumb:hover {
+            background: var(--current-text-secondary);
+        }
+
+        /* Summary blocks with table structure for better text selection */
+        .summary-blocks-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .summary-block {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            margin-bottom: 24px;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .summary-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .block-row {
+            display: table-row;
+        }
+
+        .block-source, .block-target {
+            display: table-cell;
+            padding: 16px 24px;
+            line-height: 1.7;
+            font-size: calc(15px * var(--font-scale));
+            vertical-align: top;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+            position: relative;
+            cursor: text;
+        }
+
+        .block-source {
+            width: 49%;
+            color: var(--current-source-color);
+            border-right: 1px solid var(--current-border);
+        }
+
+        .block-target {
+            width: 49%;
+            color: var(--current-target-color);
+            font-weight: 500;
+            border-left: 1px solid var(--current-border);
+        }
+
+        .block-source:hover, .block-target:hover {
+            background-color: var(--current-hover);
+        }
+
+        /* Display mode classes */
+        .mode-source .block-target {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .mode-target .block-source {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .mode-both .block-source,
+        .mode-both .block-target {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .paragraph-separator {
+            height: 1px;
+            background: var(--current-border);
+            margin: 20px 0;
+            opacity: 0.5;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--current-text-secondary);
+            font-size: 14px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .summary-block {
+                display: block;
+            }
+            
+            .block-source, .block-target {
+                display: block;
+                width: 100%;
+                border: none;
+                border-bottom: 1px solid var(--current-border);
+            }
+            
+            .header-bar {
+                padding: 0 16px;
+            }
+            
+            .left-group, .right-group {
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="summary-window theme-light" id="summaryWindow">
+        <!-- Header Bar with 8 buttons in exact positions -->
+        <div class="header-bar">
+            <!-- Left Group: [両][左][右] [○] -->
+            <div class="left-group">
+                <div class="display-mode-group">
+                    <!-- 両方表示 -->
+                    <button class="mode-button active" id="modeBoth">
+                        <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
+                            <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
+                            <rect x="10" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
+                        </svg>
+                    </button>
+                    <!-- 原文のみ -->
+                    <button class="mode-button" id="modeSource">
+                        <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
+                            <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
+                            <rect x="10" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
+                        </svg>
+                    </button>
+                    <!-- 翻訳のみ -->
+                    <button class="mode-button" id="modeTarget">
+                        <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
+                            <rect x="1" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
+                            <rect x="10" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- テーマ切り替え -->
+                <button class="theme-button" id="themeButton">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Center Group: ◀ Summary 4/5 ▶ -->
+            <div class="center-group">
+                <button class="nav-button" id="prevButton">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                
+                <div class="stage-indicator" id="stageIndicator">Summary 5/5</div>
+                
+                <button class="nav-button" id="nextButton" disabled>
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Right Group: [-][T][+] [×] -->
+            <div class="right-group">
+                <!-- フォント縮小 -->
+                <button class="font-button" id="fontDecrease">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M4 9 L14 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <!-- フォントリセット -->
+                <button class="font-button" id="fontReset">
+                    <span style="font-size: 14px; font-weight: 600;">T</span>
+                </button>
+                <!-- フォント拡大 -->
+                <button class="font-button" id="fontIncrease">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                
+                <!-- 閉じるボタン -->
+                <button class="close-button" id="closeButton">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area" id="contentArea">
+            <div class="summary-blocks-container mode-both" id="summaryBlocks">
+                <!-- Summary blocks will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentStage = 5;
+        const maxStage = 5;
+        let currentTheme = 'light';
+        let currentDisplayMode = 'both';
+        let currentFontScale = 1;
+
+        // Sample data
+        const summaryData = {
+            1: {
+                source: [
+                    "This introductory session provided a foundational overview of artificial intelligence concepts, focusing on basic machine learning principles and their real-world applications in modern technology."
+                ],
+                target: [
+                    "この導入セッションでは、人工知能の概念の基礎的概要を提供し、基本的な機械学習の原理と現代技術における実世界での応用に焦点を当てました。"
+                ]
+            },
+            2: {
+                source: [
+                    "The lecture expanded on fundamental AI concepts, introducing supervised and unsupervised learning methodologies.",
+                    "We examined how neural networks process information through interconnected layers, mimicking aspects of human cognitive processes."
+                ],
+                target: [
+                    "講義では基本的なAIの概念を拡張し、教師ありおよび教師なし学習の方法論を紹介しました。",
+                    "人間の認知プロセスの側面を模倣して、ニューラルネットワークが相互接続された層を通じてどのように情報を処理するかを検討しました。"
+                ]
+            },
+            3: {
+                source: [
+                    "Our comprehensive exploration covered the three major paradigms of machine learning in detail.",
+                    "Supervised learning utilizes labeled datasets to train models for prediction tasks, while unsupervised learning discovers hidden patterns in data.",
+                    "Reinforcement learning enables agents to learn optimal strategies through environmental interaction and reward mechanisms."
+                ],
+                target: [
+                    "私たちの包括的な探求では、機械学習の3つの主要なパラダイムを詳細にカバーしました。",
+                    "教師あり学習は予測タスクのためにモデルを訓練するためにラベル付きデータセットを利用し、一方で教師なし学習はデータの隠れたパターンを発見します。",
+                    "強化学習は、環境との相互作用と報酬メカニズムを通じてエージェントが最適な戦略を学習することを可能にします。"
+                ]
+            },
+            4: {
+                source: [
+                    "Deep learning represents the forefront of AI technology, utilizing multi-layered neural networks for complex pattern recognition.",
+                    "Convolutional neural networks excel in computer vision tasks, while recurrent neural networks handle sequential data processing effectively.",
+                    "These advanced architectures have transformed industries from healthcare to autonomous vehicles, demonstrating AI's practical impact."
+                ],
+                target: [
+                    "ディープラーニングはAI技術の最前線を表し、複雑なパターン認識のために多層ニューラルネットワークを利用しています。",
+                    "畳み込みニューラルネットワークはコンピュータビジョンタスクに優れ、リカレントニューラルネットワークは逐次データ処理を効果的に処理します。",
+                    "これらの高度なアーキテクチャは、ヘルスケアから自動運転車まで産業を変革し、AIの実用的な影響を実証しています。"
+                ]
+            },
+            5: {
+                source: [
+                    "Today's comprehensive lecture extensively covered the fundamental principles and advanced applications of artificial intelligence and machine learning technologies. We explored how neural networks process information, make decisions, and learn from data patterns.",
+                    "Machine learning algorithms can be categorized into three primary paradigms: supervised learning, which uses labeled datasets to train predictive models; unsupervised learning, which discovers hidden patterns in unlabeled data; and reinforcement learning, which enables agents to learn optimal behaviors through environmental interaction.",
+                    "Deep learning networks represent the cutting-edge of artificial intelligence, consisting of multiple interconnected layers that progressively extract higher-level features from raw input data. These sophisticated architectures have revolutionized fields ranging from computer vision to natural language processing."
+                ],
+                target: [
+                    "今日の包括的な講義では、人工知能と機械学習技術の基本原理と高度な応用について広範囲にわたって取り扱いました。ニューラルネットワークがどのように情報を処理し、意思決定を行い、データパターンから学習するかを探求しました。",
+                    "機械学習アルゴリズムは3つの主要なパラダイムに分類できます：予測モデルを訓練するためにラベル付きデータセットを使用する教師あり学習、ラベルなしデータの隠れたパターンを発見する教師なし学習、そして環境との相互作用を通じて最適な行動を学習することをエージェントに可能にする強化学習です。",
+                    "ディープラーニングネットワークは人工知能の最先端を表しており、生の入力データから段階的により高次の特徴を抽出する複数の相互接続された層で構成されています。これらの洗練されたアーキテクチャは、コンピュータビジョンから自然言語処理に至るまでの分野に革命をもたらしました。"
+                ]
+            }
+        };
+
+        // Font scale management
+        function changeFontScale(direction) {
+            if (direction === 0) {
+                currentFontScale = 1;
+            } else if (direction === 1) {
+                currentFontScale = Math.min(2.0, currentFontScale * 1.1);
+            } else if (direction === -1) {
+                currentFontScale = Math.max(0.7, currentFontScale * 0.9);
+            }
+            
+            document.documentElement.style.setProperty('--font-scale', currentFontScale);
+            
+            // Sync with main window
+            if (window.electron?.send) {
+                window.electron.send('font-scale-change', { scale: currentFontScale });
+            }
+        }
+
+        // Display mode management
+        function setDisplayMode(mode) {
+            currentDisplayMode = mode;
+            const container = document.getElementById('summaryBlocks');
+            
+            // Remove previous mode classes
+            container.classList.remove('mode-source', 'mode-target', 'mode-both');
+            container.classList.add(`mode-${mode}`);
+            
+            // Update button states
+            document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
+            const targetButton = mode === 'both' ? 'modeBoth' : 
+                               mode === 'source' ? 'modeSource' : 'modeTarget';
+            document.getElementById(targetButton).classList.add('active');
+            
+            // Sync with main window
+            if (window.electron?.send) {
+                window.electron.send('display-mode-change', { mode });
+            }
+        }
+
+        // Theme management
+        function cycleTheme() {
+            const themes = ['light', 'dark', 'purple'];
+            const currentIndex = themes.indexOf(currentTheme);
+            currentTheme = themes[(currentIndex + 1) % themes.length];
+            
+            const window = document.getElementById('summaryWindow');
+            window.className = `summary-window theme-${currentTheme}`;
+            
+            // Sync with main window
+            if (window.electron?.send) {
+                window.electron.send('theme-change', { theme: currentTheme });
+            }
+        }
+
+        // Navigation
+        function previousSummary() {
+            if (currentStage > 1) {
+                currentStage--;
+                updateContent();
+            }
+        }
+
+        function nextSummary() {
+            if (currentStage < maxStage) {
+                currentStage++;
+                updateContent();
+            }
+        }
+
+        // Content update
+        function updateContent() {
+            const data = summaryData[currentStage];
+            if (!data) return;
+
+            document.getElementById('stageIndicator').textContent = `Summary ${currentStage}/${maxStage}`;
+
+            // Create table-based blocks for better text selection
+            const summaryBlocks = document.getElementById('summaryBlocks');
+            let blocksHTML = '';
+
+            const maxParagraphs = Math.max(data.source.length, data.target.length);
+            for (let i = 0; i < maxParagraphs; i++) {
+                const sourceText = data.source[i] || '';
+                const targetText = data.target[i] || '';
+                
+                blocksHTML += `
+                    <div class="summary-block">
+                        <div class="block-row">
+                            <div class="block-source">${sourceText}</div>
+                            <div class="block-target">${targetText}</div>
+                        </div>
+                    </div>
+                `;
+                
+                if (i < maxParagraphs - 1) {
+                    blocksHTML += '<div class="paragraph-separator"></div>';
+                }
+            }
+
+            summaryBlocks.innerHTML = blocksHTML;
+
+            // Update navigation buttons
+            document.getElementById('prevButton').disabled = currentStage === 1;
+            document.getElementById('nextButton').disabled = currentStage === maxStage;
+        }
+
+        // Close window
+        function closeWindow() {
+            if (window.electron?.send) {
+                window.electron.send('close-summary-window');
+            } else {
+                console.log('Close window requested');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Display mode buttons
+            document.getElementById('modeBoth').addEventListener('click', () => setDisplayMode('both'));
+            document.getElementById('modeSource').addEventListener('click', () => setDisplayMode('source'));
+            document.getElementById('modeTarget').addEventListener('click', () => setDisplayMode('target'));
+            
+            // Theme button
+            document.getElementById('themeButton').addEventListener('click', cycleTheme);
+            
+            // Navigation buttons
+            document.getElementById('prevButton').addEventListener('click', previousSummary);
+            document.getElementById('nextButton').addEventListener('click', nextSummary);
+            
+            // Font buttons
+            document.getElementById('fontDecrease').addEventListener('click', () => changeFontScale(-1));
+            document.getElementById('fontReset').addEventListener('click', () => changeFontScale(0));
+            document.getElementById('fontIncrease').addEventListener('click', () => changeFontScale(1));
+            
+            // Close button
+            document.getElementById('closeButton').addEventListener('click', closeWindow);
+            
+            // Initialize content
+            updateContent();
+        });
+
+        // Sync with main window
+        window.addEventListener('message', function(e) {
+            if (e.data.type === 'theme-change') {
+                currentTheme = e.data.theme;
+                const window = document.getElementById('summaryWindow');
+                window.className = `summary-window theme-${currentTheme}`;
+            } else if (e.data.type === 'font-scale-change') {
+                currentFontScale = e.data.scale;
+                document.documentElement.style.setProperty('--font-scale', currentFontScale);
+            } else if (e.data.type === 'display-mode-change') {
+                setDisplayMode(e.data.mode);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'Escape':
+                    closeWindow();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    previousSummary();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    nextSummary();
+                    break;
+                case '1':
+                    if (e.altKey) {
+                        e.preventDefault();
+                        setDisplayMode('source');
+                    }
+                    break;
+                case '2':
+                    if (e.altKey) {
+                        e.preventDefault();
+                        setDisplayMode('both');
+                    }
+                    break;
+                case '3':
+                    if (e.altKey) {
+                        e.preventDefault();
+                        setDisplayMode('target');
+                    }
+                    break;
+                case '=':
+                case '+':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        changeFontScale(1);
+                    }
+                    break;
+                case '-':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        changeFontScale(-1);
+                    }
+                    break;
+                case '0':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        changeFontScale(0);
+                    }
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>

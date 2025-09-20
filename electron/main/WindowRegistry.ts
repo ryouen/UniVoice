@@ -75,6 +75,7 @@ export class WindowRegistry {
       transparent: true, // 透過を有効化（グラスモーフィズム効果）
       backgroundColor: '#00000000', // 完全透明の背景
       focusable: true, // フォーカス可能を明示
+      closable: true, // 明示的に閉じることを許可
       // Windowsでのリサイズ制御: resizable設定に基づいてthickFrameを決定
       ...(process.platform === 'win32' ? {
         thickFrame: roleDefaults.resizable !== false // resizableがfalseでなければthickFrame有効

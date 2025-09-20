@@ -165,7 +165,10 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
               styles.button,
               button.isActive && styles.buttonActive
             )}
-            onClick={button.onClick}
+            onClick={() => {
+              console.log(`[HeaderControls] Button clicked: ${button.id}`);
+              button.onClick();
+            }}
             aria-label={button.ariaLabel}
             type="button"
             style={{
