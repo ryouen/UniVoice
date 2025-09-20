@@ -83,7 +83,7 @@ export const THEME_CONFIGS = {
     textColor: '#ffffff',
     borderColor: 'rgba(255,255,255,0.06)',
   },
-  blue: {
+  purple: {
     backgroundColor: '#f0f4f8',
     primaryColor: '#2b6cb0',
     secondaryColor: '#1a5490',

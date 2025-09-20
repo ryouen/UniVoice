@@ -15,7 +15,7 @@ export const getBackgroundGradient = (theme: Theme): string => {
       return 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
     case 'dark':
       return 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%)';
-    case 'blue':
+    case 'purple':
       return 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)';
     default:
       return 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';

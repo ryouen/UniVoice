@@ -13,7 +13,7 @@ export enum DisplayMode {
 export enum Theme {
   LIGHT = 'light',
   DARK = 'dark',
-  BLUE = 'blue'
+  PURPLE = 'purple'
 }
 
 // Session related types

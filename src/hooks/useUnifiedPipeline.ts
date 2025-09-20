@@ -1418,7 +1418,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       if (processorRef.current) {
         // AudioWorkletNodeに停止メッセージを送信
         if ('port' in processorRef.current) {
-          (processorRef.current as AudioWorkletNode).port.postMessage({ type: 'stop' });
+          (processorRef.current as any).port.postMessage({ type: 'stop' });
         }
         
         processorRef.current.disconnect();

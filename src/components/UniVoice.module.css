@@ -102,6 +102,71 @@
   );
 }
 
+/* settingsBarがglassmorphismを持つ場合、inset box-shadowを無効化 */
+.settingsBar.glassmorphism,
+.settingsBar.glassmorphism[class*="glassmorphism"] {
+  box-shadow: none !important;
+}
+
+/* コンパクトモード時はグラスモーフィズムの枠線を無効化 */
+.headerCompact .glassmorphism,
+.headerCompactThemeLight,
+.headerCompactThemeDark,
+.headerCompactThemePurple {
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* settingsBarが表示されている時のglassmorphismエフェクトを調整 */
+.settingsVisible.settingsBarThemeLight,
+.settingsVisible.settingsBarThemeDark,
+.settingsVisible.settingsBarThemePurple {
+  /* inset box-shadowを削除して白い線を防ぐ */
+  box-shadow: none !important;
+  /* 下部境界線を透明に */
+  border-bottom-color: transparent !important;
+}
+
+/* settingsBarの直後にheaderCompactが来る場合の修正 */
+.settingsBar + .headerCompact,
+.settingsBar + .headerCompactThemeLight,
+.settingsBar + .headerCompactThemeDark,
+.settingsBar + .headerCompactThemePurple {
+  /* 上に密着させる */
+  margin-top: 0 !important;
+  border-top: 0 !important;
+  position: relative;
+  z-index: 999;
+}
+
+/* settingsBarVisible時の特別な調整 */
+.settingsVisible + .headerCompact,
+.settingsVisible + .headerCompactThemeLight,
+.settingsVisible + .headerCompactThemeDark,
+.settingsVisible + .headerCompactThemePurple,
+.settingsBarThemeLight + .headerCompact,
+.settingsBarThemeLight + .headerCompactThemeLight,
+.settingsBarThemeDark + .headerCompact,
+.settingsBarThemeDark + .headerCompactThemeDark,
+.settingsBarThemePurple + .headerCompact,
+.settingsBarThemePurple + .headerCompactThemePurple {
+  /* 完全に密着させる */
+  margin-top: -1px !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+  position: relative;
+  z-index: 999;
+}
+
+/* mainWindow内のheaderCompactも同様の処理 */
+.mainWindow .headerCompact,
+.mainWindow .headerCompactThemeLight,
+.mainWindow .headerCompactThemeDark,
+.mainWindow .headerCompactThemePurple {
+  margin-top: -1px !important;
+  border-top: 0 !important;
+}
+
 /* ========================================
    Theme Variants
    ======================================== */
@@ -229,35 +294,35 @@ a,
   -webkit-app-region: no-drag;
 }
 
-.controlButtonLight {
+.controlButtonThemeLight {
   composes: controlButton;
   background: var(--theme-light-button-bg);
   color: #333;
 }
 
-.controlButtonLight:hover {
+.controlButtonThemeLight:hover {
   background: var(--theme-light-button-hover);
   transform: translateY(-2px);
 }
 
-.controlButtonDark {
+.controlButtonThemeDark {
   composes: controlButton;
   background: var(--theme-dark-button-bg);
   color: white;
 }
 
-.controlButtonDark:hover {
+.controlButtonThemeDark:hover {
   background: var(--theme-dark-button-hover);
   transform: translateY(-2px);
 }
 
-.controlButtonPurple {
+.controlButtonThemePurple {
   composes: controlButton;
   background: var(--theme-purple-button-bg);
   color: white;
 }
 
-.controlButtonPurple:hover {
+.controlButtonThemePurple:hover {
   background: var(--theme-purple-button-hover);
   transform: translateY(-2px);
 }
@@ -267,12 +332,12 @@ a,
   box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
 }
 
-.controlButtonLight.controlButtonActive {
+.controlButtonThemeLight.controlButtonActive {
   background: rgba(102, 126, 234, 0.15);
 }
 
-.controlButtonDark.controlButtonActive,
-.controlButtonPurple.controlButtonActive {
+.controlButtonThemeDark.controlButtonActive,
+.controlButtonThemePurple.controlButtonActive {
   background: rgba(255, 255, 255, 0.35);
 }
 
@@ -339,19 +404,19 @@ a,
   letter-spacing: 0.02em;
 }
 
-.recordingIndicatorLight {
+.recordingIndicatorThemeLight {
   composes: recordingIndicator;
   background: rgba(76, 175, 80, 0.15);
   color: #2e7d32;
 }
 
-.recordingIndicatorDark {
+.recordingIndicatorThemeDark {
   composes: recordingIndicator;
   background: rgba(76, 175, 80, 0.25);
   color: rgba(255, 255, 255, 0.95);
 }
 
-.recordingIndicatorPurple {
+.recordingIndicatorThemePurple {
   composes: recordingIndicator;
   background: rgba(76, 175, 80, 0.3);
   color: white;
@@ -392,11 +457,18 @@ a,
   overflow: hidden;
   transition: height 0.3s ease;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  /* 白い線を防ぐための追加スタイル */
+  position: relative;
+  z-index: 1000;
+  /* glassmorphismのinsetエフェクトを上書き */
+  box-shadow: none !important;
 }
 
 .settingsVisible {
   height: var(--settings-bar-height);
   overflow: visible;
+  /* 表示時は下部境界線を透明にして重複を防ぐ */
+  border-bottom-color: transparent !important;
 }
 
 .settingsBarThemeLight {
@@ -413,6 +485,7 @@ a,
   composes: settingsBar themePurple;
   background: rgba(110, 60, 160, 0.95);  /* Opacity 0.95に設定 */
 }
+
 
 /* Settings Bar Layout */
 .settingsContent {
@@ -453,17 +526,17 @@ a,
   font-weight: 500;
 }
 
-.settingButtonLight {
+.settingButtonThemeLight {
   composes: settingButton;
 }
 
-.settingButtonDark {
+.settingButtonThemeDark {
   composes: settingButton;
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.9);
 }
 
-.settingButtonPurple {
+.settingButtonThemePurple {
   composes: settingButton;
   background: rgba(255, 255, 255, 0.2);
   color: white;
@@ -473,11 +546,11 @@ a,
   background: rgba(0, 0, 0, 0.1);
 }
 
-.settingButtonDark:hover {
+.settingButtonThemeDark:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.settingButtonPurple:hover {
+.settingButtonThemePurple:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
@@ -688,12 +761,16 @@ a,
   flex-shrink: 0;
   position: relative;
   /* 上部に完全に密着させる */
-  margin-top: 0;
-  padding-top: 0;
-  top: 0;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  top: 0 !important;
   /* border-radiusによる隙間を防ぐ */
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  /* 白い線の原因となる要素を明示的に削除 */
+  border-top: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Compact header drag handle */
@@ -718,11 +795,11 @@ a,
 
 .headerCompactThemeLight {
   composes: headerCompact;
-  background: rgba(255, 255, 255, 0.5);  /* コンパクトメニュー Opacity 0.5 */
+  background: rgba(255, 255, 255, 0.95);  /* 不透明度を上げて白い線を隠す */
   border: none;  /* 上部の境界線を無効化 */
-  border-top: none !important;
-  border-left: none !important;
-  border-right: none !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   /* glassmorphismから継承される可能性のあるスタイルを明示的に無効化 */
   box-shadow: none !important;
@@ -732,15 +809,20 @@ a,
   -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
   /* グラデーション背景は削除 */
   background-image: none;
+  /* 白い線を防ぐための追加スタイル */
+  position: relative;
+  z-index: 999;
+  margin: 0 !important;
+  padding-top: 0 !important;
 }
 
 .headerCompactThemeDark {
   composes: headerCompact;
   background: rgba(30, 30, 30, 0.5);  /* コンパクトメニュー Opacity 0.5 */
   border: none;  /* 上部の境界線を無効化 */
-  border-top: none !important;
-  border-left: none !important;
-  border-right: none !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   /* glassmorphismから継承される可能性のあるスタイルを明示的に無効化 */
   box-shadow: none !important;
@@ -750,15 +832,20 @@ a,
   -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
   /* グラデーション背景は削除 */
   background-image: none;
+  /* 白い線を防ぐための追加スタイル */
+  position: relative;
+  z-index: 999;
+  margin: 0 !important;
+  padding-top: 0 !important;
 }
 
 .headerCompactThemePurple {
   composes: headerCompact;
   background: rgba(102, 51, 153, 0.5);  /* コンパクトメニュー Opacity 0.5 */
   border: none;  /* 上部の境界線を無効化 */
-  border-top: none !important;
-  border-left: none !important;
-  border-right: none !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   /* glassmorphismから継承される可能性のあるスタイルを明示的に無効化 */
   box-shadow: none !important;
@@ -768,6 +855,11 @@ a,
   -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
   /* グラデーション背景は削除 */
   background-image: none;
+  /* 白い線を防ぐための追加スタイル */
+  position: relative;
+  z-index: 999;
+  margin: 0 !important;
+  padding-top: 0 !important;
 }
 
 /* ========================================
@@ -789,14 +881,14 @@ a,
   transition: all 0.2s;
 }
 
-.questionInputDark {
+.questionInputThemeDark {
   composes: questionInput;
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
   color: white;
 }
 
-.questionInputPurple {
+.questionInputThemePurple {
   composes: questionInput;
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.3);
@@ -836,13 +928,13 @@ a,
   color: #666;
 }
 
-.qBtnSecondaryDark {
+.qBtnSecondaryThemeDark {
   composes: qBtnSecondary;
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.9);
 }
 
-.qBtnSecondaryPurple {
+.qBtnSecondaryThemePurple {
   composes: qBtnSecondary;
   background: rgba(255, 255, 255, 0.15);
   color: white;
@@ -1122,4 +1214,44 @@ a,
 
 .qBtnSecondaryThemePurple:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* ========================================
+  Settings Bar Compact Mode Styles
+  ======================================== */
+
+/* 設定バーのコンパクトモード用スタイル */
+.settingsBarCompact {
+  /* glassmorphism効果を完全に無効化 */
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-top: 0 !important;
+  /* 白い線の原因となる可能性があるすべてのスタイルを無効化 */
+  background-image: none !important;
+  background-color: transparent !important;
+  filter: none !important;
+  /* 擬似要素も無効化 */
+  position: relative;
+}
+
+.settingsBarCompact::before,
+.settingsBarCompact::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* headerCompact直下のすべての要素でglassmorphism効果を無効化 */
+.headerCompact ~ * {
+  --blur-amount: 0;
+  --saturate-amount: 100%;
+}
+
+/* settingsVisibleでもコンパクトモード時は効果を無効化 */
+.settingsBarCompact.settingsVisible {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }

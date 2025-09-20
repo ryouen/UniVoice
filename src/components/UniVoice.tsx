@@ -432,10 +432,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           console.error('[UniVoice] Failed to clear session on beforeunload:', error);
         }
         
-        // ブラウザのデフォルトの確認ダイアログを表示
-        e.preventDefault();
-        e.returnValue = '録音中です。終了しますか？';
-        return '録音中です。終了しますか？';
+        // Electronアプリでは、beforeunloadのpreventDefaultはウィンドウを閉じることを妨げる
+        // ユーザーが明示的に閉じるボタンをクリックした場合は、それを尊重する
+        // 注: Electron環境では確認ダイアログは表示されない
+        // e.preventDefault();
+        // e.returnValue = '録音中です。終了しますか？';
+        // return '録音中です。終了しますか？';
       }
       
       // 録音中でない場合は何もしない
@@ -2150,7 +2152,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     );
   }
   
-  // CSS Modules用のヘルパー関数
+  // CSS Modules用のヘルパー関数（命名規則統一版）
   const getThemeClass = (base: string, includeBase: boolean = true) => {
     const themeMap: Record<string, string> = {
       'light': 'Light',
@@ -2159,20 +2161,17 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     };
     const themeSuffix = themeMap[currentTheme] || 'Light';
     
-    // まず"Theme"を含むクラス名を試す（例：settingsBarThemeLight）
-    let themeClass = styles[`${base}Theme${themeSuffix}`];
+    // 統一された命名規則: {base}Theme{suffix}
+    const themeClassName = `${base}Theme${themeSuffix}`;
+    const themeClass = styles[themeClassName];
     
-    // 見つからない場合は"Theme"なしを試す（例：controlButtonLight）
-    if (!themeClass) {
-      themeClass = styles[`${base}${themeSuffix}`];
-    }
-    
-    // デバッグ用（開発環境のみ）- 最初の数回だけログ出力
-    if (process.env.NODE_ENV === 'development' && base === 'theme') {
-      console.log(`🎨 Theme class applied:`, {
-        currentTheme,
-        className: themeClass,
-        hasGlassmorphism: themeClass ? 'Should include glassmorphism via composes' : 'No theme class'
+    // エラーを早期発見（開発環境のみ）
+    if (process.env.NODE_ENV === 'development' && !themeClass) {
+      console.warn(`⚠️ Theme class not found: ${themeClassName}`, {
+        availableClasses: Object.keys(styles).filter(key => key.startsWith(base)),
+        attemptedClass: themeClassName,
+        base,
+        theme: currentTheme
       });
     }
     
@@ -2358,12 +2357,21 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         {/* 設定バー (Liquid Glass) */}
         <div className={classNames(
           styles.settingsBar,
-          getThemeClass('settingsBar', false),
+          // コンパクトモード時はglassmorphism効果を無効化
+          !showHeader ? styles.settingsBarCompact : getThemeClass('settingsBar', false),
           showSettings && styles.settingsVisible
         )} style={{
           zIndex: 1000,
           position: 'relative',
-          WebkitAppRegion: 'no-drag' as any  // 設定バーは操作可能にする
+          WebkitAppRegion: 'no-drag' as any,  // 設定バーは操作可能にする
+          // コンパクトモード時の白い線を完全に防ぐ
+          boxShadow: !showHeader ? 'none' : undefined,
+          border: !showHeader ? 'none' : undefined,
+          borderTop: !showHeader ? '0' : undefined,
+          background: !showHeader ? 'transparent' : undefined,
+          backdropFilter: !showHeader ? 'none' : undefined,
+          WebkitBackdropFilter: !showHeader ? 'none' : undefined,
+          marginBottom: showSettings ? '0' : '0'  // 設定バー表示時は下部マージンを0に
         }}>
           <div className={styles.settingsContent} style={{
             display: 'flex',
@@ -2473,7 +2481,15 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             position: 'relative',
             top: 0,  // 明示的に位置を指定
             marginTop: 0,  // 上部マージンを無効化
-            paddingTop: 0  // 上部パディングを無効化
+            paddingTop: 0,  // 上部パディングを無効化
+            // 白い線を防ぐためのスタイル追加
+            boxShadow: 'none',  // box-shadowを完全に無効化
+            border: 'none',  // borderを完全に無効化
+            borderTop: '0',  // 上部ボーダーを明示的に0に
+            borderLeft: '0',
+            borderRight: '0',
+            // borderBottomは維持（区切り線として必要）
+            borderBottom: showSettings ? '0' : `1px solid ${currentTheme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`  // 設定バー表示時はborderBottomも0に
           }}>
             {/* 録音状態 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: isPaused ? '#FFA500' : '#4CAF50' }}>
