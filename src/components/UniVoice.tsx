@@ -818,7 +818,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       // WindowClient経由も試す
       try {
         console.log('[UniVoice] Trying WindowClient.close()');
-        const windowClient = new WindowClient();
+        const windowClient = WindowClient.getInstance();
         await windowClient.close();
       } catch (error) {
         console.error('[UniVoice] WindowClient.close() error:', error);
