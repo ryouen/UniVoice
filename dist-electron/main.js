@@ -118,6 +118,18 @@ async function createWindow() {
         frame: false, // フレームレスウィンドウ（全OS対応）
         transparent: supportsTransparency, // プラットフォームに応じて透過を設定
         backgroundColor: supportsTransparency ? '#00000000' : '#f0f0f0', // 非対応環境ではフォールバック
+        focusable: true, // 明示的にフォーカス可能に設定
+        // Windows固有の設定
+        ...(isWindows ? {
+            type: 'normal', // toolbarではなくnormalに設定
+            skipTaskbar: false,
+            hasShadow: true,
+            thickFrame: false, // フレームを無効化（透過ウィンドウとの相性改善）
+            // Windows 11での透過ウィンドウのフォーカス問題を回避
+            ...(supportsTransparency ? {
+                backgroundMaterial: 'none'
+            } : {})
+        } : {}),
         // macOSでVibrancy効果
         ...(isMac ? {
             vibrancy: 'under-window',
@@ -275,6 +287,53 @@ async function createWindow() {
             mainLogger.error('mainWindow is null or destroyed in ready-to-show');
         }
     });
+    // Handle focus issues with transparent windows on Windows
+    mainWindow.on('blur', () => {
+        mainLogger.debug('Window lost focus');
+        // Do NOT call blur() in the blur event - it causes recursion
+        if (process.platform === 'win32') {
+            // Release any captured mouse state
+            mainWindow.setIgnoreMouseEvents(false);
+            // Even when always on top, allow other windows to receive focus
+            // The window stays on top visually but doesn't steal focus
+            mainWindow.setFocusable(true);
+        }
+    });
+    mainWindow.on('focus', () => {
+        mainLogger.debug('Window gained focus');
+        // Do NOT call focus() in the focus event - it causes recursion
+        if (process.platform === 'win32') {
+            // Ensure window accepts mouse events
+            mainWindow.setIgnoreMouseEvents(false);
+            mainWindow.setFocusable(true);
+        }
+    });
+    // Remove leave-full-screen handler as it's not relevant for our use case
+    // Custom drag implementation for better focus handling
+    electron_1.ipcMain.on('window:startDrag', () => {
+        if (process.platform === 'win32') {
+            const currentWindow = getMainWindow();
+            if (currentWindow && !currentWindow.isDestroyed()) {
+                // Use Electron's native startDrag for Windows
+                currentWindow.webContents.send('window:dragStarted');
+            }
+        }
+    });
+    electron_1.ipcMain.on('window:endDrag', () => {
+        if (process.platform === 'win32') {
+            const currentWindow = getMainWindow();
+            if (currentWindow && !currentWindow.isDestroyed()) {
+                // Simply ensure the window can receive mouse events
+                currentWindow.setIgnoreMouseEvents(false);
+                // Force Windows to re-evaluate window focus
+                // This helps with transparent window issues
+                currentWindow.setOpacity(0.99);
+                setTimeout(() => {
+                    currentWindow.setOpacity(1);
+                }, 10);
+            }
+        }
+    });
     mainLogger.info('createWindow completed successfully');
     // IPC Gateway and Pipeline Service are setup in app.whenReady()
     // Auto-approve media device permissions
@@ -364,7 +423,24 @@ function setupWindowControls() {
     electron_1.ipcMain.handle('window:setAlwaysOnTop', async (_event, alwaysOnTop) => {
         const mainWindow = getMainWindow();
         if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setAlwaysOnTop(alwaysOnTop);
+            if (alwaysOnTop) {
+                // Windows specific: Use 'floating' level for better focus behavior
+                // 'floating' allows other windows to receive focus while keeping this window on top
+                if (process.platform === 'win32') {
+                    mainWindow.setAlwaysOnTop(true, 'floating');
+                    // Ensure window remains in taskbar
+                    mainWindow.setSkipTaskbar(false);
+                    // Allow the window to lose focus
+                    mainWindow.setFocusable(true);
+                }
+                else {
+                    mainWindow.setAlwaysOnTop(true, 'floating');
+                }
+            }
+            else {
+                mainWindow.setAlwaysOnTop(false);
+                mainWindow.setFocusable(true);
+            }
             return mainWindow.isAlwaysOnTop();
         }
         return false;

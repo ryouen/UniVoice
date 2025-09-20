@@ -265,7 +265,14 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
 
   // Clean Architecture リファクタリング: 新しいヘッダーコントロールフックを使用
-  const headerControls = useHeaderControls(showHeader, showSettings, isAlwaysOnTop);
+  const headerControls = useHeaderControls(
+    showHeader, 
+    showSettings, 
+    isAlwaysOnTop,
+    setShowHeader,
+    setShowSettings,
+    setIsAlwaysOnTop
+  );
   
   // 段階的移行: 既存のsetterを新しいフックのsetterでオーバーライド
   // これにより、既存のコードは動作し続けながら、新しいロジックをテストできる
@@ -479,6 +486,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     setIsPaused(false);
     recordingStartTimeRef.current = new Date();
     setRecordingTime(0);
+    pausedDurationRef.current = 0;  // 一時停止時間をリセット
+    pauseStartTimeRef.current = null;  // 一時停止開始時刻をリセット
     setShowBlockGuides(true);
     
     // 言語設定を永続化
@@ -674,6 +683,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             const durationInSeconds = Math.floor(sessionData.state.duration / 1000);
             setRecordingTime(durationInSeconds);
             recordingStartTimeRef.current = new Date(Date.now() - sessionData.state.duration);
+            pausedDurationRef.current = 0;  // 一時停止時間をリセット
+            pauseStartTimeRef.current = null;  // 一時停止開始時刻をリセット
           }
           
           // 言語設定を永続化
@@ -961,6 +972,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const mockUpdateIndex = useRef(0);
+  const pausedDurationRef = useRef<number>(0);  // 一時停止中の累積時間
+  const pauseStartTimeRef = useRef<Date | null>(null);  // 一時停止開始時刻
   
   // リアルタイム翻訳用の一時的なバッファ（UniVoice 2.0では不要）
   // RealtimeDisplayManagerが管理するため削除
@@ -1326,24 +1339,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [showSetup, sourceLanguage, targetLanguage, showHeader, isAlwaysOnTop]);
   
-  // タイマー
-  useEffect(() => {
-    if (!showSetup && !isPaused) {
-      timerRef.current = setInterval(() => {
-        if (recordingStartTimeRef.current) {
-          const elapsed = Math.floor((Date.now() - recordingStartTimeRef.current.getTime()) / 1000);
-          setRecordingTime(elapsed);
-        }
-      }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [showSetup, isPaused]);
+  // このタイマー処理は削除（1479行目の正しい実装を使用）
   
   // 自動保存（60秒ごと）
   useEffect(() => {
@@ -1464,12 +1460,17 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // 録音時間の自動更新
   useEffect(() => {
-    if (!showSetup && !isPaused && recordingStartTimeRef.current) {
-      timerRef.current = setInterval(() => {
-        const now = new Date();
-        const diff = Math.floor((now.getTime() - recordingStartTimeRef.current!.getTime()) / 1000);
-        setRecordingTime(diff);
-      }, 1000);
+    // セッションが開始されており、録音開始時刻が設定されている場合のみタイマーを動作させる
+    if (!showSetup && recordingStartTimeRef.current) {
+      // 一時停止中でもタイマーは動作させ、一時停止時間を考慮して計算
+      if (!isPaused) {
+        timerRef.current = setInterval(() => {
+          const now = new Date();
+          const elapsedSinceStart = now.getTime() - recordingStartTimeRef.current!.getTime();
+          const totalElapsed = Math.floor((elapsedSinceStart - pausedDurationRef.current) / 1000);
+          setRecordingTime(totalElapsed);
+        }, 1000);
+      }
       
       return () => {
         if (timerRef.current) {
@@ -1477,13 +1478,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           timerRef.current = null;
         }
       };
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      return undefined;
     }
+    return undefined;
   }, [showSetup, isPaused]);
   
   // リアルタイムセクションの自動スクロール
@@ -1538,6 +1534,15 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       try {
         await pipeline.stop();
         setIsPaused(true);
+        
+        // 一時停止開始時刻を記録
+        pauseStartTimeRef.current = new Date();
+        
+        // タイマーを停止
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
       } catch (error) {
         console.error('[UniVoice] 停止エラー:', error);
       }
@@ -1547,6 +1552,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       try {
         await pipeline.startFromMicrophone();
         setIsPaused(false);
+        
+        // 一時停止していた時間を累積
+        if (pauseStartTimeRef.current) {
+          const pauseDuration = new Date().getTime() - pauseStartTimeRef.current.getTime();
+          pausedDurationRef.current += pauseDuration;
+          pauseStartTimeRef.current = null;
+        }
       } catch (error) {
         console.error('[UniVoice] 再開エラー:', error);
       }
@@ -2456,22 +2468,32 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 width: '24px',
                 height: '24px',
                 border: 'none',
-                background: 'rgba(0, 0, 0, 0.05)',
+                background: currentTheme === 'light' 
+                  ? 'rgba(0, 0, 0, 0.08)' 
+                  : 'rgba(255, 255, 255, 0.15)',
                 borderRadius: '4px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                WebkitAppRegion: 'no-drag' as any
+                WebkitAppRegion: 'no-drag' as any,
+                transition: 'all 0.2s ease',
+                color: currentTheme === 'light' ? '#333' : '#fff',
+                position: 'relative'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.background = currentTheme === 'light' 
+                  ? 'rgba(0, 0, 0, 0.15)' 
+                  : 'rgba(255, 255, 255, 0.25)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.05)';
+                e.currentTarget.style.background = currentTheme === 'light' 
+                  ? 'rgba(0, 0, 0, 0.08)' 
+                  : 'rgba(255, 255, 255, 0.15)';
               }}
+              title="ヘッダーを表示 (Esc)"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" opacity="0.6">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" opacity="0.8">
                 <path d="M8 11L12 7H4L8 11Z"/>
               </svg>
             </button>

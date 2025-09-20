@@ -24,6 +24,8 @@ interface WindowAPI {
         width: number;
         height: number;
     }) => Promise<void>;
+    startDrag: () => void;
+    endDrag: () => void;
 }
 /**
  * Window Manager API for multi-window management

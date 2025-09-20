@@ -149,12 +149,28 @@
   gap: 10px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   position: relative;
-  -webkit-app-region: drag;
+  /* Remove app-region from entire header */
   overflow: visible;
 }
 
-.header button {
+/* Drag handle - only specific area is draggable */
+.dragHandle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px; /* Only top portion is draggable */
+  -webkit-app-region: drag;
+  z-index: -1; /* Behind all buttons and controls */
+}
+
+.header button,
+.header input,
+.header select,
+.header a {
   -webkit-app-region: no-drag;
+  position: relative;
+  z-index: 1;
 }
 
 /* Header with Gradient Background */
@@ -292,6 +308,13 @@
   font-weight: 500;
   height: var(--control-button-size);
   box-sizing: border-box;
+}
+
+/* 時間表示用の等幅フォント */
+.recordingIndicator span {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .recordingIndicatorLight {
@@ -632,7 +655,27 @@
   padding: 0 16px;
   gap: 8px;
   flex-shrink: 0;
+  position: relative;
+}
+
+/* Compact header drag handle */
+.headerCompact .dragHandle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
   -webkit-app-region: drag;
+  z-index: -1;
+}
+
+.headerCompact button,
+.headerCompact input,
+.headerCompact select,
+.headerCompact a {
+  -webkit-app-region: no-drag;
+  position: relative;
+  z-index: 1;
 }
 
 .headerCompactThemeLight {

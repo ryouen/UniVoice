@@ -99,6 +99,7 @@ class WindowRegistry {
             frame: false, // UniVoiceはフレームレス
             transparent: true, // 透過を有効化（グラスモーフィズム効果）
             backgroundColor: '#00000000', // 完全透明の背景
+            focusable: true, // フォーカス可能を明示
             webPreferences: {
                 preload: path.join(__dirname, '..', 'preload.js'),
                 contextIsolation: true,

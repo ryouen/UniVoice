@@ -10,39 +10,42 @@ import { useState, useMemo, useCallback } from 'react';
  * 3. コンパクト表示 (showHeader=false)
  */
 export const useHeaderControls = (
-  initialShowHeader = true,
-  initialShowSettings = true,
-  initialIsAlwaysOnTop = false
+  showHeader: boolean,
+  showSettings: boolean,
+  isAlwaysOnTop: boolean,
+  setShowHeader?: (value: boolean | ((prev: boolean) => boolean)) => void,
+  setShowSettings?: (value: boolean | ((prev: boolean) => boolean)) => void,
+  setIsAlwaysOnTop?: (value: boolean | ((prev: boolean) => boolean)) => void
 ) => {
-  // 状態管理
-  const [showHeader, setShowHeader] = useState(initialShowHeader);
-  const [showSettings, setShowSettings] = useState(initialShowSettings);
-  const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(initialIsAlwaysOnTop);
+  // 状態は外部から受け取る（内部状態を持たない）
+  const internalSetShowHeader = setShowHeader || (() => {});
+  const internalSetShowSettings = setShowSettings || (() => {});
+  const internalSetIsAlwaysOnTop = setIsAlwaysOnTop || (() => {});
 
   // 折りたたみボタン(▲)のハンドラー
   // コンテキスト依存: 設定バーが開いていれば閉じる、そうでなければヘッダーを最小化
   const handleCollapseClick = useCallback(() => {
     if (showSettings) {
-      setShowSettings(false);
+      internalSetShowSettings(false);
     } else {
-      setShowHeader(false);
+      internalSetShowHeader(false);
     }
-  }, [showSettings]);
+  }, [showSettings, internalSetShowSettings, internalSetShowHeader]);
 
   // 展開ボタン(▼)のハンドラー
   // コンテキスト依存: ヘッダーが最小化されていれば展開、そうでなければ設定バーを開く
   const handleExpandClick = useCallback(() => {
     if (!showHeader) {
-      setShowHeader(true);
+      internalSetShowHeader(true);
     } else {
-      setShowSettings(true);
+      internalSetShowSettings(true);
     }
-  }, [showHeader]);
+  }, [showHeader, internalSetShowHeader, internalSetShowSettings]);
 
   // ヘッダーの表示/非表示を切り替える（既存機能との互換性維持）
   const toggleHeader = useCallback(() => {
-    setShowHeader(prev => !prev);
-  }, []);
+    internalSetShowHeader(prev => !prev);
+  }, [internalSetShowHeader]);
 
   // 最前面固定の切り替え
   const toggleAlwaysOnTop = useCallback(async () => {
@@ -50,10 +53,10 @@ export const useHeaderControls = (
     const windowAPI = window.univoice?.window;
     if (windowAPI?.setAlwaysOnTop) {
       await windowAPI.setAlwaysOnTop(newState);
-      setIsAlwaysOnTop(newState);
+      internalSetIsAlwaysOnTop(newState);
     }
     return newState;
-  }, [isAlwaysOnTop]);
+  }, [isAlwaysOnTop, internalSetIsAlwaysOnTop]);
 
   // 動的ツールチップテキスト
   const tooltips = useMemo(() => ({
@@ -86,8 +89,8 @@ export const useHeaderControls = (
     handleExpandClick,
     toggleHeader,
     toggleAlwaysOnTop,
-    setShowHeader,
-    setShowSettings,
+    setShowHeader: internalSetShowHeader,
+    setShowSettings: internalSetShowSettings,
     
     // UI表示制御
     tooltips,

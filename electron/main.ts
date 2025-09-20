@@ -128,6 +128,18 @@ async function createWindow() {
     frame: false, // フレームレスウィンドウ（全OS対応）
     transparent: supportsTransparency, // プラットフォームに応じて透過を設定
     backgroundColor: supportsTransparency ? '#00000000' : '#f0f0f0', // 非対応環境ではフォールバック
+    focusable: true, // 明示的にフォーカス可能に設定
+    // Windows固有の設定
+    ...(isWindows ? {
+      type: 'normal', // toolbarではなくnormalに設定
+      skipTaskbar: false,
+      hasShadow: true,
+      thickFrame: false, // フレームを無効化（透過ウィンドウとの相性改善）
+      // Windows 11での透過ウィンドウのフォーカス問題を回避
+      ...(supportsTransparency ? {
+        backgroundMaterial: 'none'
+      } : {})
+    } : {}),
     // macOSでVibrancy効果
     ...(isMac ? {
       vibrancy: 'under-window' as const,
@@ -282,6 +294,45 @@ async function createWindow() {
     }
   });
 
+  // Handle focus events - simplified to prevent recursion
+  mainWindow.on('blur', () => {
+    mainLogger.debug('Window lost focus');
+    // Simplified handler - let Electron handle focus naturally
+    // No manipulation of window state to prevent recursion
+  });
+
+  mainWindow.on('focus', () => {
+    mainLogger.debug('Window gained focus');
+    // Simplified handler - let Electron handle focus naturally
+    // No manipulation of window state to prevent recursion
+  });
+
+  // Remove leave-full-screen handler as it's not relevant for our use case
+
+  // Custom drag implementation for better focus handling
+  ipcMain.on('window:startDrag', () => {
+    if (process.platform === 'win32') {
+      const currentWindow = getMainWindow();
+      if (currentWindow && !currentWindow.isDestroyed()) {
+        // Use Electron's native startDrag for Windows
+        currentWindow.webContents.send('window:dragStarted');
+      }
+    }
+  });
+
+  ipcMain.on('window:endDrag', () => {
+    if (process.platform === 'win32') {
+      const currentWindow = getMainWindow();
+      if (currentWindow && !currentWindow.isDestroyed()) {
+        // Simply ensure the window can receive mouse events
+        currentWindow.setIgnoreMouseEvents(false);
+        
+        // Removed opacity manipulation to prevent focus issues
+        // Let Windows handle focus naturally
+      }
+    }
+  });
+
   mainLogger.info('createWindow completed successfully');
   
   // IPC Gateway and Pipeline Service are setup in app.whenReady()
@@ -387,7 +438,25 @@ function setupWindowControls(): void {
     const mainWindow = getMainWindow();
 
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.setAlwaysOnTop(alwaysOnTop);
+      if (alwaysOnTop) {
+        // Windows specific: Use 'floating' level for better focus behavior
+        // 'floating' allows other windows to receive focus while keeping this window on top
+        if (process.platform === 'win32') {
+          // Use 'normal' level for better focus behavior on Windows
+          // Based on recent Electron behavior, 'normal' works better than 'floating'
+          mainWindow.setAlwaysOnTop(true, 'normal');
+          // Ensure window remains in taskbar
+          mainWindow.setSkipTaskbar(false);
+          // Allow the window to lose focus
+          mainWindow.setFocusable(true);
+        } else {
+          // Keep 'floating' for other platforms
+          mainWindow.setAlwaysOnTop(true, 'floating');
+        }
+      } else {
+        mainWindow.setAlwaysOnTop(false);
+        mainWindow.setFocusable(true);
+      }
       return mainWindow.isAlwaysOnTop();
     }
     return false;

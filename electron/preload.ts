@@ -30,6 +30,9 @@ interface WindowAPI {
   isAlwaysOnTop: () => Promise<boolean>;
   autoResize: (height: number) => Promise<boolean>;
   setBounds: (bounds: { width: number; height: number }) => Promise<void>;
+  // Custom drag handlers for focus issue fix
+  startDrag: () => void;
+  endDrag: () => void;
 }
 
 /**
@@ -241,7 +244,10 @@ function createWindowAPI(): WindowAPI {
     setAlwaysOnTop: (alwaysOnTop) => ipcRenderer.invoke('window:setAlwaysOnTop', alwaysOnTop),
     isAlwaysOnTop: () => ipcRenderer.invoke('window:isAlwaysOnTop'),
     autoResize: (height) => ipcRenderer.invoke('window:autoResize', height),
-    setBounds: (bounds) => ipcRenderer.invoke('window:setBounds', bounds)
+    setBounds: (bounds) => ipcRenderer.invoke('window:setBounds', bounds),
+    // Custom drag handlers for focus issue fix
+    startDrag: () => ipcRenderer.send('window:startDrag'),
+    endDrag: () => ipcRenderer.send('window:endDrag')
   };
 }
 
@@ -356,7 +362,10 @@ const allowedChannels = [
   'window:updateTheme',       // Update title bar theme
   'window:setAlwaysOnTop',    // Set window always on top
   'window:isAlwaysOnTop',     // Check if window is always on top
-  'window:autoResize'         // Auto resize window to content
+  'window:autoResize',        // Auto resize window to content
+  'window:startDrag',         // Start drag (focus fix)
+  'window:endDrag',           // End drag (focus fix)
+  'window:dragStarted'        // Drag started notification
 ];
 
 // Legacy Electron API for backward compatibility

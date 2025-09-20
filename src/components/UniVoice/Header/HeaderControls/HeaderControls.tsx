@@ -51,14 +51,17 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
           viewBox="0 0 18 18" 
           fill={isAlwaysOnTop ? "currentColor" : "none"} 
           stroke="currentColor" 
-          strokeWidth="1.5"
+          strokeWidth={isAlwaysOnTop ? "2" : "1.5"}
         >
           <path 
             d="M7 3 L11 3 L11 9 L13 11 L9 15 L5 11 L7 9 Z" 
             fill={isAlwaysOnTop ? "currentColor" : "none"} 
-            opacity={isAlwaysOnTop ? "0.3" : "1"}
+            opacity={isAlwaysOnTop ? "1" : "0.8"}
           />
-          <line x1="9" y1="15" x2="9" y2="18"/>
+          <line x1="9" y1="15" x2="9" y2="18" opacity={isAlwaysOnTop ? "0.5" : "1"}/>
+          {isAlwaysOnTop && (
+            <circle cx="9" cy="9" r="1.5" fill="currentColor" opacity="0.8"/>
+          )}
         </svg>
       )
     },

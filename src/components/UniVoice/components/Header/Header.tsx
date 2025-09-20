@@ -80,8 +80,10 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <div
       className={classNames(styles.header, className)}
-      style={{ WebkitAppRegion: 'no-drag' as any }}
     >
+      {/* ドラッグ可能領域 - ボタン以外の領域をドラッグ可能に */}
+      <div className={styles.dragHandle} />
+      
       {/* 録音インジケーター */}
       <div className={styles.recordingIndicator}>
         <div
@@ -103,7 +105,6 @@ export const Header: React.FC<HeaderProps> = ({
           className={styles.controlButton}
           onClick={onPause}
           aria-label={isPaused ? '再開' : '一時停止'}
-          style={{ WebkitAppRegion: 'no-drag' as any }}
         >
           {isPaused ? (
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
@@ -124,7 +125,6 @@ export const Header: React.FC<HeaderProps> = ({
           className={styles.controlButton}
           onClick={onEndSession}
           aria-label="授業終了"
-          style={{ WebkitAppRegion: 'no-drag' as any }}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
             <rect x="2" y="2" width="10" height="10" rx="1"/>
@@ -137,7 +137,6 @@ export const Header: React.FC<HeaderProps> = ({
           className={styles.controlButton}
           onClick={onNextClass}
           aria-label="次の授業へ"
-          style={{ WebkitAppRegion: 'no-drag' as any }}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 7h8m0 0L7 3m4 4L7 11"/>
@@ -164,7 +163,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           onClick={onToggleHistory}
           aria-label="履歴"
-          style={{ WebkitAppRegion: 'no-drag' as any }}
         >
           <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
             <rect x="3" y="4" width="12" height="10" rx="1"/>
@@ -183,7 +181,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           onClick={onToggleSummary}
           aria-label="要約"
-          style={{ WebkitAppRegion: 'no-drag' as any }}
         >
           <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
             <rect x="3" y="10" width="3" height="5" fill="currentColor" opacity="0.3"/>
@@ -202,7 +199,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           onClick={onToggleQuestion}
           aria-label="質問"
-          style={{ WebkitAppRegion: 'no-drag' as any }}
         >
           <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M3 12 L3 7 Q3 4 6 4 L12 4 Q15 4 15 7 L15 12 L10 12 L6 15 L6 12 Z"/>
@@ -224,7 +220,6 @@ export const Header: React.FC<HeaderProps> = ({
           className={styles.controlButton}
           onClick={onToggleSettings}
           aria-label="設定"
-          style={{ WebkitAppRegion: 'no-drag' as any }}
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
@@ -242,7 +237,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           onClick={handleAlwaysOnTop}
           aria-label={isAlwaysOnTop ? '最前面固定を解除' : '最前面に固定'}
-          style={{ WebkitAppRegion: 'no-drag' as any }}
         >
           <svg
             width="16"

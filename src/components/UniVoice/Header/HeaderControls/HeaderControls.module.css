@@ -32,7 +32,27 @@
 }
 
 .buttonActive {
-  background: rgba(128, 128, 128, 0.25);
+  background: rgba(102, 126, 234, 0.15);
+  box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.3);
+}
+
+.buttonActive:hover {
+  background: rgba(102, 126, 234, 0.25);
+  box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.4);
+}
+
+/* テーマ別のアクティブ状態 */
+.light .buttonActive {
+  background: rgba(102, 126, 234, 0.15);
+}
+
+.dark .buttonActive {
+  background: rgba(102, 126, 234, 0.25);
+}
+
+.terminal .buttonActive {
+  background: rgba(0, 255, 0, 0.15);
+  box-shadow: 0 0 0 1px rgba(0, 255, 0, 0.3);
 }
 
 /* アイコン共通スタイル */
