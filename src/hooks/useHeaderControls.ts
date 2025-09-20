@@ -65,15 +65,15 @@ export const useHeaderControls = (
 
   // 展開ボタンの表示条件
   const shouldShowExpandButton = useMemo(() => {
-    // 設定バーが既に表示されている場合は展開ボタンを非表示
+    // 仕様書4.3より：設定バー表示中は非表示
     return !(showHeader && showSettings);
   }, [showHeader, showSettings]);
 
   // 折りたたみボタンの表示条件
   const shouldShowCollapseButton = useMemo(() => {
-    // ヘッダーが表示されているか、設定バーが表示されている場合に表示
-    return showHeader || showSettings;
-  }, [showHeader, showSettings]);
+    // 仕様書4.3より：常に表示（コンパクト表示中も表示される）
+    return true;
+  }, []);
 
   return {
     // 状態

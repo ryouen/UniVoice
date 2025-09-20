@@ -29,7 +29,7 @@ export interface HeaderControlsHandlers {
  */
 export interface HeaderControlsTheme {
   getThemeClass: (baseClass: string, isActive?: boolean) => string;
-  currentTheme: 'light' | 'dark' | 'terminal';
+  currentTheme: 'light' | 'dark' | 'purple';
 }
 
 /**
@@ -57,6 +57,7 @@ export interface ButtonConfig {
   id: string;
   tooltip: string;
   isActive?: boolean;
+  isVisible?: boolean; // ボタンの表示/非表示を制御
   onClick: () => void | Promise<void>;
   icon: JSX.Element;
   ariaLabel: string;

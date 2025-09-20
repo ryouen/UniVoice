@@ -62,12 +62,13 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
         </svg>
       )
     },
-    // 展開ボタン (▼)
-    shouldShowExpandButton ? {
+    // 展開ボタン (▼) - 固定スロット
+    {
       id: 'expand',
       tooltip: tooltips.expand,
       onClick: onExpandClick,
       ariaLabel: tooltips.expand,
+      isVisible: shouldShowExpandButton,  // 表示条件を追加
       icon: (
         <svg 
           className={styles.icon} 
@@ -80,13 +81,14 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
           <path d="M6 7 L9 10 L12 7" strokeLinecap="round"/>
         </svg>
       )
-    } : null,
-    // 折りたたみボタン (▲)
-    shouldShowCollapseButton ? {
+    },
+    // 折りたたみボタン (▲) - 固定スロット
+    {
       id: 'collapse',
       tooltip: tooltips.collapse,
       onClick: onCollapseClick,
       ariaLabel: tooltips.collapse,
+      isVisible: shouldShowCollapseButton,  // 表示条件を追加
       icon: (
         <svg 
           className={styles.icon} 
@@ -99,7 +101,7 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
           <path d="M6 10 L9 7 L12 10" strokeLinecap="round"/>
         </svg>
       )
-    } : null,
+    },
     // スペーサー（null で表現）
     null,
     // 閉じるボタン
@@ -136,7 +138,14 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
         styles[currentTheme],
         className
       )}
-      style={style}
+      style={{
+        position: 'absolute',
+        right: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        ...style
+      }}
     >
       {buttons.map((button, index) => {
         // スペーサーの処理
@@ -144,7 +153,7 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
           return <div key={`spacer-${index}`} className={styles.spacer} />;
         }
 
-        // ボタンのレンダリング
+        // isVisibleがfalseの場合は、スペースを保持するために透明なボタンを表示
         return (
           <button
             key={button.id}
@@ -156,6 +165,10 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
             onClick={button.onClick}
             aria-label={button.ariaLabel}
             type="button"
+            style={{
+              visibility: button.isVisible === false ? 'hidden' : 'visible'
+            }}
+            disabled={button.isVisible === false}
           >
             {button.icon}
             <span className={styles.tooltip}>

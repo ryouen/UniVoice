@@ -19,7 +19,7 @@ import { useUnifiedPipeline } from '../hooks/useUnifiedPipeline';
 import { useSessionMemory } from '../hooks/useSessionMemory';
 import { useBottomResize } from '../hooks/useBottomResize';
 import { useHeaderControls } from '../hooks/useHeaderControls';
-import { HeaderControls } from './Header/HeaderControls';
+import { HeaderControls } from './UniVoice/Header/HeaderControls/HeaderControls';
 // 段階的リファクタリング: useSessionControlフックを並行実装用にインポート
 // TODO: 段階的に既存のセッション管理コードと置き換え
 // import { useSessionControl } from './components/UniVoice/hooks/useSessionControl';
@@ -2301,9 +2301,21 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               showHeader={showHeader}
               showSettings={showSettings}
               isAlwaysOnTop={isAlwaysOnTop}
-              onExpandClick={headerControls.handleExpandClick}
-              onCollapseClick={headerControls.handleCollapseClick}
-              onAlwaysOnTopToggle={headerControls.toggleAlwaysOnTop}
+              onExpandClick={() => {
+                if (!showHeader) {
+                  setShowHeader(true);
+                } else {
+                  setShowSettings(true);
+                }
+              }}
+              onCollapseClick={() => {
+                if (showSettings) {
+                  setShowSettings(false);
+                } else {
+                  setShowHeader(false);
+                }
+              }}
+              onAlwaysOnTopToggle={async () => { await headerControls.toggleAlwaysOnTop(); }}
               onClose={handleCloseWindow}
               getThemeClass={getThemeClass}
               currentTheme={currentTheme}
@@ -2462,29 +2474,28 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 </svg>
                 <span className={styles.sTooltip}>Alt+T</span>
               </button>
+              
+              {/* テーマ切り替えボタン - 左側グループの最後 */}
+              <div style={{ marginLeft: '20px' }}>
+                <button className={getThemeClass('settingButton', false)} onClick={cycleTheme}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                    <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
+                  </svg>
+                  <span className={styles.sTooltip}>テーマ</span>
+                </button>
+              </div>
             </div>
             
-            {/* 右側のボタン群 - ヘッダーと垂直に揃える */}
+            {/* 右側のボタン群 - [+]ボタンの右端が[▲]ボタンの右端と一致 */}
             <div style={{
               position: 'absolute',
-              right: '20px',
+              right: '96px', // ▲ボタンの左端位置（[+]ボタンの右端が▲ボタンの右端に一致）
               display: 'flex',
               alignItems: 'center',
               gap: '10px'
             }}>
-              {/* テーマ切り替えボタン - 最初 */}
-              <button className={getThemeClass('settingButton', false)} onClick={cycleTheme}>
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                  <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
-                </svg>
-                <span className={styles.sTooltip}>テーマ</span>
-              </button>
-              
-              {/* スペース - テーマと[-]の間 */}
-              <div style={{ width: '10px' }} />
-              
-              {/* 設定ボタンの下にフォント- */}
+              {/* フォント- */}
               <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(-1)}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -2492,43 +2503,19 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 <span className={styles.sTooltip}>Ctrl+-</span>
               </button>
               
-              {/* メニュー隠すボタンの下にT */}
+              {/* T */}
               <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(0)}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>T</span>
                 <span className={styles.sTooltip}>リセット</span>
               </button>
               
-              {/* 最前面ボタンの下にフォント+ */}
+              {/* フォント+ （右端が[▲]の右端76pxに一致） */}
               <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(1)}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
                 <span className={styles.sTooltip}>Ctrl++</span>
               </button>
-              
-              {/* 新しいヘッダーコントロール使用時は、このボタンを削除 */}
-              {!USE_NEW_HEADER_CONTROLS && (
-                <>
-                  {/* スペース - [+]とヘッダー表示/非表示の間 */}
-                  <div style={{ width: '20px' }} />
-                  
-                  {/* ヘッダー表示/非表示 - 閉じるボタンの真下 */}
-                  <button 
-                    className={classNames(
-                      getThemeClass('settingButton', false),
-                      !showHeader && styles.settingActive
-                    )}
-                    onClick={toggleHeader}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                      <rect x="3" y="3" width="12" height="2" fill="currentColor" opacity={showHeader ? 1 : 0.3}/>
-                      <rect x="3" y="7" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                      <circle cx="9" cy="11" r="2" fill="currentColor" opacity="0.6"/>
-                    </svg>
-                    <span className={styles.sTooltip}>ヘッダー表示/非表示 (Alt+H)</span>
-                  </button>
-                </>
-              )}
             </div>
           </div>
         </div>
