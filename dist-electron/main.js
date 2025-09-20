@@ -421,6 +421,13 @@ function setupWindowControls() {
             else {
                 mainWindow.setAlwaysOnTop(false);
                 mainWindow.setFocusable(true);
+                // Keep the window in front when disabling always-on-top
+                // This prevents the window from going behind other windows
+                if (process.platform === 'win32') {
+                    // Briefly re-focus the window to maintain z-order
+                    mainWindow.moveTop();
+                    mainWindow.focus();
+                }
             }
             return mainWindow.isAlwaysOnTop();
         }
