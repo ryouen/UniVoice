@@ -594,7 +594,14 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         // Delegate to translation queue hook
         handleTranslationEvent(event);
         
-        // Translation timeout is now handled in onTranslationComplete callback
+        // CRITICAL: Clear translation timeout immediately on any translation event
+        // This was the original behavior before refactoring
+        if (event.data.segmentId) {
+          const cleared = clearTranslationTimeout(event.data.segmentId);
+          if (cleared) {
+            console.log('[useUnifiedPipeline] Translation timeout cleared immediately for:', event.data.segmentId);
+          }
+        }
         
         // Update display with translation (handled by useRealtimeTranscription)
         if (transcriptionDisplayManager && event.data.translatedText && event.data.segmentId) {

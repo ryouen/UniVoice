@@ -163,6 +163,14 @@ export const useTranslationQueue = (options: UseTranslationQueueOptions = {}): U
       isFinal: event.data.isFinal,
       textLength: event.data.translatedText?.length
     });
+    
+    // 🔴 DEBUG: 翻訳タイムアウト問題調査
+    console.log('🔴 [TIMEOUT DEBUG] Translation Event Full Data:', {
+      type: event.type,
+      correlationId: event.correlationId,
+      timestamp: event.timestamp,
+      data: event.data
+    });
 
     const { segmentId, translatedText, originalText, isFinal } = event.data;
 
@@ -219,6 +227,7 @@ export const useTranslationQueue = (options: UseTranslationQueueOptions = {}): U
       // Handle final translation
       if (isFinal) {
         console.log('[useTranslationQueue] Translation complete:', segmentId);
+        console.log('🔴 [TIMEOUT DEBUG] isFinal=true, calling onTranslationComplete');
 
         // Special handling for paragraph translations
         if (segmentId.startsWith('paragraph_')) {

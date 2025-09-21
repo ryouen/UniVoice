@@ -215,9 +215,11 @@ export const useRealtimeTranscription = (options: UseRealtimeTranscriptionOption
             event.data.text,
             (timedOutSegmentId) => {
               console.log('[useRealtimeTranscription] Translation timeout for segment:', timedOutSegmentId);
+              console.log('🔴 [TIMEOUT DEBUG] Timeout fired for segment:', timedOutSegmentId);
               handleTranslationTimeout(timedOutSegmentId);
             }
           );
+          console.log('🔴 [TIMEOUT DEBUG] Started timeout for segment:', event.data.segmentId);
         }
 
         // Callback for segment completion
@@ -312,6 +314,9 @@ export const useRealtimeTranscription = (options: UseRealtimeTranscriptionOption
     const cleared = timeoutManagerRef.current.clearTimeout(segmentId);
     if (cleared) {
       console.log('[useRealtimeTranscription] Translation timeout cleared for segment:', segmentId);
+      console.log('🔴 [TIMEOUT DEBUG] Successfully cleared timeout for:', segmentId);
+    } else {
+      console.log('🔴 [TIMEOUT DEBUG] Failed to clear timeout for:', segmentId);
     }
     return cleared;
   }, []);
