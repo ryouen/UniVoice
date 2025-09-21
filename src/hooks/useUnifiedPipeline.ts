@@ -17,14 +17,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 // Import from shared types
 import type { PipelineEvent } from '../shared/types/contracts';
-import { SyncedRealtimeDisplayManager, SyncedDisplayPair } from '../utils/SyncedRealtimeDisplayManager';
+import { SyncedDisplayPair } from '../utils/SyncedRealtimeDisplayManager';
 import { FlexibleHistoryGrouper, HistoryBlock, HistorySentence } from '../utils/FlexibleHistoryGrouper';
-import { IncrementalTextManager } from '../utils/IncrementalTextManager';
 import { StreamBatcher } from '../utils/StreamBatcher';
-import { TranslationTimeoutManager } from '../utils/TranslationTimeoutManager';
 import type { UnifiedEvent } from '../shared/types/ipcEvents';
 import { useSessionMemory } from './useSessionMemory';
 import { useAudioCapture } from './useAudioCapture';
+import { useRealtimeTranscription } from './useRealtimeTranscription';
 
 // ThreeLineDisplay型の定義
 export interface ThreeLineDisplay {
@@ -193,12 +192,8 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   const [currentTargetLanguage, setCurrentTargetLanguage] = useState(targetLanguage || 'ja');
   
   // Manager instances
-  const displayManagerRef = useRef<SyncedRealtimeDisplayManager | null>(null);
   const historyGrouperRef = useRef<FlexibleHistoryGrouper | null>(null);
-  const originalTextManagerRef = useRef<IncrementalTextManager | null>(null);
-  const translationTextManagerRef = useRef<IncrementalTextManager | null>(null);
   const streamBatcherRef = useRef<StreamBatcher | null>(null);
-  const translationTimeoutManagerRef = useRef<TranslationTimeoutManager | null>(null); // 翻訳タイムアウト管理
   
   // 高品質翻訳を格納するマップ（combinedId -> translation）
   const highQualityTranslationsRef = useRef<Map<string, string>>(new Map());
@@ -226,60 +221,26 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   useEffect(() => {
     setCurrentOriginalRef.current = setCurrentOriginal;
     
-    // IncrementalTextManagerのコールバックも更新
-    if (originalTextManagerRef.current) {
-      originalTextManagerRef.current.setOnUpdate((text, isStable) => {
-        console.log('[TextManager] Original text update (dynamic):', text?.substring(0, 50), isStable);
-        setCurrentOriginal(text);
-      });
-    }
+    // Original text manager is now handled by useRealtimeTranscription
   }, [setCurrentOriginal]);
   
   useEffect(() => {
     setCurrentTranslationRef.current = setCurrentTranslation;
     
-    // IncrementalTextManagerのコールバックも更新
-    if (translationTextManagerRef.current) {
-      translationTextManagerRef.current.setOnUpdate((text, isStable) => {
-        console.log('[TextManager] Translation text update (dynamic):', text?.substring(0, 50), isStable);
-        setCurrentTranslation(text);
-      });
-    }
+    // Translation text manager is now handled by useRealtimeTranscription
     
     // StreamBatcherのコールバックも更新
-    if (streamBatcherRef.current && translationTextManagerRef.current) {
+    if (streamBatcherRef.current) {
       streamBatcherRef.current.setOnBatch((batch) => {
-        if (translationTextManagerRef.current) {
-          translationTextManagerRef.current.update(batch);
-        }
+        // StreamBatcher updates are now handled elsewhere
+        console.log('[StreamBatcher] Batch update:', batch.substring(0, 50));
       });
     }
   }, [setCurrentTranslation]);
   
   // Initialize Managers
   useEffect(() => {
-    // Initialize SyncedRealtimeDisplayManager
-    if (!displayManagerRef.current) {
-      displayManagerRef.current = new SyncedRealtimeDisplayManager(
-        (pairs) => {
-          console.log('[DisplayFlow] SyncedRealtimeDisplayManager update:', {
-            pairCount: pairs.length,
-            pairs: pairs.map(p => ({
-              id: p.id,
-              position: p.display.position,
-              opacity: p.display.opacity,
-              originalText: p.original.text.substring(0, 30) + (p.original.text.length > 30 ? '...' : ''),
-              translationText: p.translation.text.substring(0, 30) + (p.translation.text.length > 30 ? '...' : ''),
-              isFinal: p.original.isFinal
-            }))
-          });
-          console.log('[SyncedRealtimeDisplayManager] Updating displayPairs:', pairs.length, pairs);
-          setDisplayPairs(pairs);
-        }
-      );
-    }
-    
-    // RealtimeDisplayServiceは使用しない（displayPairsから直接変換）
+    // Display manager is now handled by useRealtimeTranscription hook
     
     // Initialize FlexibleHistoryGrouper
     if (!historyGrouperRef.current) {
@@ -296,37 +257,14 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       );
     }
     
-    // Initialize IncrementalTextManager for original text
-    if (!originalTextManagerRef.current) {
-      originalTextManagerRef.current = new IncrementalTextManager(
-        (text, isStable) => {
-          console.log('[TextManager] Original text update (init):', text?.substring(0, 50), isStable);
-          // 初期化時は直接setStateを使用（後でuseEffectで更新される）
-          setCurrentOriginal(text);
-        },
-        800 // 0.8秒で確定
-      );
-    }
-    
-    // Initialize IncrementalTextManager for translation
-    if (!translationTextManagerRef.current) {
-      translationTextManagerRef.current = new IncrementalTextManager(
-        (text, isStable) => {
-          console.log('[TextManager] Translation text update (init):', text?.substring(0, 50), isStable);
-          // 初期化時は直接setStateを使用（後でuseEffectで更新される）
-          setCurrentTranslation(text);
-        },
-        1000 // 1秒で確定
-      );
-    }
+    // Text managers are now handled by useRealtimeTranscription hook
     
     // Initialize StreamBatcher for translation streaming
     if (!streamBatcherRef.current) {
       streamBatcherRef.current = new StreamBatcher(
         (batch) => {
-          if (translationTextManagerRef.current) {
-            translationTextManagerRef.current.update(batch);
-          }
+          // Translation text manager is now handled by useRealtimeTranscription
+          console.log('[StreamBatcher] Batch ready:', batch.substring(0, 50));
         },
         {
           minInterval: 100,
@@ -336,39 +274,16 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       );
     }
     
-    // Initialize TranslationTimeoutManager
-    if (!translationTimeoutManagerRef.current) {
-      translationTimeoutManagerRef.current = new TranslationTimeoutManager({
-        defaultTimeout: 7000, // 7秒
-        enableDynamicTimeout: true,
-        maxTimeout: 10000 // 10秒
-      });
-    }
+    // Translation timeout manager is now handled by useRealtimeTranscription hook
     
     return () => {
-      if (displayManagerRef.current) {
-        displayManagerRef.current.destroy();
-        displayManagerRef.current = null;
-      }
       if (historyGrouperRef.current) {
         historyGrouperRef.current.reset();
         historyGrouperRef.current = null;
       }
-      if (originalTextManagerRef.current) {
-        originalTextManagerRef.current.reset();
-        originalTextManagerRef.current = null;
-      }
-      if (translationTextManagerRef.current) {
-        translationTextManagerRef.current.reset();
-        translationTextManagerRef.current = null;
-      }
       if (streamBatcherRef.current) {
         streamBatcherRef.current.reset();
         streamBatcherRef.current = null;
-      }
-      if (translationTimeoutManagerRef.current) {
-        translationTimeoutManagerRef.current.destroy();
-        translationTimeoutManagerRef.current = null;
       }
     };
   }, []);
@@ -484,55 +399,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   // 履歴に追加済みのセグメントIDを追跡
   const addedToHistorySet = useRef<Set<string>>(new Set());
 
-  // Handle translation timeout
-  const handleTranslationTimeout = useCallback((segmentId: string) => {
-    console.log('[useUnifiedPipeline] Handling translation timeout for segment:', segmentId);
-    
-    // Get segment data
-    const segment = segmentTranslationMap.current.get(segmentId);
-    if (!segment || !segment.original) {
-      console.warn('[useUnifiedPipeline] Timeout for unknown segment:', segmentId);
-      return;
-    }
-    
-    // Mark as timeout in displays
-    if (displayManagerRef.current) {
-      displayManagerRef.current.updateTranslation('[翻訳タイムアウト]', segmentId);
-      displayManagerRef.current.completeTranslation(segmentId);
-    }
-    
-    // Add to history with timeout status
-    if (!addedToHistorySet.current.has(segmentId)) {
-      addedToHistorySet.current.add(segmentId);
-      
-      const translation: Translation = {
-        id: segmentId,
-        original: segment.original,
-        japanese: '[翻訳タイムアウト]',
-        timestamp: Date.now(),
-        firstPaintMs: 0,
-        completeMs: 7000 // タイムアウト時間
-      };
-      
-      setHistory(prev => [...prev, translation]);
-      
-      // Add to flexible history grouper
-      if (historyGrouperRef.current && !addedToGrouperSet.current.has(segmentId)) {
-        historyGrouperRef.current.addSentence({
-          id: segmentId,
-          original: segment.original,
-          translation: '[翻訳タイムアウト]',
-          timestamp: Date.now()
-        });
-        addedToGrouperSet.current.add(segmentId);
-      }
-    }
-    
-    // Clean up segment map
-    segmentTranslationMap.current.delete(segmentId);
-    
-    console.log('[useUnifiedPipeline] Translation timeout handled:', segmentId);
-  }, []);
+  // Translation timeout handling is now managed by useRealtimeTranscription hook
 
   // Audio capture hook
   const {
@@ -552,6 +419,79 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     }
   });
 
+  // Real-time transcription hook
+  const {
+    currentTranscription,
+    pendingSegments,
+    displayManager: transcriptionDisplayManager,
+    textManager: transcriptionTextManager,
+    handleASREvent,
+    clearTranscription,
+    resetManagers: resetTranscriptionManagers,
+    setDisplayPairsCallback
+  } = useRealtimeTranscription({
+    enabled: isEnabled,
+    onSegmentComplete: (segmentId, text) => {
+      console.log('[useUnifiedPipeline] Segment complete:', segmentId, text);
+      // Track segment for translation pairing
+      segmentTranslationMap.current.set(segmentId, {
+        original: text,
+        translation: ''
+      });
+    },
+    onTranslationTimeout: (segmentId, originalText) => {
+      console.log('[useUnifiedPipeline] Translation timeout:', segmentId);
+      // Add to history with timeout status
+      if (!addedToHistorySet.current.has(segmentId)) {
+        addedToHistorySet.current.add(segmentId);
+        
+        const translation: Translation = {
+          id: segmentId,
+          original: originalText,
+          japanese: '[翻訳タイムアウト]',
+          timestamp: Date.now(),
+          firstPaintMs: 0,
+          completeMs: 7000 // タイムアウト時間
+        };
+        
+        setHistory(prev => [...prev, translation]);
+        
+        // Add to flexible history grouper
+        if (historyGrouperRef.current && !addedToGrouperSet.current.has(segmentId)) {
+          historyGrouperRef.current.addSentence({
+            id: segmentId,
+            original: originalText,
+            translation: '[翻訳タイムアウト]',
+            timestamp: Date.now()
+          });
+          addedToGrouperSet.current.add(segmentId);
+        }
+      }
+      
+      // Clean up segment map
+      segmentTranslationMap.current.delete(segmentId);
+    },
+    onError: (error) => {
+      console.error('[useUnifiedPipeline] Transcription error:', error);
+      setError(error.message);
+      if (onError) {
+        onError(error.message);
+      }
+    }
+  });
+
+  // Connect display pairs callback from transcription hook
+  useEffect(() => {
+    setDisplayPairsCallback((pairs) => {
+      setDisplayPairs(pairs);
+    });
+  }, [setDisplayPairsCallback]);
+
+  // Update currentOriginal with transcription
+  useEffect(() => {
+    setCurrentOriginal(currentTranscription);
+  }, [currentTranscription]);
+
   // Event handlers
   const handlePipelineEvent = useCallback((event: PipelineEvent) => {
     // イベント受信ログ（デバッグ用）
@@ -560,70 +500,14 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     // ASRイベントのデバッグログを強化
     if (event.type === 'asr') {
       console.log('[ASR DEBUG] Full event:', JSON.stringify(event, null, 2));
-      console.log('[ASR DEBUG] displayManagerRef exists:', !!displayManagerRef.current);
+      console.log('[ASR DEBUG] transcriptionDisplayManager exists:', !!transcriptionDisplayManager);
       console.log('[ASR DEBUG] displayPairs length:', displayPairs.length);
     }
 
     switch (event.type) {
       case 'asr':
-        console.log('[ASR] displayManagerRef.current:', !!displayManagerRef.current, 'segmentId:', event.data.segmentId);
-        console.log('[Display Debug] ASR Event:', {
-          text: event.data.text?.substring(0, 50) + '...',
-          isFinal: event.data.isFinal,
-          currentOriginal: currentOriginal?.substring(0, 50) + '...'
-        });
-        
-        // Final結果の特別なログ
-        if (event.data.isFinal) {
-          console.log('[ASR FINAL] Final result received:', {
-            segmentId: event.data.segmentId,
-            textLength: event.data.text?.length,
-            text: event.data.text
-          });
-        }
-        
-        // Update display manager - now accepts interim results too
-        if (displayManagerRef.current) {
-          console.log('[ASR] Calling updateOriginal:', {
-            textLength: event.data.text?.length,
-            isFinal: event.data.isFinal,
-            segmentId: event.data.segmentId,
-            hasSegmentId: !!event.data.segmentId
-          });
-          displayManagerRef.current.updateOriginal(
-            event.data.text, 
-            event.data.isFinal, 
-            event.data.segmentId || `interim_${Date.now()}` // Provide segmentId even for interim
-          );
-          
-          // Track segment for translation pairing
-          if (event.data.isFinal) {
-            segmentTranslationMap.current.set(event.data.segmentId, {
-              original: event.data.text,
-              translation: ''
-            });
-            
-            // Start translation timeout
-            if (translationTimeoutManagerRef.current) {
-              translationTimeoutManagerRef.current.startTimeout(
-                event.data.segmentId,
-                event.data.text,
-                (timedOutSegmentId) => {
-                  console.log('[useUnifiedPipeline] Translation timeout for segment:', timedOutSegmentId);
-                  handleTranslationTimeout(timedOutSegmentId);
-                }
-              );
-            }
-          }
-        } else {
-          console.warn('[ASR] Cannot update - displayManager:', !!displayManagerRef.current, 'segmentId:', event.data.segmentId);
-        }
-        
-        // Update current display (for compatibility)
-        if (originalTextManagerRef.current) {
-          console.log('[Display Debug] Updating currentOriginal:', event.data.text?.substring(0, 50) + '...', 'isFinal:', event.data.isFinal);
-          originalTextManagerRef.current.update(event.data.text);
-        }
+        // Delegate to real-time transcription hook
+        handleASREvent(event);
         break;
 
       case 'translation':
@@ -719,13 +603,11 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         }
         
         // Clear translation timeout if exists
-        if (event.data.segmentId && translationTimeoutManagerRef.current) {
-          translationTimeoutManagerRef.current.clearTimeout(event.data.segmentId);
-        }
+        // Note: Translation timeout is now handled by useRealtimeTranscription hook
         
         // Update display with translation
-        if (displayManagerRef.current && event.data.translatedText && event.data.segmentId) {
-          displayManagerRef.current.updateTranslation(
+        if (transcriptionDisplayManager && event.data.translatedText && event.data.segmentId) {
+          transcriptionDisplayManager.updateTranslation(
             event.data.translatedText,
             event.data.segmentId
           );
@@ -740,8 +622,8 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         // Handle translation completion
         if (event.data.isFinal && event.data.segmentId) {
           // Mark translation as complete (starts 1.5s removal timer)
-          if (displayManagerRef.current) {
-            displayManagerRef.current.completeTranslation(event.data.segmentId);
+          if (transcriptionDisplayManager) {
+            transcriptionDisplayManager.completeTranslation(event.data.segmentId);
           }
           
           // パラグラフ翻訳の場合
@@ -818,12 +700,13 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         }
         
         // Update current display for compatibility
-        if (event.data.translatedText && translationTextManagerRef.current) {
+        if (event.data.translatedText) {
           console.log('[Display Debug] Updating currentTranslation (all events):', {
             text: event.data.translatedText?.substring(0, 50) + '...',
             isFinal: event.data.isFinal
           });
-          translationTextManagerRef.current.update(event.data.translatedText);
+          // Translation text is now managed through display pairs from transcription hook
+          setCurrentTranslation(event.data.translatedText);
         }
         break;
 
@@ -1120,9 +1003,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       // 文字起こし結果の直接更新
       const originalUpdateHandler = (_event: any, data: any) => {
         console.log('[useUnifiedPipeline] current-original-update received:', data);
-        if (originalTextManagerRef.current) {
-          originalTextManagerRef.current.update(data.text);
-        }
+        // Original text is now managed through transcription hook
         setCurrentOriginal(data.text);
       };
       window.electron.on('current-original-update', originalUpdateHandler);
@@ -1355,16 +1236,14 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       addedToGrouperSet.current.clear(); // グルーパー追加済みセットもクリア
       
       // Reset managers
-      if (displayManagerRef.current) {
-        displayManagerRef.current.reset();
-      }
+      resetTranscriptionManagers(); // Reset transcription-related managers
       if (historyGrouperRef.current) {
         historyGrouperRef.current.reset();
       }
     } catch (err: any) {
       console.error('[useUnifiedPipeline] Clear all failed:', err);
     }
-  }, [clearHistory, clearSummaries, clearError]);
+  }, [clearHistory, clearSummaries, clearError, resetTranscriptionManagers]);
 
   // Generate vocabulary from current session
   const generateVocabulary = useCallback(async () => {

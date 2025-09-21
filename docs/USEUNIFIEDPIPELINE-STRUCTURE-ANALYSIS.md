@@ -316,8 +316,9 @@ const eventHandlers: Record<string, EventHandler> = {
 ### 実装優先順位
 1. ✅ 型安全性の改善（完了）
 2. ✅ useAudioCapture フックの作成（完了 - 2025-09-21）
-3. 🚧 イベントハンドラーの分離
-4. 🚧 その他のカスタムフック作成
+3. ✅ useRealtimeTranscription フックの作成（完了 - 2025-09-21）
+4. 🚧 useTranslationQueue フックの作成（次の作業）
+5. 🚧 その他のカスタムフック作成
 
 ### リファクタリング成果（2025-09-21）
 - **useAudioCapture分離完了**
@@ -326,5 +327,13 @@ const eventHandlers: Record<string, EventHandler> = {
   - 責任の明確化: 音声キャプチャロジックが独立
   - 再利用性向上: 他のコンポーネントでも使用可能に
 
+- **useRealtimeTranscription分離完了**
+  - 削減行数: 121行（1494行 → 1373行）
+  - 新規作成: `src/hooks/useRealtimeTranscription.ts`（308行）
+  - 責任の明確化: ASRイベント処理とリアルタイム表示管理が独立
+  - マネージャー統合: SyncedRealtimeDisplayManager, IncrementalTextManager, TranslationTimeoutManagerを一元管理
+  - 削除: handleTranslationTimeout関数とその関連コード
+  - 総削減: 223行（1596行 → 1373行）
+
 ### 総括
-useUnifiedPipelineは機能的には完成度が高いが、単一責任の原則に反する巨大なフックとなっている。段階的なリファクタリングにより、保守性とテスタビリティを大幅に改善できる。useAudioCaptureの分離により、音声キャプチャ機能が独立し、コードの可読性と再利用性が向上した。
+useUnifiedPipelineの段階的リファクタリングが順調に進行中。useAudioCaptureとuseRealtimeTranscriptionの分離により、責任が明確化され、コードの保守性とテスタビリティが大幅に向上した。次はuseTranslationQueueの分離に着手する。
