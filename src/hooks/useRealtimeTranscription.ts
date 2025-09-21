@@ -62,6 +62,8 @@ interface UseRealtimeTranscriptionReturn {
   resetManagers: () => void;
   /** Update display pairs callback (for integration) */
   setDisplayPairsCallback: (callback: (pairs: any[]) => void) => void;
+  /** Clear translation timeout for a specific segment */
+  clearTranslationTimeout: (segmentId: string) => boolean;
 }
 
 /**
@@ -297,6 +299,23 @@ export const useRealtimeTranscription = (options: UseRealtimeTranscriptionOption
     console.log('[useRealtimeTranscription] All managers reset');
   }, [pendingSegments]);
 
+  /**
+   * Clear translation timeout for a specific segment
+   * Called when translation is received to prevent timeout
+   */
+  const clearTranslationTimeout = useCallback((segmentId: string): boolean => {
+    if (!timeoutManagerRef.current) {
+      console.warn('[useRealtimeTranscription] TimeoutManager not initialized');
+      return false;
+    }
+
+    const cleared = timeoutManagerRef.current.clearTimeout(segmentId);
+    if (cleared) {
+      console.log('[useRealtimeTranscription] Translation timeout cleared for segment:', segmentId);
+    }
+    return cleared;
+  }, []);
+
   return {
     currentTranscription,
     pendingSegments,
@@ -305,6 +324,7 @@ export const useRealtimeTranscription = (options: UseRealtimeTranscriptionOption
     handleASREvent,
     clearTranscription,
     resetManagers,
-    setDisplayPairsCallback
+    setDisplayPairsCallback,
+    clearTranslationTimeout
   };
 };

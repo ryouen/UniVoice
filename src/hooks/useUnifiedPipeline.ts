@@ -19,11 +19,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PipelineEvent } from '../shared/types/contracts';
 import { SyncedDisplayPair } from '../utils/SyncedRealtimeDisplayManager';
 import { FlexibleHistoryGrouper, HistoryBlock, HistorySentence } from '../utils/FlexibleHistoryGrouper';
-import { StreamBatcher } from '../utils/StreamBatcher';
 import type { UnifiedEvent } from '../shared/types/ipcEvents';
 import { useSessionMemory } from './useSessionMemory';
 import { useAudioCapture } from './useAudioCapture';
 import { useRealtimeTranscription } from './useRealtimeTranscription';
+import { useTranslationQueue } from './useTranslationQueue';
 
 // ThreeLineDisplay型の定義
 export interface ThreeLineDisplay {
@@ -145,8 +145,8 @@ interface UseUnifiedPipelineOptions {
 
 export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   const {
-    sourceLanguage = 'en',
-    targetLanguage = 'ja',
+    sourceLanguage,
+    targetLanguage,
     className,
     onError,
     onStatusChange,
@@ -187,26 +187,15 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   });
   
   // 言語設定を状態として管理（動的更新対応）
-  // デフォルト値を設定して空文字列を防ぐ
-  const [currentSourceLanguage, setCurrentSourceLanguage] = useState(sourceLanguage || 'multi');
-  const [currentTargetLanguage, setCurrentTargetLanguage] = useState(targetLanguage || 'ja');
+  const [currentSourceLanguage, setCurrentSourceLanguage] = useState(sourceLanguage);
+  const [currentTargetLanguage, setCurrentTargetLanguage] = useState(targetLanguage);
+  
+  // 履歴グルーパーに追加済みのIDを追跡（重複防止）
+  const addedToHistorySetRef = useRef<Set<string>>(new Set());
+  const addedToGrouperSetRef = useRef<Set<string>>(new Set());
   
   // Manager instances
   const historyGrouperRef = useRef<FlexibleHistoryGrouper | null>(null);
-  const streamBatcherRef = useRef<StreamBatcher | null>(null);
-  
-  // 高品質翻訳を格納するマップ（combinedId -> translation）
-  const highQualityTranslationsRef = useRef<Map<string, string>>(new Map());
-  
-  // 結合文管理用のマップ
-  const segmentTranslationMap = useRef<Map<string, { original: string; translation: string; combinedId?: string }>>(new Map());
-  const segmentToCombinedMap = useRef<Map<string, string>>(new Map());
-  
-  // パラグラフ管理用のマップ
-  const paragraphTranslationMap = useRef<Map<string, { original: string; translation: string; isParagraph?: boolean }>>(new Map());
-  
-  // 履歴グルーパーに追加済みのIDを追跡（重複防止）
-  const addedToGrouperSet = useRef<Set<string>>(new Set());
 
   // Refs for cleanup and correlation
   const cleanupFunctions = useRef<(() => void)[]>([]);
@@ -229,13 +218,6 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     
     // Translation text manager is now handled by useRealtimeTranscription
     
-    // StreamBatcherのコールバックも更新
-    if (streamBatcherRef.current) {
-      streamBatcherRef.current.setOnBatch((batch) => {
-        // StreamBatcher updates are now handled elsewhere
-        console.log('[StreamBatcher] Batch update:', batch.substring(0, 50));
-      });
-    }
   }, [setCurrentTranslation]);
   
   // Initialize Managers
@@ -259,20 +241,6 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     
     // Text managers are now handled by useRealtimeTranscription hook
     
-    // Initialize StreamBatcher for translation streaming
-    if (!streamBatcherRef.current) {
-      streamBatcherRef.current = new StreamBatcher(
-        (batch) => {
-          // Translation text manager is now handled by useRealtimeTranscription
-          console.log('[StreamBatcher] Batch ready:', batch.substring(0, 50));
-        },
-        {
-          minInterval: 100,
-          maxWait: 200,
-          minChars: 2
-        }
-      );
-    }
     
     // Translation timeout manager is now handled by useRealtimeTranscription hook
     
@@ -280,10 +248,6 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       if (historyGrouperRef.current) {
         historyGrouperRef.current.reset();
         historyGrouperRef.current = null;
-      }
-      if (streamBatcherRef.current) {
-        streamBatcherRef.current.reset();
-        streamBatcherRef.current = null;
       }
     };
   }, []);
@@ -396,9 +360,6 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     return window.univoice?.generateCorrelationId?.() || `hook-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }, []);
 
-  // 履歴に追加済みのセグメントIDを追跡
-  const addedToHistorySet = useRef<Set<string>>(new Set());
-
   // Translation timeout handling is now managed by useRealtimeTranscription hook
 
   // Audio capture hook
@@ -428,22 +389,19 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     handleASREvent,
     clearTranscription,
     resetManagers: resetTranscriptionManagers,
-    setDisplayPairsCallback
+    setDisplayPairsCallback,
+    clearTranslationTimeout
   } = useRealtimeTranscription({
     enabled: isEnabled,
     onSegmentComplete: (segmentId, text) => {
       console.log('[useUnifiedPipeline] Segment complete:', segmentId, text);
-      // Track segment for translation pairing
-      segmentTranslationMap.current.set(segmentId, {
-        original: text,
-        translation: ''
-      });
+      // Segment tracking is now handled by useTranslationQueue
     },
     onTranslationTimeout: (segmentId, originalText) => {
       console.log('[useUnifiedPipeline] Translation timeout:', segmentId);
       // Add to history with timeout status
-      if (!addedToHistorySet.current.has(segmentId)) {
-        addedToHistorySet.current.add(segmentId);
+      if (!addedToHistorySetRef.current.has(segmentId)) {
+        addedToHistorySetRef.current.add(segmentId);
         
         const translation: Translation = {
           id: segmentId,
@@ -457,19 +415,18 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         setHistory(prev => [...prev, translation]);
         
         // Add to flexible history grouper
-        if (historyGrouperRef.current && !addedToGrouperSet.current.has(segmentId)) {
+        if (historyGrouperRef.current && !addedToGrouperSetRef.current.has(segmentId)) {
           historyGrouperRef.current.addSentence({
             id: segmentId,
             original: originalText,
             translation: '[翻訳タイムアウト]',
             timestamp: Date.now()
           });
-          addedToGrouperSet.current.add(segmentId);
+          addedToGrouperSetRef.current.add(segmentId);
         }
       }
       
-      // Clean up segment map
-      segmentTranslationMap.current.delete(segmentId);
+      // Segment map cleanup is now handled by useTranslationQueue
     },
     onError: (error) => {
       console.error('[useUnifiedPipeline] Transcription error:', error);
@@ -492,6 +449,122 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     setCurrentOriginal(currentTranscription);
   }, [currentTranscription]);
 
+  // Translation queue hook
+  const {
+    activeTranslations,
+    highQualityTranslations,
+    handleTranslationEvent,
+    clearTranslations,
+    resetBatcher,
+    registerSegmentMapping,
+    registerParagraphMapping,
+    getMappedId
+  } = useTranslationQueue({
+    enabled: isEnabled,
+    onTranslationComplete: (segmentId, translation, originalText) => {
+      console.log('[useUnifiedPipeline] Translation complete:', segmentId);
+      
+      // Clear translation timeout to prevent false timeout
+      const cleared = clearTranslationTimeout(segmentId);
+      if (cleared) {
+        console.log('[useUnifiedPipeline] Translation timeout cleared for:', segmentId);
+      }
+      
+      // Update display manager
+      if (transcriptionDisplayManager) {
+        transcriptionDisplayManager.completeTranslation(segmentId);
+      }
+
+      // Add to history
+      if (!addedToHistorySetRef.current.has(segmentId)) {
+        addedToHistorySetRef.current.add(segmentId);
+        
+        const translationObj: Translation = {
+          id: segmentId,
+          original: originalText,
+          japanese: translation,
+          timestamp: Date.now(),
+          firstPaintMs: 0,
+          completeMs: Date.now()
+        };
+        
+        setHistory(prev => {
+          const exists = prev.some(item => item.id === translationObj.id);
+          if (exists) {
+            console.log('[useUnifiedPipeline] Translation already in history, skipping:', translationObj.id);
+            return prev;
+          }
+          return [...prev, translationObj];
+        });
+        
+        if (onTranslation) {
+          onTranslation(translationObj);
+        }
+      }
+
+      // Segment map cleanup is now handled by useTranslationQueue
+    },
+    onHighQualityTranslation: (targetId, translationText, isParagraph) => {
+      console.log('[useUnifiedPipeline] High-quality translation received:', targetId, isParagraph);
+      
+      // Update in SessionMemory
+      if (isSessionActive && !isParagraph) {
+        try {
+          updateTranslation(targetId, {
+            japanese: translationText,
+            completeMs: Date.now()
+          });
+          console.log('[useUnifiedPipeline] Translation updated in session memory:', targetId);
+        } catch (error) {
+          console.error('[useUnifiedPipeline] Failed to update translation in session memory:', error);
+        }
+      }
+      
+      // Update FlexibleHistoryGrouper
+      if (historyGrouperRef.current) {
+        if (isParagraph) {
+          historyGrouperRef.current.updateParagraphTranslation(targetId, translationText);
+          console.log('[useUnifiedPipeline] Updated FlexibleHistoryGrouper paragraph translation:', targetId);
+        } else {
+          historyGrouperRef.current.updateSentenceTranslation(targetId, translationText);
+          console.log('[useUnifiedPipeline] Updated FlexibleHistoryGrouper sentence translation:', targetId);
+        }
+      }
+      
+      // Update history blocks
+      setHistoryBlocks(prevBlocks => {
+        return prevBlocks.map(block => {
+          const updatedSentences = block.sentences.map(sentence => {
+            if (sentence.id === targetId) {
+              console.log('[useUnifiedPipeline] Updating sentence translation:', sentence.id);
+              return {
+                ...sentence,
+                translation: translationText
+              };
+            }
+            return sentence;
+          });
+          
+          const hasUpdates = updatedSentences.some((s, i) => s.translation !== block.sentences[i].translation);
+          if (hasUpdates) {
+            return {
+              ...block,
+              sentences: updatedSentences
+            };
+          }
+          return block;
+        });
+      });
+    },
+    onError: (error) => {
+      console.error('[useUnifiedPipeline] Translation queue error:', error);
+      setError(error.message);
+      if (onError) {
+        onError(error.message);
+      }
+    }
+  });
+
   // Event handlers
   const handlePipelineEvent = useCallback((event: PipelineEvent) => {
     // イベント受信ログ（デバッグ用）
@@ -511,201 +584,28 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         break;
 
       case 'translation':
-        console.log('[useUnifiedPipeline] Translation event received:', event.data);
-        console.log('[useUnifiedPipeline] Translation text:', event.data.translatedText);
-        console.log('[useUnifiedPipeline] Translation text length:', event.data.translatedText?.length);
-        console.log('[useUnifiedPipeline] Translation text char codes (first 10):', 
-          event.data.translatedText ? [...event.data.translatedText.slice(0, 10)].map(c => c.charCodeAt(0)) : []);
+        console.log('[useUnifiedPipeline] Translation event received:', {
+          segmentId: event.data.segmentId,
+          hasTranslation: !!event.data.translatedText,
+          isFinal: event.data.isFinal,
+          textLength: event.data.translatedText?.length
+        });
         
-        // 履歴用高品質翻訳またはパラグラフ翻訳の場合
-        if (event.data.segmentId && 
-            (event.data.segmentId.startsWith('history_') || 
-             event.data.segmentId.startsWith('paragraph_'))) {
-          const isParagraph = event.data.segmentId.startsWith('paragraph_');
-          console.log(`[useUnifiedPipeline] ${isParagraph ? 'Paragraph' : 'History'} translation received:`, event.data.segmentId);
-          
-          // プレフィックスを削除して元のIDを取得
-          const baseId = event.data.segmentId.replace(/^(history_|paragraph_)/, '');
-          
-          // パラグラフの場合はbaseIdをそのまま使用、履歴の場合はマッピングを確認
-          const targetId = isParagraph ? baseId : (segmentToCombinedMap.current.get(baseId) || baseId);
-          const translationText = event.data.translatedText || event.data.content;
-          
-          console.log(`[useUnifiedPipeline] Mapping ${isParagraph ? 'paragraph' : 'history'} translation:`, {
-            segmentId: event.data.segmentId,
-            baseId,
-            targetId,
-            isParagraph,
-            hasMapping: !isParagraph && segmentToCombinedMap.current.has(baseId)
-          });
-          
-          // 高品質翻訳を保存
-          if (translationText) {
-            highQualityTranslationsRef.current.set(targetId, translationText);
-            console.log('[useUnifiedPipeline] High-quality translation stored:', targetId, translationText.substring(0, 50));
-            
-            // SessionMemoryService: 高品質翻訳で更新
-            if (isSessionActive && !isParagraph) {
-              try {
-                updateTranslation(targetId, {
-                  japanese: translationText,
-                  completeMs: Date.now()
-                });
-                console.log('[useUnifiedPipeline] Translation updated in session memory:', targetId);
-              } catch (error) {
-                console.error('[useUnifiedPipeline] Failed to update translation in session memory:', error);
-              }
-            }
-            
-            // FlexibleHistoryGrouperの内部状態も更新
-            if (historyGrouperRef.current) {
-              if (isParagraph) {
-                // パラグラフの場合
-                historyGrouperRef.current.updateParagraphTranslation(targetId, translationText);
-                console.log('[useUnifiedPipeline] Updated FlexibleHistoryGrouper paragraph translation:', targetId);
-              } else {
-                // 文の場合（Phase 1修正）
-                historyGrouperRef.current.updateSentenceTranslation(targetId, translationText);
-                console.log('[useUnifiedPipeline] Updated FlexibleHistoryGrouper sentence translation:', targetId);
-              }
-            }
-            
-            // 既存の履歴ブロックを更新
-            setHistoryBlocks(prevBlocks => {
-              return prevBlocks.map(block => {
-                // 該当するセンテンスを含むブロックを探す
-                const updatedSentences = block.sentences.map(sentence => {
-                  if (sentence.id === targetId) {
-                    console.log('[useUnifiedPipeline] Updating sentence translation:', sentence.id);
-                    return {
-                      ...sentence,
-                      translation: translationText
-                    };
-                  }
-                  return sentence;
-                });
-                
-                // センテンスが更新された場合、ブロック全体を更新
-                const hasUpdates = updatedSentences.some((s, i) => s.translation !== block.sentences[i].translation);
-                if (hasUpdates) {
-                  return {
-                    ...block,
-                    sentences: updatedSentences
-                  };
-                }
-                return block;
-              });
-            });
-          }
-          
-          // 通常の翻訳処理はスキップ
-          break;
-        }
+        // Delegate to translation queue hook
+        handleTranslationEvent(event);
         
-        // Clear translation timeout if exists
-        // Note: Translation timeout is now handled by useRealtimeTranscription hook
+        // Translation timeout is now handled in onTranslationComplete callback
         
-        // Update display with translation
+        // Update display with translation (handled by useRealtimeTranscription)
         if (transcriptionDisplayManager && event.data.translatedText && event.data.segmentId) {
           transcriptionDisplayManager.updateTranslation(
             event.data.translatedText,
             event.data.segmentId
           );
-          
-          // Update segment map
-          const segment = segmentTranslationMap.current.get(event.data.segmentId);
-          if (segment) {
-            segment.translation = event.data.translatedText;
-          }
-        }
-        
-        // Handle translation completion
-        if (event.data.isFinal && event.data.segmentId) {
-          // Mark translation as complete (starts 1.5s removal timer)
-          if (transcriptionDisplayManager) {
-            transcriptionDisplayManager.completeTranslation(event.data.segmentId);
-          }
-          
-          // パラグラフ翻訳の場合
-          if (event.data.segmentId.startsWith('paragraph_')) {
-            const paragraphId = event.data.segmentId.replace('paragraph_', '');
-            const paragraphData = paragraphTranslationMap.current.get(paragraphId);
-            
-            if (paragraphData && historyGrouperRef.current) {
-              console.log('[DataFlow-12p] Updating paragraph translation:', {
-                paragraphId,
-                translationLength: event.data.translatedText.length
-              });
-              
-              // FlexibleHistoryGrouperのパラグラフ翻訳を更新
-              historyGrouperRef.current.updateParagraphTranslation(
-                paragraphId,
-                event.data.translatedText
-              );
-              
-              // マップも更新
-              paragraphData.translation = event.data.translatedText;
-            }
-            return; // パラグラフ翻訳の場合はここで処理終了
-          }
-          
-          // Get complete segment data
-          const segment = segmentTranslationMap.current.get(event.data.segmentId);
-          if (segment && segment.original && segment.translation) {
-            // Add to FlexibleHistoryGrouper
-            // 🔴 DISABLED: パラグラフモード優先のため、個別セグメントの履歴追加を無効化
-            // パラグラフ形成（20-60秒）を待つため、ここでは追加しない
-            /*
-            if (historyGrouperRef.current && !addedToGrouperSet.current.has(event.data.segmentId)) {
-              historyGrouperRef.current.addSentence({
-                id: event.data.segmentId,
-                original: segment.original,
-                translation: segment.translation,
-                timestamp: event.timestamp
-              });
-              addedToGrouperSet.current.add(event.data.segmentId);
-            }
-            */
-            
-            // Add to regular history (for backward compatibility)
-            if (!addedToHistorySet.current.has(event.data.segmentId)) {
-              addedToHistorySet.current.add(event.data.segmentId);
-              
-              const translation: Translation = {
-                id: event.data.segmentId,
-                original: event.data.originalText,
-                japanese: event.data.translatedText,
-                timestamp: event.timestamp,
-                firstPaintMs: 0,
-                completeMs: Date.now()
-              };
-              
-              setHistory(prev => {
-                const exists = prev.some(item => item.id === translation.id);
-                if (exists) {
-                  console.log('[useUnifiedPipeline] Translation already in history, skipping:', translation.id);
-                  return prev;
-                }
-                return [...prev, translation];
-              });
-              
-              if (onTranslation) {
-                onTranslation(translation);
-              }
-            }
-          }
-          
-          // Clean up segment map
-          segmentTranslationMap.current.delete(event.data.segmentId);
         }
         
         // Update current display for compatibility
         if (event.data.translatedText) {
-          console.log('[Display Debug] Updating currentTranslation (all events):', {
-            text: event.data.translatedText?.substring(0, 50) + '...',
-            isFinal: event.data.isFinal
-          });
-          // Translation text is now managed through display pairs from transcription hook
           setCurrentTranslation(event.data.translatedText);
         }
         break;
@@ -859,13 +759,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
           event.data.segmentIds.forEach((segmentId: string) => {
             console.log(`[DataFlow-12] Mapping segment ${segmentId} to combined ${event.data.combinedId}`);
             // セグメントIDと結合IDのマッピングを保存（後で履歴翻訳が来た時に使用）
-            segmentTranslationMap.current.set(segmentId, {
-              original: event.data.originalText,
-              translation: '',
-              combinedId: event.data.combinedId  // 結合IDを追加
-            });
-            // 逆引きマップも保存（セグメントIDから結合IDを検索）
-            segmentToCombinedMap.current.set(segmentId, event.data.combinedId);
+            registerSegmentMapping(segmentId, event.data.combinedId);
           });
           
           // 結合された文として履歴に追加
@@ -976,7 +870,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       default:
         console.warn('[useUnifiedPipeline] Unknown event type:', event);
     }
-  }, [onError, onStatusChange, onTranslation, onSummary, isSessionActive, addTranslation, updateTranslation, addSummary]);
+  }, [onError, onStatusChange, onTranslation, onSummary, isSessionActive, addTranslation, updateTranslation, addSummary, registerSegmentMapping, registerParagraphMapping, handleTranslationEvent, handleASREvent, transcriptionDisplayManager]);
 
   // handlePipelineEventへの最新の参照を保持
   const handlePipelineEventRef = useRef(handlePipelineEvent);
@@ -1096,7 +990,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       // SessionMemoryService: セッション開始
       // classNameがない場合はデフォルト値を使用
       const sessionClassName = className || `session_${new Date().toISOString().split('T')[0]}`;
-      if (!isSessionActive) {
+      if (!isSessionActive && currentSourceLanguage && currentTargetLanguage) {
         console.log('[useUnifiedPipeline] Starting new session:', sessionClassName);
         try {
           await startSession(sessionClassName, currentSourceLanguage, currentTargetLanguage);
@@ -1104,6 +998,11 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
           console.error('[useUnifiedPipeline] Failed to start session memory:', error);
           // セッションメモリの失敗は致命的ではないため、パイプラインは継続
         }
+      }
+
+      // Validate language settings
+      if (!currentSourceLanguage || !currentTargetLanguage) {
+        throw new Error('Language settings are required. Please configure them in Setup.');
       }
 
       const result = await window.univoice?.startListening?.({
@@ -1231,9 +1130,9 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       setCurrentOriginal('');
       setCurrentTranslation('');
       setDisplayPairs([]);
-      segmentTranslationMap.current.clear();
-      addedToHistorySet.current.clear(); // 履歴追加済みセットもクリア
-      addedToGrouperSet.current.clear(); // グルーパー追加済みセットもクリア
+      clearTranslations(); // Clear translation queue data
+      addedToHistorySetRef.current.clear(); // 履歴追加済みセットもクリア
+      addedToGrouperSetRef.current.clear(); // グルーパー追加済みセットもクリア
       
       // Reset managers
       resetTranscriptionManagers(); // Reset transcription-related managers
@@ -1243,7 +1142,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     } catch (err: any) {
       console.error('[useUnifiedPipeline] Clear all failed:', err);
     }
-  }, [clearHistory, clearSummaries, clearError, resetTranscriptionManagers]);
+  }, [clearHistory, clearSummaries, clearError, resetTranscriptionManagers, clearTranslations]);
 
   // Generate vocabulary from current session
   const generateVocabulary = useCallback(async () => {
