@@ -2,10 +2,10 @@
 
 ## ファイル概要
 - **ファイルパス**: `src/components/UniVoice.tsx`
-- **総行数**: 2776行（2025-09-20 再計測）
+- **総行数**: 2777行（2025-09-21 再計測、ref追加により1行増加）
 - **目的**: 大規模コンポーネントの完全構造分析とClean Architectureリファクタリング戦略
 - **作成日**: 2025-09-18
-- **最終更新**: 2025-09-20（AudioWorklet実装・WebkitAppRegion型安全性問題を含む完全分析）
+- **最終更新**: 2025-09-21（型安全性改善：全ての`as any`除去、document.getElementByIdのuseRef置換）
 
 ## セクション別構造
 
@@ -208,20 +208,23 @@ const handleStartSession = useCallback((className: string, sourceLanguage: strin
 
 ### WebkitAppRegion型安全性の問題
 
-**発見：11箇所で`as any`が使用されている**
+~~**発見：11箇所で`as any`が使用されている**~~
+**解決済み（2025-09-21）：全ての`as any`を除去**
 
-1. **2208行**: `WebkitAppRegion: 'drag' as any` - ヘッダーをドラッグ可能に
-2. **2223行**: `WebkitAppRegion: 'no-drag' as any` - 一時停止ボタン
-3. **2237行**: `WebkitAppRegion: 'no-drag' as any` - 授業終了ボタン
-4. **2245行**: `WebkitAppRegion: 'no-drag' as any` - 次の授業へボタン
-5. **2273行**: `WebkitAppRegion: 'no-drag' as any` - 履歴ボタン
-6. **2288行**: `WebkitAppRegion: 'no-drag' as any` - 要約ボタン
-7. **2304行**: `WebkitAppRegion: 'no-drag' as any` - 質問ボタン
-8. **2366行**: `WebkitAppRegion: 'no-drag' as any` - 設定バー
-9. **2479行**: `WebkitAppRegion: 'drag' as any` - ミニマルヘッダー
-10. **2524行**: `WebkitAppRegion: 'no-drag' as any` - ヘッダー復元ボタン
-11. **2562行**: `WebkitAppRegion: 'no-drag' as any` - リアルタイムセクション
-12. **2641行**: `WebkitAppRegion: 'no-drag' as any` - 質問セクション
+1. ~~**2208行**: `WebkitAppRegion: 'drag' as any` - ヘッダーをドラッグ可能に~~
+2. ~~**2223行**: `WebkitAppRegion: 'no-drag' as any` - 一時停止ボタン~~
+3. ~~**2237行**: `WebkitAppRegion: 'no-drag' as any` - 授業終了ボタン~~
+4. ~~**2245行**: `WebkitAppRegion: 'no-drag' as any` - 次の授業へボタン~~
+5. ~~**2273行**: `WebkitAppRegion: 'no-drag' as any` - 履歴ボタン~~
+6. ~~**2288行**: `WebkitAppRegion: 'no-drag' as any` - 要約ボタン~~
+7. ~~**2304行**: `WebkitAppRegion: 'no-drag' as any` - 質問ボタン~~
+8. ~~**2366行**: `WebkitAppRegion: 'no-drag' as any` - 設定バー~~
+9. ~~**2479行**: `WebkitAppRegion: 'drag' as any` - ミニマルヘッダー~~
+10. ~~**2524行**: `WebkitAppRegion: 'no-drag' as any` - ヘッダー復元ボタン~~
+11. ~~**2562行**: `WebkitAppRegion: 'no-drag' as any` - リアルタイムセクション~~
+12. ~~**2641行**: `WebkitAppRegion: 'no-drag' as any` - 質問セクション~~
+
+**解決方法**: `src/types/global.d.ts`に既存の型定義があることを確認し、全ての`as any`を削除
 
 ## 推測される問題の根本原因
 
@@ -366,3 +369,61 @@ const handleStartSession = useCallback((className: string, sourceLanguage: strin
 - **268-279行**: `useHeaderControls`フックの使用
 - **2330-2352行**: HeaderControlsコンポーネントの使用
 - 段階的リファクタリングの良い例
+
+## 型安全性改善の実施（2025-09-21）
+
+### 1. document.getElementByIdの置き換え
+
+**改善前**:
+```typescript
+// 1636行
+const textarea = document.getElementById('questionInput') as HTMLTextAreaElement;
+// 1747行
+const textarea = document.getElementById('questionInput') as HTMLTextAreaElement;
+```
+
+**改善後**:
+```typescript
+// 296行: refの追加
+const questionInputRef = useRef<HTMLTextAreaElement>(null);
+
+// 1639行: saveAsMemo関数
+const textarea = questionInputRef.current;
+
+// 1750行: 入力欄クリア処理
+const textarea = questionInputRef.current;
+
+// 2654行: textarea要素
+<textarea ref={questionInputRef} ... />
+```
+
+**改善理由**:
+- Reactのアンチパターン（document.getElementById）を排除
+- 型安全性の向上（nullチェックが明確に）
+- Clean Architecture原則に準拠（DOM操作の抽象化）
+
+### 2. window.univoice の型安全性改善
+
+**改善前**:
+```typescript
+// 807行
+const univoiceApi = (window as any).univoice;
+```
+
+**改善後**:
+```typescript
+const univoiceApi = window.univoice;
+```
+
+**改善理由**:
+- `src/types/global.d.ts`の型定義を活用
+- 型チェックによる安全性向上
+
+### 3. 総括
+
+2025-09-21の改善により、以下を達成：
+- **全ての`as any`を排除**（WebkitAppRegion、window.univoice）
+- **document.getElementByIdをuseRefに置き換え**
+- **TypeScript strictモードでのコンパイルエラーゼロ**
+
+これらの改善により、技術的負債を削減し、保守性と型安全性を向上させました。

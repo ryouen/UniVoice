@@ -292,6 +292,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // アプリコンテナ全体のref（自動リサイズ用）
   const appContainerRef = useRef<HTMLDivElement>(null);
   
+  // 質問入力欄のref（document.getElementByIdを置き換えるため）
+  const questionInputRef = useRef<HTMLTextAreaElement>(null);
+  
   // 現在の表示テキスト（3行表示用）
   // Phase 2: Override または パイプラインデータを使用
   const [displayText, setDisplayText] = useState({
@@ -804,7 +807,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     console.log('[UniVoice] window.univoice?.window?.close:', window.univoice?.window?.close);
     
     // 型チェックのため分解
-    const univoiceApi = (window as any).univoice;
+    const univoiceApi = window.univoice;
     console.log('[UniVoice] univoiceApi (raw):', univoiceApi);
     
     if (univoiceApi?.window?.close) {
@@ -1633,7 +1636,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   };;
 
   const saveAsMemo = async () => {
-    const textarea = document.getElementById('questionInput') as HTMLTextAreaElement;
+    const textarea = questionInputRef.current;
     if (!textarea || !textarea.value.trim()) return;
 
     // 質問機能: Target言語で入力 → Source言語へ翻訳
@@ -1744,7 +1747,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     setMemoList([]);
     
     // 入力欄をクリア
-    const textarea = document.getElementById('questionInput') as HTMLTextAreaElement;
+    const textarea = questionInputRef.current;
     if (textarea) textarea.value = '';
   };
   
@@ -2205,7 +2208,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         {/* ヘッダー */}
         {showHeader && (
         <div className={getThemeClass('header')} style={{
-          WebkitAppRegion: 'drag' as any,  // ヘッダーをドラッグ可能に
+          WebkitAppRegion: 'drag',  // ヘッダーをドラッグ可能に
           position: 'relative',
           userSelect: 'none',
           flexShrink: 0,
@@ -2220,7 +2223,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </div>
           
           {/* 一時停止ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className={getThemeClass('controlButton')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag'}}>
             {isPaused ? (
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M4 2 L4 14 L12 8 Z"/>
@@ -2234,7 +2237,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </button>
           
           {/* 授業終了ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={endSession} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className={getThemeClass('controlButton')} onClick={endSession} style={{WebkitAppRegion: 'no-drag'}}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
               <rect x="2" y="2" width="10" height="10" rx="1"/>
             </svg>
@@ -2242,7 +2245,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </button>
           
           {/* 次の授業へボタン */}
-          <button className={getThemeClass('controlButton')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag' as any}}>
+          <button className={getThemeClass('controlButton')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag'}}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 7h8m0 0L7 3m4 4L7 11"/>
             </svg>
@@ -2270,7 +2273,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               data-testid="history-button"
               className={classNames(getThemeClass('controlButton'), showHistoryPanel && styles.controlButtonActive)}
               onClick={() => togglePanel('history')}
-              style={{WebkitAppRegion: 'no-drag' as any}}
+              style={{WebkitAppRegion: 'no-drag'}}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="4" width="12" height="10" rx="1"/>
@@ -2285,7 +2288,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               data-testid="summary-button"
               className={classNames(getThemeClass('controlButton'), showProgressiveSummary && styles.controlButtonActive)}
               onClick={() => setShowProgressiveSummary(!showProgressiveSummary)}
-              style={{WebkitAppRegion: 'no-drag' as any}}
+              style={{WebkitAppRegion: 'no-drag'}}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="10" width="3" height="5" fill="currentColor" opacity="0.3"/>
@@ -2301,7 +2304,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               onClick={() => {
                 setShowQuestionSection(!showQuestionSection);
               }}
-              style={{WebkitAppRegion: 'no-drag' as any}}
+              style={{WebkitAppRegion: 'no-drag'}}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M3 12 L3 7 Q3 4 6 4 L12 4 Q15 4 15 7 L15 12 L10 12 L6 15 L6 12 Z"/>
@@ -2363,7 +2366,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         )} style={{
           zIndex: 1000,
           position: 'relative',
-          WebkitAppRegion: 'no-drag' as any,  // 設定バーは操作可能にする
+          WebkitAppRegion: 'no-drag',  // 設定バーは操作可能にする
           // コンパクトモード時の白い線を完全に防ぐ
           boxShadow: !showHeader ? 'none' : undefined,
           border: !showHeader ? 'none' : undefined,
@@ -2476,7 +2479,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             padding: '0 16px',
             gap: '8px',
             flexShrink: 0,
-            WebkitAppRegion: 'drag' as any,  // ミニマルヘッダーもドラッグ可能に
+            WebkitAppRegion: 'drag',  // ミニマルヘッダーもドラッグ可能に
             // borderBottomはCSS Modulesで管理するため削除
             position: 'relative',
             top: 0,  // 明示的に位置を指定
@@ -2521,7 +2524,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                WebkitAppRegion: 'no-drag' as any,
+                WebkitAppRegion: 'no-drag',
                 transition: 'all 0.2s ease',
                 color: currentTheme === 'light' ? '#333' : '#fff',
                 position: 'relative'
@@ -2559,7 +2562,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           boxSizing: 'border-box',
           zIndex: 1,
           flexShrink: 0, // 圧縮されないように
-          WebkitAppRegion: 'no-drag' as any  // コンテンツは操作可能にする
+          WebkitAppRegion: 'no-drag'  // コンテンツは操作可能にする
         }}>
             <RealtimeSection
               {...(displayContent.original.recent || displayContent.original.older || displayContent.original.oldest 
@@ -2638,7 +2641,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             position: 'relative',
             flexShrink: 0,
-            WebkitAppRegion: 'no-drag' as any  // 入力エリアは操作可能にする
+            WebkitAppRegion: 'no-drag'  // 入力エリアは操作可能にする
           }}>
             <div className={styles.questionInner} style={{
               padding: '20px 30px',
@@ -2648,7 +2651,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               borderTop: `1px solid ${currentTheme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`
             }}>
               <textarea 
-                id="questionInput"
+                ref={questionInputRef}
                 className={getThemeClass('questionInput')}
                 placeholder="質問・発言したい内容・メモを入力（日本語でOK）"
                 style={{
