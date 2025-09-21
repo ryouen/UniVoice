@@ -24,8 +24,7 @@ import { StreamBatcher } from '../utils/StreamBatcher';
 import { TranslationTimeoutManager } from '../utils/TranslationTimeoutManager';
 import type { UnifiedEvent } from '../shared/types/ipcEvents';
 import { useSessionMemory } from './useSessionMemory';
-import type { IAudioProcessor, AudioProcessorMessage } from '../types/audio-processor.types';
-import { AudioWorkletProcessor } from '../infrastructure/audio/AudioWorkletProcessor';
+import { useAudioCapture } from './useAudioCapture';
 
 // ThreeLineDisplay型の定義
 export interface ThreeLineDisplay {
@@ -142,6 +141,7 @@ interface UseUnifiedPipelineOptions {
   onStatusChange?: (status: string) => void;
   onTranslation?: (translation: Translation) => void;
   onSummary?: (summary: Summary) => void;
+  isEnabled?: boolean;
 }
 
 export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
@@ -152,7 +152,8 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     onError,
     onStatusChange,
     onTranslation,
-    onSummary
+    onSummary,
+    isEnabled = true
   } = options;
 
   // SessionMemory hook for data persistence
@@ -532,6 +533,24 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     
     console.log('[useUnifiedPipeline] Translation timeout handled:', segmentId);
   }, []);
+
+  // Audio capture hook
+  const {
+    isCapturing,
+    error: audioCaptureError,
+    startCapture,
+    stopCapture,
+    audioMetrics
+  } = useAudioCapture({
+    enabled: isEnabled,
+    onError: (error) => {
+      console.error('[useUnifiedPipeline] Audio capture error:', error);
+      setError(error.message);
+      if (onError) {
+        onError(error.message);
+      }
+    }
+  });
 
   // Event handlers
   const handlePipelineEvent = useCallback((event: PipelineEvent) => {
@@ -1215,7 +1234,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         throw new Error(result?.error || 'Failed to start pipeline');
       }
 
-      await startAudioCapture(); // 成功したら音声キャプチャ開始
+      await startCapture(); // 成功したら音声キャプチャ開始
 
       setIsRunning(true);
       setState(prev => ({ ...prev, status: 'listening', startTime: Date.now() }));
@@ -1231,7 +1250,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         onError(msg);
       }
     }
-  }, [currentSourceLanguage, currentTargetLanguage, state.status, generateCorrelationId, onError, className, isSessionActive, startSession]);
+  }, [currentSourceLanguage, currentTargetLanguage, state.status, generateCorrelationId, onError, className, isSessionActive, startSession, startCapture]);
 
   const stop = useCallback(async () => {
     // レース防止
@@ -1249,7 +1268,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         if (!result?.success) console.warn('[useUnifiedPipeline] Stop warning:', result?.error);
       }
 
-      stopAudioCapture();
+      stopCapture();
 
       // SessionMemoryService: セッション完了
       if (isSessionActive) {
@@ -1275,7 +1294,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         onError(errorMsg);
       }
     }
-  }, [state.status, onError, isSessionActive, completeSession]);
+  }, [state.status, onError, isSessionActive, completeSession, stopCapture]);
 
   const translateUserInput = useCallback(async (text: string, from: string = 'ja', to: string = 'en'): Promise<string> => {
     try {
@@ -1304,126 +1323,6 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       return '';
     }
   }, [onError]);
-
-  // Audio capture functions
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const processorRef = useRef<IAudioProcessor | null>(null);
-
-  const startAudioCapture = useCallback(async () => {
-    // 既に開始済みなら何もしない
-    if (audioContextRef.current || mediaStreamRef.current) {
-      console.warn('[useUnifiedPipeline] Audio capture already started');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: 16000,           // 希望値（実際は無視されること有）
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: false
-        }
-      });
-      mediaStreamRef.current = stream;
-
-      // WebAudio 初期化
-      const ctx = new AudioContext({ sampleRate: 16000 });
-      audioContextRef.current = ctx;
-
-      const source = ctx.createMediaStreamSource(stream);
-
-      // Create AudioWorkletProcessor with type safety
-      let audioProcessCount = 0;
-      
-      const processor = await AudioWorkletProcessor.create(
-        ctx,
-        source,
-        (event: MessageEvent<AudioProcessorMessage>) => {
-          const { type, data } = event.data;
-
-          switch (type) {
-            case 'initialized':
-              console.log('[useUnifiedPipeline] AudioWorklet initialized:', data);
-              break;
-
-            case 'audio':
-              // PCM16データを受信
-              const pcm16 = new Int16Array(data.pcm16);
-              
-              audioProcessCount++;
-              if (audioProcessCount % 50 === 1) {
-                console.log('[useUnifiedPipeline] Audio processing:', {
-                  frameCount: audioProcessCount,
-                  pcm16Length: pcm16.length,
-                  sampleRate: data.sampleRate,
-                  timestamp: data.timestamp,
-                  hasElectronAPI: !!window.electron,
-                  hasSendAudioChunk: !!window.electron?.sendAudioChunk
-                });
-              }
-          
-              if (window.electron?.sendAudioChunk) {
-                window.electron.sendAudioChunk(pcm16);
-                
-                if (audioProcessCount % 50 === 1) {
-                  console.log('[useUnifiedPipeline] Sending audio chunk to main process');
-                }
-              } else {
-                if (audioProcessCount % 50 === 1) {
-                  console.error('[useUnifiedPipeline] Cannot send audio - electron API not available');
-                }
-              }
-              break;
-
-            case 'error':
-              console.error('[useUnifiedPipeline] AudioWorklet error:', data);
-              break;
-          }
-        },
-        {
-          targetSampleRate: 16000,
-          bufferSize: 512,
-          debug: false
-        }
-      );
-      
-      processorRef.current = processor;
-      console.log('[useUnifiedPipeline] Audio capture started. ctx.sampleRate=', ctx.sampleRate);
-    } catch (err) {
-      console.error('[useUnifiedPipeline] Audio capture failed:', err);
-      throw err;
-    }
-  }, []);
-
-  const stopAudioCapture = useCallback(() => {
-    try {
-      console.log('[useUnifiedPipeline] Stopping audio capture...');
-      
-      if (processorRef.current) {
-        // Use the type-safe destroy method
-        processorRef.current.destroy();
-        processorRef.current = null;
-      }
-      
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-      }
-      
-      console.log('[useUnifiedPipeline] Audio capture stopped');
-      
-    } catch (err: any) {
-      console.error('[useUnifiedPipeline] Audio capture stop failed:', err);
-    }
-  }, []);
 
   // Clear functions
   const clearHistory = useCallback(() => {
