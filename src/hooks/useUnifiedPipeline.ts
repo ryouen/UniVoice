@@ -24,6 +24,8 @@ import { StreamBatcher } from '../utils/StreamBatcher';
 import { TranslationTimeoutManager } from '../utils/TranslationTimeoutManager';
 import type { UnifiedEvent } from '../shared/types/ipcEvents';
 import { useSessionMemory } from './useSessionMemory';
+import type { IAudioProcessor, AudioProcessorMessage } from '../types/audio-processor.types';
+import { AudioWorkletProcessor } from '../infrastructure/audio/AudioWorkletProcessor';
 
 // ThreeLineDisplay型の定義
 export interface ThreeLineDisplay {
@@ -1306,7 +1308,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   // Audio capture functions
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const processorRef = useRef<IAudioProcessor | null>(null);
 
   const startAudioCapture = useCallback(async () => {
     // 既に開始済みなら何もしない
@@ -1331,79 +1333,64 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       const ctx = new AudioContext({ sampleRate: 16000 });
       audioContextRef.current = ctx;
 
-      // AudioWorkletが未サポートの場合はエラー
-      if (!ctx.audioWorklet) {
-        throw new Error('AudioWorklet is not supported in this browser. Please use a modern browser.');
-      }
-
-      // AudioWorkletモジュールを読み込み
-      await ctx.audioWorklet.addModule('/audio-processor.js');
-
       const source = ctx.createMediaStreamSource(stream);
 
-      // AudioWorkletNodeを作成（UIブロックしない）
-      const workletNode = new AudioWorkletNode(ctx, 'audio-processor', {
-        numberOfInputs: 1,
-        numberOfOutputs: 1,
-        outputChannelCount: [1],
-        processorOptions: {
+      // Create AudioWorkletProcessor with type safety
+      let audioProcessCount = 0;
+      
+      const processor = await AudioWorkletProcessor.create(
+        ctx,
+        source,
+        (event: MessageEvent<AudioProcessorMessage>) => {
+          const { type, data } = event.data;
+
+          switch (type) {
+            case 'initialized':
+              console.log('[useUnifiedPipeline] AudioWorklet initialized:', data);
+              break;
+
+            case 'audio':
+              // PCM16データを受信
+              const pcm16 = new Int16Array(data.pcm16);
+              
+              audioProcessCount++;
+              if (audioProcessCount % 50 === 1) {
+                console.log('[useUnifiedPipeline] Audio processing:', {
+                  frameCount: audioProcessCount,
+                  pcm16Length: pcm16.length,
+                  sampleRate: data.sampleRate,
+                  timestamp: data.timestamp,
+                  hasElectronAPI: !!window.electron,
+                  hasSendAudioChunk: !!window.electron?.sendAudioChunk
+                });
+              }
+          
+              if (window.electron?.sendAudioChunk) {
+                window.electron.sendAudioChunk(pcm16);
+                
+                if (audioProcessCount % 50 === 1) {
+                  console.log('[useUnifiedPipeline] Sending audio chunk to main process');
+                }
+              } else {
+                if (audioProcessCount % 50 === 1) {
+                  console.error('[useUnifiedPipeline] Cannot send audio - electron API not available');
+                }
+              }
+              break;
+
+            case 'error':
+              console.error('[useUnifiedPipeline] AudioWorklet error:', data);
+              break;
+          }
+        },
+        {
           targetSampleRate: 16000,
           bufferSize: 512,
           debug: false
         }
-      });
-      processorRef.current = workletNode as any;
-
-      // AudioWorkletからのメッセージを処理
-
-      let audioProcessCount = 0;
+      );
       
-      workletNode.port.onmessage = (event) => {
-        const { type, data } = event.data;
-
-        switch (type) {
-          case 'initialized':
-            console.log('[useUnifiedPipeline] AudioWorklet initialized:', data);
-            break;
-
-          case 'audio':
-            // PCM16データを受信
-            const pcm16 = new Int16Array(data.pcm16);
-            
-            audioProcessCount++;
-            if (audioProcessCount % 50 === 1) {
-              console.log('[useUnifiedPipeline] Audio processing:', {
-                frameCount: audioProcessCount,
-                pcm16Length: pcm16.length,
-                sampleRate: data.sampleRate,
-                timestamp: data.timestamp,
-                hasElectronAPI: !!window.electron,
-                hasSendAudioChunk: !!window.electron?.sendAudioChunk
-              });
-            }
-        
-            if (window.electron?.sendAudioChunk) {
-              window.electron.sendAudioChunk(pcm16);
-              
-              if (audioProcessCount % 50 === 1) {
-                console.log('[useUnifiedPipeline] Sending audio chunk to main process');
-              }
-            } else {
-              if (audioProcessCount % 50 === 1) {
-                console.error('[useUnifiedPipeline] Cannot send audio - electron API not available');
-              }
-            }
-            break;
-
-          case 'error':
-            console.error('[useUnifiedPipeline] AudioWorklet error:', data);
-            break;
-        }
-      };
-
-      // 音声グラフを接続
-      source.connect(workletNode);
-      // workletNode.connect(ctx.destination); // 必要に応じて出力（モニタリング用）
+      processorRef.current = processor;
       console.log('[useUnifiedPipeline] Audio capture started. ctx.sampleRate=', ctx.sampleRate);
     } catch (err) {
       console.error('[useUnifiedPipeline] Audio capture failed:', err);
@@ -1416,12 +1403,8 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       console.log('[useUnifiedPipeline] Stopping audio capture...');
       
       if (processorRef.current) {
-        // AudioWorkletNodeに停止メッセージを送信
-        if ('port' in processorRef.current) {
-          (processorRef.current as any).port.postMessage({ type: 'stop' });
-        }
-        
-        processorRef.current.disconnect();
+        // Use the type-safe destroy method
+        processorRef.current.destroy();
         processorRef.current = null;
       }
       

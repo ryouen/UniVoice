@@ -2,14 +2,14 @@
 
 ## ファイル概要
 - **ファイルパス**: `src/components/UniVoice.tsx`
-- **総行数**: 2890行
-- **目的**: Setup画面からMain画面への遷移問題を解決するための完全な構造分析
+- **総行数**: 2776行（2025-09-20 再計測）
+- **目的**: 大規模コンポーネントの完全構造分析とClean Architectureリファクタリング戦略
 - **作成日**: 2025-09-18
-- **最終更新**: 2025-09-18
+- **最終更新**: 2025-09-20（AudioWorklet実装・WebkitAppRegion型安全性問題を含む完全分析）
 
 ## セクション別構造
 
-### 1-200行: ヘッダーとインポート、型定義
+### 1-200行: ヘッダーとインポート、型定義、ウィンドウリサイズ設計ドキュメント
 - **1-15行**: ファイルヘッダーコメント（実装済み機能リスト）
 - **17-36行**: インポート文
   - React関連
@@ -160,8 +160,8 @@ const handleStartSession = useCallback((className: string, sourceLanguage: strin
 ```
 
 ### 2. Setup画面からの参照
-- **2214行**: `onStartSession={handleStartSession}`
-- **1410行**: キーボードショートカットから `handleStartSession(selectedClass || '', sourceLanguage, targetLanguage)`
+- **2138行**: `onStartSession={handleStartSession}`
+- **1332行**: キーボードショートカットから `handleStartSession(selectedClass || '', sourceLanguage, targetLanguage)`
 
 ### 3. 画面遷移の制御フロー
 1. **初期状態**:
@@ -193,6 +193,35 @@ const handleStartSession = useCallback((className: string, sourceLanguage: strin
 ### 5. エラーハンドリングの違い
 - **完全版**: try-catchでエラーを捕捉し、失敗時はSetup画面に戻る
 - **簡略版**: エラーハンドリングなし
+
+## 新たな発見事項（2025-09-20 分析）
+
+### AudioWorklet実装の確認
+
+**結論：AudioWorkletは既に正しく実装されている**
+
+`useUnifiedPipeline.ts`の分析により、以下を確認：
+- **28行**: `import { AudioWorkletProcessor } from '../infrastructure/audio/AudioWorkletProcessor';`
+- **1311行**: `const processorRef = useRef<IAudioProcessor | null>(null);` - 型安全な参照
+- **1341-1394行**: `AudioWorkletProcessor.create()`による実装
+- **型安全性**: `as any`を使用せず、`IAudioProcessor`インターフェースで抽象化
+
+### WebkitAppRegion型安全性の問題
+
+**発見：11箇所で`as any`が使用されている**
+
+1. **2208行**: `WebkitAppRegion: 'drag' as any` - ヘッダーをドラッグ可能に
+2. **2223行**: `WebkitAppRegion: 'no-drag' as any` - 一時停止ボタン
+3. **2237行**: `WebkitAppRegion: 'no-drag' as any` - 授業終了ボタン
+4. **2245行**: `WebkitAppRegion: 'no-drag' as any` - 次の授業へボタン
+5. **2273行**: `WebkitAppRegion: 'no-drag' as any` - 履歴ボタン
+6. **2288行**: `WebkitAppRegion: 'no-drag' as any` - 要約ボタン
+7. **2304行**: `WebkitAppRegion: 'no-drag' as any` - 質問ボタン
+8. **2366行**: `WebkitAppRegion: 'no-drag' as any` - 設定バー
+9. **2479行**: `WebkitAppRegion: 'drag' as any` - ミニマルヘッダー
+10. **2524行**: `WebkitAppRegion: 'no-drag' as any` - ヘッダー復元ボタン
+11. **2562行**: `WebkitAppRegion: 'no-drag' as any` - リアルタイムセクション
+12. **2641行**: `WebkitAppRegion: 'no-drag' as any` - 質問セクション
 
 ## 推測される問題の根本原因
 
@@ -274,7 +303,7 @@ const handleStartSession = useCallback((className: string, sourceLanguage: strin
 ### 5. 将来的な改善提案
 
 1. **コンポーネント分割**：
-   - 2890行は大きすぎる
+   - 2776行は大きすぎる
    - ロジックとUIの分離
    - カスタムフックへの抽出
 
@@ -285,3 +314,55 @@ const handleStartSession = useCallback((className: string, sourceLanguage: strin
 3. **エラーバウンダリの実装**：
    - 異常終了時の復旧
    - ユーザーフレンドリーなエラー表示
+
+4. **WebkitAppRegion型定義の追加**：
+   ```typescript
+   // global.d.ts または適切な型定義ファイルに追加
+   declare module 'react' {
+     interface CSSProperties {
+       WebkitAppRegion?: 'drag' | 'no-drag';
+     }
+   }
+   ```
+
+5. **useUnifiedPipelineの分割**（1596行）：
+   - useAudioCapture: 音声入力管理（1313-1426行）
+   - useRealtimeTranscription: リアルタイム文字起こし
+   - useTranslationQueue: 翻訳キュー管理
+   - useSummaryGeneration: 要約生成
+
+## 重要な実装詳細（2025-09-20追記）
+
+### AudioWorklet実装の特徴
+
+1. **Clean Architecture準拠**：
+   - ドメイン層: `IAudioProcessor`インターフェース
+   - インフラ層: `AudioWorkletProcessor`実装
+   - アプリケーション層: `useUnifiedPipeline`での使用
+
+2. **型安全な実装**：
+   ```typescript
+   const processorRef = useRef<IAudioProcessor | null>(null);
+   // ScriptProcessorNodeではなく、抽象化されたインターフェースを使用
+   ```
+
+3. **メッセージ型の定義**：
+   ```typescript
+   interface AudioProcessorMessage {
+     type: 'initialized' | 'audio' | 'error' | 'stop';
+     data?: any;
+   }
+   ```
+
+### ボトムリサイズハンドルの新実装（2025-09-19）
+
+- **332-341行**: `useBottomResize`フックの使用
+- **2588-2597行**: リサイズハンドルのレンダリング
+- Clean Architecture原則に従い、永続化ロジックは外部から注入
+
+### HeaderControlsコンポーネントの抽出
+
+- **22行**: `import { HeaderControls } from './UniVoice/Header/HeaderControls/HeaderControls';`
+- **268-279行**: `useHeaderControls`フックの使用
+- **2330-2352行**: HeaderControlsコンポーネントの使用
+- 段階的リファクタリングの良い例
