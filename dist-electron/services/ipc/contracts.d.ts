@@ -413,13 +413,13 @@ export declare const FinalReportEventSchema: z.ZodObject<{
         vocabularyCount: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         report: string;
-        totalWordCount: number;
         summaryCount: number;
+        totalWordCount: number;
         vocabularyCount: number;
     }, {
         report: string;
-        totalWordCount: number;
         summaryCount: number;
+        totalWordCount: number;
         vocabularyCount: number;
     }>;
 }, "strip", z.ZodTypeAny, {
@@ -428,8 +428,8 @@ export declare const FinalReportEventSchema: z.ZodObject<{
     timestamp: number;
     data: {
         report: string;
-        totalWordCount: number;
         summaryCount: number;
+        totalWordCount: number;
         vocabularyCount: number;
     };
 }, {
@@ -438,8 +438,8 @@ export declare const FinalReportEventSchema: z.ZodObject<{
     timestamp: number;
     data: {
         report: string;
-        totalWordCount: number;
         summaryCount: number;
+        totalWordCount: number;
         vocabularyCount: number;
     };
 }>;
@@ -1048,13 +1048,13 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         vocabularyCount: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         report: string;
-        totalWordCount: number;
         summaryCount: number;
+        totalWordCount: number;
         vocabularyCount: number;
     }, {
         report: string;
-        totalWordCount: number;
         summaryCount: number;
+        totalWordCount: number;
         vocabularyCount: number;
     }>;
 }, "strip", z.ZodTypeAny, {
@@ -1063,8 +1063,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     timestamp: number;
     data: {
         report: string;
-        totalWordCount: number;
         summaryCount: number;
+        totalWordCount: number;
         vocabularyCount: number;
     };
 }, {
@@ -1073,8 +1073,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     timestamp: number;
     data: {
         report: string;
-        totalWordCount: number;
         summaryCount: number;
+        totalWordCount: number;
         vocabularyCount: number;
     };
 }>, z.ZodObject<{

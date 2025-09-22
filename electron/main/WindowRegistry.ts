@@ -29,7 +29,7 @@ export class WindowRegistry {
   /**
    * URLを解決（開発/本番環境対応）
    */
-  private resolveUrl(hash: string = ''): string {
+  public resolveUrl(hash: string = ''): string {
     if (isDev) {
       // 開発環境: Viteのポートを試す
       const ports = [5173, 5174, 5175, 5176, 5177, 5178, 5179, 5180, 5181, 5182, 5183, 5190, 5195];

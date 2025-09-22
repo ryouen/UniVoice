@@ -2,10 +2,9 @@
 
 ## ファイル概要
 - **ファイルパス**: `src/hooks/useUnifiedPipeline.ts`
-- **総行数**: ~~1596行~~ → 1494行（useAudioCapture分離後）
+- **総行数**: 1596行
 - **目的**: リアルタイム音声翻訳パイプラインの統合管理フック
 - **作成日**: 2025-09-21
-- **更新日**: 2025-09-21（useAudioCapture分離実装）
 - **分析手法**: 全文読み込みによる完全構造把握
 
 ## 主要セクション構造
@@ -17,14 +16,13 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 // 独自フック
 - useSessionMemory: セッションメモリ管理
-- useAudioCapture: 音声キャプチャ管理（新規追加）
 
 // 型定義
 - Translation, Summary, Vocabulary等のドメイン型
 - PipelineEvent: イベント型定義（contracts.tsから）
 
 // マネージャー
-- ~~AudioWorkletProcessor: 型安全なAudioWorklet実装~~ → useAudioCaptureへ移動
+- AudioWorkletProcessor: 型安全なAudioWorklet実装
 - SyncedRealtimeDisplayManager: リアルタイム表示管理
 - FlexibleHistoryGrouper: 履歴グループ化
 - IncrementalTextManager: インクリメンタルテキスト管理
@@ -186,34 +184,32 @@ useEffect(() => {
 #### translateUserInput (1280-1306行)
 - ユーザー入力の翻訳（仮実装）
 
-### 9. ~~AudioCapture実装~~ → useAudioCaptureフックへ分離完了
+### 9. AudioCapture実装 (1309-1426行)
 
-#### 分離前（1309-1426行、合計117行）
-- MediaStream取得とAudioContext管理
-- AudioWorkletProcessor作成と制御
-- PCM16データの送信処理
-- リソースクリーンアップ
-
-#### 分離後
+#### 音声キャプチャ開始 (1313-1399行)
 ```typescript
-// 音声キャプチャフックの使用（537-553行）
-const {
-  isCapturing,
-  error: audioCaptureError,
-  startCapture,
-  stopCapture,
-  audioMetrics
-} = useAudioCapture({
-  enabled: isEnabled,
-  onError: (error) => {
-    console.error('[useUnifiedPipeline] Audio capture error:', error);
-    setError(error.message);
-    if (onError) {
-      onError(error.message);
+const startAudioCapture = useCallback(async () => {
+  // MediaStreamの取得
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      channelCount: 1,
+      sampleRate: 16000,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: false
     }
-  }
+  });
+  
+  // AudioContext初期化
+  const ctx = new AudioContext({ sampleRate: 16000 });
+  
+  // AudioWorkletProcessor作成（型安全）
+  const processor = await AudioWorkletProcessor.create(ctx, source, messageHandler, options);
 });
 ```
+
+#### 音声キャプチャ停止 (1401-1426行)
+- processor, audioContext, mediaStreamの適切なクリーンアップ
 
 ### 10. クリア関数群 (1429-1468行)
 - clearHistory: 履歴クリア
@@ -315,25 +311,9 @@ const eventHandlers: Record<string, EventHandler> = {
 
 ### 実装優先順位
 1. ✅ 型安全性の改善（完了）
-2. ✅ useAudioCapture フックの作成（完了 - 2025-09-21）
-3. ✅ useRealtimeTranscription フックの作成（完了 - 2025-09-21）
-4. 🚧 useTranslationQueue フックの作成（次の作業）
-5. 🚧 その他のカスタムフック作成
-
-### リファクタリング成果（2025-09-21）
-- **useAudioCapture分離完了**
-  - 削減行数: 102行（1596行 → 1494行）
-  - 新規作成: `src/hooks/useAudioCapture.ts`（263行）
-  - 責任の明確化: 音声キャプチャロジックが独立
-  - 再利用性向上: 他のコンポーネントでも使用可能に
-
-- **useRealtimeTranscription分離完了**
-  - 削減行数: 121行（1494行 → 1373行）
-  - 新規作成: `src/hooks/useRealtimeTranscription.ts`（308行）
-  - 責任の明確化: ASRイベント処理とリアルタイム表示管理が独立
-  - マネージャー統合: SyncedRealtimeDisplayManager, IncrementalTextManager, TranslationTimeoutManagerを一元管理
-  - 削除: handleTranslationTimeout関数とその関連コード
-  - 総削減: 223行（1596行 → 1373行）
+2. 🚧 useAudioCapture フックの作成（最優先）
+3. 🚧 イベントハンドラーの分離
+4. 🚧 その他のカスタムフック作成
 
 ### 総括
-useUnifiedPipelineの段階的リファクタリングが順調に進行中。useAudioCaptureとuseRealtimeTranscriptionの分離により、責任が明確化され、コードの保守性とテスタビリティが大幅に向上した。次はuseTranslationQueueの分離に着手する。
+useUnifiedPipelineは機能的には完成度が高いが、単一責任の原則に反する巨大なフックとなっている。段階的なリファクタリングにより、保守性とテスタビリティを大幅に改善できる。特にAudioCaptureロジックの分離から着手することで、即座に可読性の向上が期待できる。

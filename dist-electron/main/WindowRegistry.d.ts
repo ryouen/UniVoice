@@ -16,7 +16,7 @@ export declare class WindowRegistry {
     /**
      * URLを解決（開発/本番環境対応）
      */
-    private resolveUrl;
+    resolveUrl(hash?: string): string;
     /**
      * 指定された役割のウィンドウを取得
      */

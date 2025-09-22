@@ -111,8 +111,7 @@
       "Bash(git commit:*)",
       "WebFetch(domain:0110.be)",
       "Bash(claude code /doctor)",
-      "mcp__github__create_or_update_file",
-      "Bash(/dev/null)"
+      "mcp__github__create_or_update_file"
     ],
     "deny": []
   },

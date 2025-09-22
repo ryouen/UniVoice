@@ -26,7 +26,6 @@ import type { UnifiedEvent } from '../shared/types/ipcEvents';
 import { useSessionMemory } from './useSessionMemory';
 import type { IAudioProcessor, AudioProcessorMessage } from '../types/audio-processor.types';
 import { AudioWorkletProcessor } from '../infrastructure/audio/AudioWorkletProcessor';
-import { RealtimeDisplayPresenter } from '../presentation/presenters/RealtimeDisplayPresenter';
 
 // ThreeLineDisplay型の定義
 export interface ThreeLineDisplay {
@@ -1136,8 +1135,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
             timeRange: {
               start: summary.data.startTime || 0,
               end: summary.data.endTime || Date.now()
-            },
-            threshold: summary.data.threshold // Add threshold for progressive summaries
+            }
           };
           
           setSummaries(prev => {
@@ -1538,7 +1536,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     currentOriginal,
     currentTranslation,
     displayPairs,
-    threeLineDisplay: RealtimeDisplayPresenter.createThreeLineDisplay(displayPairs),
+    threeLineDisplay,
     historyBlocks,
     groupedHistory: (() => {
       // Convert history to 3-item groups for legacy compatibility

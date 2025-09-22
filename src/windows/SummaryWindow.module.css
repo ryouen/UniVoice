@@ -1,0 +1,668 @@
+/**
+ * SummaryWindow CSS Modules
+ * プログレッシブ要約ウィンドウのスタイル定義
+ */
+
+/* CSS Variables */
+:root {
+  /* Theme Colors - メイン画面と同じ定義 */
+  --theme-light-bg: rgba(255, 255, 255, 0);
+  --theme-light-button-bg: rgba(0, 0, 0, 0.06);
+  --theme-light-button-hover: rgba(0, 0, 0, 0.1);
+  --theme-light-border: rgba(0, 0, 0, 0.1);
+  --theme-light-text: #333;
+  
+  --theme-dark-bg: rgba(30, 30, 30, 0);
+  --theme-dark-button-bg: rgba(255, 255, 255, 0.15);
+  --theme-dark-button-hover: rgba(255, 255, 255, 0.25);
+  --theme-dark-border: rgba(255, 255, 255, 0.1);
+  --theme-dark-text: #e0e0e0;
+  
+  --theme-purple-bg: rgba(102, 51, 153, 0);
+  --theme-purple-button-bg: rgba(255, 255, 255, 0.2);
+  --theme-purple-button-hover: rgba(255, 255, 255, 0.3);
+  --theme-purple-border: rgba(255, 255, 255, 0.15);
+  --theme-purple-text: #f0e8ff;
+  
+  /* Glassmorphism */
+  --blur-amount: 10px;
+  --saturate-amount: 200%;
+  
+  /* Background gradients - メインウィンドウと同じ */
+  --bg-gradient-light: linear-gradient(135deg, rgba(245, 247, 250, 0.3) 0%, rgba(195, 207, 226, 0.3) 100%);
+  --bg-gradient-dark: linear-gradient(135deg, rgba(26, 26, 46, 0.3) 0%, rgba(22, 33, 62, 0.3) 100%);
+  --bg-gradient-purple: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+  
+  /* Layout - メインウィンドウと同じ */
+  --control-button-size: 36px;
+  --settings-bar-height: 48px;
+}
+
+/* Glassmorphism エフェクト */
+.glassmorphism {
+  backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+}
+
+/* ウィンドウコンテナ */
+.summaryWindow {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+}
+
+/* テーマ別のウィンドウスタイル - メインウィンドウと同じ構造 */
+.window {
+  position: relative;
+  background: transparent;
+  color: var(--theme-light-text);
+  overflow: hidden;
+}
+
+/* Light theme background - メインウィンドウと同じ */
+.window::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-gradient-light);
+  z-index: -2;
+  pointer-events: none;
+}
+
+.window::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.windowDark {
+  position: relative;
+  background: transparent;
+  color: var(--theme-dark-text);
+  overflow: hidden;
+}
+
+/* Dark theme background - メインウィンドウと同じ */
+.windowDark::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-gradient-dark);
+  z-index: -2;
+  pointer-events: none;
+}
+
+.windowDark::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(30, 30, 30, 0.95);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.windowPurple {
+  position: relative;
+  background: transparent;
+  color: var(--theme-purple-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* Purple theme background - メインウィンドウと同じ */
+.windowPurple::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-gradient-purple);
+  z-index: -2;
+  pointer-events: none;
+}
+
+.windowPurple::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(102, 51, 153, 0.95);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ヘッダーバー */
+.headerBar {
+  height: var(--settings-bar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 10;
+}
+
+.headerBarLight {
+  composes: headerBar;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.headerBarDark {
+  composes: headerBar;
+  background: rgba(40, 40, 40, 0.95);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.headerBarPurple {
+  composes: headerBar;
+  background: rgba(110, 60, 160, 0.95);
+  border-bottom-color: rgba(224, 213, 240, 0.2);
+}
+
+/* セクション */
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.centerSection {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  -webkit-app-region: no-drag;
+}
+
+.rightSection {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.navButton {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+  color: inherit;
+}
+
+.navButton:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.navButton:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.windowDark .navButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.windowPurple .navButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.stageInfo {
+  font-size: 14px;
+  font-weight: 500;
+  color: inherit;
+  min-width: 120px;
+  text-align: center;
+}
+
+.fontButtonGroup {
+  display: flex;
+  gap: 10px;
+}
+
+.displayModeGroup {
+  display: flex;
+  gap: 4px;
+}
+
+.modeButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* テーマ別のボタンスタイル */
+.modeButtonLight {
+  composes: modeButton;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.modeButtonDark {
+  composes: modeButton;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.modeButtonPurple {
+  composes: modeButton;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.modeButtonLight:hover {
+  background: var(--theme-light-button-hover);
+}
+
+.modeButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+}
+
+.modeButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+}
+
+.modeButton.active {
+  background: #667eea;
+  color: white;
+}
+
+.themeButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* テーマ別のボタンスタイル */
+.themeButtonLight {
+  composes: themeButton;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.themeButtonDark {
+  composes: themeButton;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.themeButtonPurple {
+  composes: themeButton;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.themeButtonLight:hover {
+  background: var(--theme-light-button-hover);
+}
+
+.themeButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+}
+
+.themeButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+}
+
+/* フォントセクション - leftSectionとrightSectionで管理するため削除 */
+
+.fontButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* テーマ別のボタンスタイル */
+.fontButtonLight {
+  composes: fontButton;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.fontButtonDark {
+  composes: fontButton;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.fontButtonPurple {
+  composes: fontButton;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.fontButtonLight:hover {
+  background: var(--theme-light-button-hover);
+}
+
+.fontButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+}
+
+.fontButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+}
+
+/* 閉じるボタン */
+.closeButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+  -webkit-app-region: no-drag;
+}
+
+.closeButtonLight {
+  composes: closeButton;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.closeButtonDark {
+  composes: closeButton;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.closeButtonPurple {
+  composes: closeButton;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.closeButtonLight:hover {
+  background: var(--theme-light-button-hover);
+}
+
+.closeButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+}
+
+.closeButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+}
+
+/* コンテンツエリア */
+.contentArea {
+  flex: 1;
+  overflow: hidden;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.85);
+  position: relative;
+}
+
+.windowDark .contentArea {
+  background: rgba(25, 25, 25, 0.85);
+}
+
+.windowPurple .contentArea {
+  background: rgba(90, 45, 145, 0.85);
+}
+
+.summaryContent {
+  height: 100%;
+  display: flex;
+  gap: 24px;
+  font-size: calc(16px * var(--font-scale, 1));
+  line-height: 1.8;
+}
+
+/* 表示モード別レイアウト */
+.mode-both {
+  display: flex;
+}
+
+.mode-source .targetColumn,
+.mode-target .sourceColumn {
+  display: none;
+}
+
+.mode-source .sourceColumn,
+.mode-target .targetColumn {
+  flex: 1;
+}
+
+/* カラム */
+.sourceColumn,
+.targetColumn {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  background: transparent;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 区切り線 */
+.divider {
+  width: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 12px;
+}
+
+.windowDark .divider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.windowPurple .divider {
+  background: rgba(224, 213, 240, 0.2);
+}
+
+/* パラグラフ */
+.paragraph {
+  margin-bottom: 1.5em;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* 空状態 */
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 16px;
+  color: #666;
+}
+
+.emptyStateLight {
+  composes: emptyState;
+  color: #666;
+}
+
+.emptyStateDark {
+  composes: emptyState;
+  color: #999;
+}
+
+.emptyStatePurple {
+  composes: emptyState;
+  color: #b0a0c0;
+}
+
+/* 空のカラム表示 */
+.emptyColumn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(128, 128, 128, 0.6);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* スクロールバー */
+.sourceColumn::-webkit-scrollbar,
+.targetColumn::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sourceColumn::-webkit-scrollbar-track,
+.targetColumn::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sourceColumn::-webkit-scrollbar-thumb,
+.targetColumn::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.sourceColumn::-webkit-scrollbar-thumb:hover,
+.targetColumn::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ダークテーマのスクロールバー */
+.windowDark .sourceColumn::-webkit-scrollbar-thumb,
+.windowDark .targetColumn::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.windowDark .sourceColumn::-webkit-scrollbar-thumb:hover,
+.windowDark .targetColumn::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* バッジ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 10px;
+}
+
+/* ツールチップ */
+.tooltip {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+*:hover > .tooltip {
+  opacity: 1;
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.summaryContent {
+  animation: fadeIn 0.3s ease-out;
+}

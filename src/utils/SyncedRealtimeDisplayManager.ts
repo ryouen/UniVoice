@@ -173,7 +173,16 @@ export class SyncedRealtimeDisplayManager {
     let targetPair: SyncedDisplayPair | undefined;
     
     if (segmentId) {
-      targetPair = this.displayPairs.find(p => p.segmentId === segmentId);
+      // history_プレフィックスを削除して基本IDを取得
+      const baseId = segmentId.replace(/^(history_|paragraph_)/, '');
+      
+      // まず元のsegmentIdで検索し、見つからなければbaseIdで検索
+      targetPair = this.displayPairs.find(p => p.segmentId === segmentId) ||
+                   this.displayPairs.find(p => p.segmentId === baseId);
+      
+      if (segmentId !== baseId) {
+        console.log(`[SyncedDisplayManager] History/Paragraph translation: ${segmentId} → ${baseId}`);
+      }
       
       // 既に完了している場合はスキップ（重複翻訳イベント対策）
       if (targetPair && targetPair.translation.isComplete) {
@@ -214,9 +223,18 @@ export class SyncedRealtimeDisplayManager {
    * 翻訳を完了としてマーク（削除スケジュール開始）
    */
   completeTranslation(segmentId?: string): void {
-    const targetPair = segmentId 
-      ? this.displayPairs.find(p => p.segmentId === segmentId)
-      : this.displayPairs.find(p => !p.translation.isComplete);
+    let targetPair: SyncedDisplayPair | undefined;
+    
+    if (segmentId) {
+      // history_プレフィックスを削除して基本IDを取得
+      const baseId = segmentId.replace(/^(history_|paragraph_)/, '');
+      
+      // まず元のsegmentIdで検索し、見つからなければbaseIdで検索
+      targetPair = this.displayPairs.find(p => p.segmentId === segmentId) ||
+                   this.displayPairs.find(p => p.segmentId === baseId);
+    } else {
+      targetPair = this.displayPairs.find(p => !p.translation.isComplete);
+    }
     
     if (!targetPair) return;
     

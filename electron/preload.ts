@@ -365,7 +365,10 @@ const allowedChannels = [
   'window:autoResize',        // Auto resize window to content
   'window:startDrag',         // Start drag (focus fix)
   'window:endDrag',           // End drag (focus fix)
-  'window:dragStarted'        // Drag started notification
+  'window:dragStarted',       // Drag started notification
+  'open-summary-window',      // Open progressive summary window
+  'summary-window-data',      // Send data to summary window
+  'settings-updated'          // Send settings updates between windows
 ];
 
 // Legacy Electron API for backward compatibility

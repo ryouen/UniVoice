@@ -1757,16 +1757,40 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // 表示モード切り替え関数
   const setDisplay = (mode: 'both' | 'source' | 'target') => {
     setDisplayMode(mode);
+    
+    // 他のウィンドウに設定変更を通知
+    if (window.electronAPI) {
+      window.electronAPI.send('settings-updated', {
+        theme: currentTheme,
+        fontScale: currentFontScale,
+        displayMode: mode
+      });
+    }
   };
   
   // フォントサイズ変更関数
   const changeFont = (direction: number) => {
+    let newScale: number;
+    
     if (direction === 0) {
-      setCurrentFontScale(1);
+      newScale = 1;
     } else if (direction === 1) {
-      setCurrentFontScale(prev => Math.min(3.0, prev * 1.1)); // 最大3倍まで拡大可能
+      newScale = Math.min(3.0, currentFontScale * 1.1); // 最大3倍まで拡大可能
     } else if (direction === -1) {
-      setCurrentFontScale(prev => Math.max(0.5, prev * 0.9)); // 最小0.5倍まで縮小可能
+      newScale = Math.max(0.5, currentFontScale * 0.9); // 最小0.5倍まで縮小可能
+    } else {
+      return;
+    }
+    
+    setCurrentFontScale(newScale);
+    
+    // 他のウィンドウに設定変更を通知
+    if (window.electronAPI) {
+      window.electronAPI.send('settings-updated', {
+        theme: currentTheme,
+        fontScale: newScale,
+        displayMode: displayMode
+      });
     }
   };
   
@@ -1777,12 +1801,18 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
    */
   const cycleTheme = () => {
     setCurrentTheme(prev => {
-      switch(prev) {
-        case 'light': return 'dark';
-        case 'dark': return 'purple';
-        case 'purple': return 'light';
-        default: return 'light';
+      const nextTheme = prev === 'light' ? 'dark' : prev === 'dark' ? 'purple' : 'light';
+      
+      // 他のウィンドウ（要約ウィンドウなど）に設定変更を通知
+      if (window.electronAPI) {
+        window.electronAPI.send('settings-updated', {
+          theme: nextTheme,
+          fontScale: currentFontScale,
+          displayMode: displayMode
+        });
       }
+      
+      return nextTheme;
     });
   };
   
@@ -1796,6 +1826,31 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     
     document.documentElement.style.setProperty('--current-bg-gradient', bgGradient);
   }, [currentTheme]);
+  
+  // 他のウィンドウ（要約ウィンドウ等）からの設定変更を受信
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    
+    const cleanup = window.electronAPI.on('settings-updated', (_event: any, settings: {
+      theme?: string;
+      fontScale?: number;
+      displayMode?: string;
+    }) => {
+      console.log('[UniVoice] Received settings update from other window:', settings);
+      
+      if (settings.theme && settings.theme !== currentTheme) {
+        setCurrentTheme(settings.theme as 'light' | 'dark' | 'purple');
+      }
+      if (settings.fontScale && settings.fontScale !== currentFontScale) {
+        setCurrentFontScale(settings.fontScale);
+      }
+      if (settings.displayMode && settings.displayMode !== displayMode) {
+        setDisplayMode(settings.displayMode as 'both' | 'source' | 'target');
+      }
+    });
+    
+    return cleanup;
+  }, [currentTheme, currentFontScale, displayMode]);
   
   
   // 要約データの表示（削除 - summaryEnglish/summaryJapaneseで管理）
@@ -2287,7 +2342,31 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <button
               data-testid="summary-button"
               className={classNames(getThemeClass('controlButton'), showProgressiveSummary && styles.controlButtonActive)}
-              onClick={() => setShowProgressiveSummary(!showProgressiveSummary)}
+              onClick={() => {
+                console.log('[UniVoice] Summary button clicked');
+                console.log('[UniVoice] Summaries:', summaries);
+                console.log('[UniVoice] window.electron:', window.electron);
+                console.log('[UniVoice] window.electron.send:', window.electron?.send);
+                
+                // 要約ウィンドウを開く
+                if (window.electron?.send) {
+                  const progressiveSummaries = summaries.filter(s => s.threshold);
+                  console.log('[UniVoice] Progressive summaries:', progressiveSummaries);
+                  
+                  // 要約データがなくてもウィンドウを開く
+                  console.log('[UniVoice] Sending open-summary-window event');
+                  window.electron.send('open-summary-window', {
+                    summaries: progressiveSummaries,
+                    settings: {
+                      theme: currentTheme,
+                      fontScale: currentFontScale,
+                      displayMode: displayMode
+                    }
+                  });
+                } else {
+                  console.error('[UniVoice] window.electron.send not available');
+                }
+              }}
               style={{WebkitAppRegion: 'no-drag'}}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -2296,6 +2375,21 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 <rect x="13" y="4" width="3" height="11" fill="currentColor" opacity="0.7"/>
               </svg>
               <span className={styles.tooltip}>要約</span>
+              {summaries.filter(s => s.threshold).length > 0 && (
+                <span className={styles.badge} style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                  color: 'white',
+                  fontSize: '10px',
+                  padding: '2px 5px',
+                  borderRadius: '6px',
+                  fontWeight: '700'
+                }}>
+                  {summaries.filter(s => s.threshold).length}
+                </span>
+              )}
             </button>
             
             {/* 質問ボタン */}

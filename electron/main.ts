@@ -523,6 +523,64 @@ function setupWindowControls(): void {
     windowRegistry.toggleSummary();
     return true;
   });
+  
+  // Global settings update handler - forwards settings to all windows
+  ipcMain.on('settings-updated', (_event, settings) => {
+    mainLogger.info('[settings-updated] Broadcasting settings to all windows', settings);
+    
+    // Get all windows and send settings update to each
+    const allWindows = ['main', 'setup', 'history', 'summary'];
+    allWindows.forEach(windowName => {
+      const window = windowRegistry.get(windowName as any);
+      if (window && !window.isDestroyed() && window.webContents.id !== _event.sender.id) {
+        // Don't send back to the sender window
+        window.webContents.send('settings-updated', settings);
+      }
+    });
+  });
+
+  // Open summary window
+  ipcMain.on('open-summary-window', async (_event, data: {
+    summaries: any[];
+    settings: {
+      theme: string;
+      fontScale: number;
+      displayMode: string;
+    }
+  }) => {
+    console.log('[Main] Received open-summary-window event');
+    mainLogger.info('[open-summary-window] Opening summary window', {
+      summaryCount: data.summaries?.length,
+      settings: data.settings
+    });
+
+    try {
+      // Create or show summary window
+      const summaryWindow = windowRegistry.createOrShow('summary', {
+        width: 1000,
+        height: 700,
+        minWidth: 600,
+        minHeight: 400,
+        title: 'プログレッシブ要約 - UniVoice'
+      });
+
+      // Wait for window to be ready
+      summaryWindow.once('ready-to-show', () => {
+        // Send initial data to summary window
+        summaryWindow.webContents.send('summary-window-data', data);
+        summaryWindow.show();
+      });
+
+      // Load summary window route
+      const url = windowRegistry.resolveUrl('#/summary');
+      await summaryWindow.loadURL(url);
+
+      // Note: settings-updated handler is registered globally in setupWindowControls
+
+    } catch (error) {
+      mainLogger.error('[open-summary-window] Failed to open summary window', error as Record<string, unknown>);
+    }
+  });
 
   mainLogger.info('Window controls setup completed');
 }
