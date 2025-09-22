@@ -2278,7 +2278,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </div>
           
           {/* 一時停止ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag'}}>
+          <button className={getThemeClass('controlButton')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag', marginLeft: '10px', width: '36px', height: '36px'}}>
             {isPaused ? (
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M4 2 L4 14 L12 8 Z"/>
@@ -2292,7 +2292,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </button>
           
           {/* 授業終了ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={endSession} style={{WebkitAppRegion: 'no-drag'}}>
+          <button className={getThemeClass('controlButton')} onClick={endSession} style={{WebkitAppRegion: 'no-drag', marginLeft: '10px', width: '36px', height: '36px'}}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
               <rect x="2" y="2" width="10" height="10" rx="1"/>
             </svg>
@@ -2300,7 +2300,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           </button>
           
           {/* 次の授業へボタン */}
-          <button className={getThemeClass('controlButton')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag'}}>
+          <button className={getThemeClass('controlButton')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag', marginLeft: '10px', width: '36px', height: '36px'}}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 7h8m0 0L7 3m4 4L7 11"/>
             </svg>
@@ -2328,7 +2328,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               data-testid="history-button"
               className={classNames(getThemeClass('controlButton'), showHistoryPanel && styles.controlButtonActive)}
               onClick={() => togglePanel('history')}
-              style={{WebkitAppRegion: 'no-drag'}}
+              style={{WebkitAppRegion: 'no-drag', width: '82px', height: '36px'}}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="4" width="12" height="10" rx="1"/>
@@ -2367,7 +2367,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                   console.error('[UniVoice] window.electron.send not available');
                 }
               }}
-              style={{WebkitAppRegion: 'no-drag'}}
+              style={{WebkitAppRegion: 'no-drag', width: '82px', height: '36px'}}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="10" width="3" height="5" fill="currentColor" opacity="0.3"/>
@@ -2398,7 +2398,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               onClick={() => {
                 setShowQuestionSection(!showQuestionSection);
               }}
-              style={{WebkitAppRegion: 'no-drag'}}
+              style={{WebkitAppRegion: 'no-drag', width: '82px', height: '36px'}}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M3 12 L3 7 Q3 4 6 4 L12 4 Q15 4 15 7 L15 12 L10 12 L6 15 L6 12 Z"/>
@@ -2478,13 +2478,14 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             position: 'relative'
           }}>
             {/* 左側のグループ */}
-            <div className={styles.settingsGroupLeft}>
+            <div className={styles.settingsGroupLeft} style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
               <button 
                 className={classNames(
                   getThemeClass('settingButton', false),
                   displayMode === 'both' && styles.settingActive
                 )}
                 onClick={() => setDisplay('both')}
+                style={{width: '36px', height: '36px'}}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
@@ -2498,6 +2499,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                   displayMode === 'source' && styles.settingActive
                 )}
                 onClick={() => setDisplay('source')}
+                style={{width: '36px', height: '36px'}}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
@@ -2511,6 +2513,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                   displayMode === 'target' && styles.settingActive
                 )}
                 onClick={() => setDisplay('target')}
+                style={{width: '36px', height: '36px'}}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
@@ -2520,8 +2523,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               </button>
               
               {/* テーマ切り替えボタン - 左側グループの最後 */}
-              <div style={{ marginLeft: '20px' }}>
-                <button className={getThemeClass('settingButton', false)} onClick={cycleTheme}>
+              <div style={{ marginLeft: '56px' }}>
+                <button className={getThemeClass('settingButton', false)} onClick={cycleTheme} style={{width: '36px', height: '36px'}}>
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                     <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                     <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
@@ -2531,16 +2534,16 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               </div>
             </div>
             
-            {/* 右側のボタン群 - [+]ボタンの右端が[▲]ボタンの右端と一致 */}
+            {/* 右側のボタン群 - ヘッダーボタンと揃える */}
             <div style={{
               position: 'absolute',
-              right: '96px', // ▲ボタンの左端位置（[+]ボタンの右端が▲ボタンの右端に一致）
+              right: '112px', // ヘッダーの▲ボタン位置と揃える
               display: 'flex',
               alignItems: 'center',
               gap: '10px'
             }}>
               {/* フォント- */}
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(-1)}>
+              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(-1)} style={{width: '36px', height: '36px'}}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
@@ -2548,13 +2551,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               </button>
               
               {/* T */}
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(0)}>
+              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(0)} style={{width: '36px', height: '36px'}}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>T</span>
                 <span className={styles.sTooltip}>リセット</span>
               </button>
               
-              {/* フォント+ （右端が[▲]の右端76pxに一致） */}
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(1)}>
+              {/* フォント+ */}
+              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(1)} style={{width: '36px', height: '36px'}}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>

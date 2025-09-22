@@ -69,16 +69,25 @@ export class WindowRegistry {
     const roleDefaults = this.getRoleDefaults(role);
     
     // デフォルト設定
+    // 要約ウィンドウはフォーカス問題を避けるため透過を無効化
+    const isTransparent = role !== 'summary';
+    
     const defaults: Electron.BrowserWindowConstructorOptions = {
       show: false,
       frame: false, // UniVoiceはフレームレス
-      transparent: true, // 透過を有効化（グラスモーフィズム効果）
-      backgroundColor: '#00000000', // 完全透明の背景
+      transparent: isTransparent, // 要約ウィンドウ以外は透過
+      backgroundColor: isTransparent ? '#00000000' : '#ffffff', // 要約ウィンドウは白背景
       focusable: true, // フォーカス可能を明示
       closable: true, // 明示的に閉じることを許可
-      // Windowsでのリサイズ制御: resizable設定に基づいてthickFrameを決定
+      acceptFirstMouse: true, // 最初のクリックを受け入れる（フォーカス改善）
+      // Windowsでのリサイズ制御とフォーカス問題の修正
       ...(process.platform === 'win32' ? {
-        thickFrame: roleDefaults.resizable !== false // resizableがfalseでなければthickFrame有効
+        thickFrame: roleDefaults.resizable !== false, // resizableがfalseでなければthickFrame有効
+        type: 'normal', // フォーカス問題の修正
+        skipTaskbar: false,
+        hasShadow: isTransparent ? false : true, // 透過ウィンドウではシャドウを無効化
+        // Windows 10/11での追加設定
+        backgroundThrottling: false, // バックグラウンドでのスロットリングを無効化
       } : {}),
       webPreferences: {
         preload: path.join(__dirname, '..', 'preload.js'),
@@ -137,6 +146,10 @@ export class WindowRegistry {
 
     // 位置/サイズの自動保存を設定
     this.setupBoundsPersistence(window, role);
+
+    // フォーカスイベントハンドラーは削除
+    // 透過ウィンドウではフォーカス問題が発生しやすく、
+    // イベントハンドラーがさらに問題を悪化させる可能性がある
 
     // 履歴・要約ウィンドウはhide-on-close
     if (role === 'history' || role === 'summary') {

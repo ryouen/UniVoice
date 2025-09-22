@@ -38,11 +38,40 @@ const SummaryView: React.FC = () => {
         setSummaryData(converted);
       }
 
-      // 設定を反映
-      if (data.settings) {
+      // 設定を反映（初回のみ）
+      if (data.settings && data.settings.theme) {
         setCurrentTheme(data.settings.theme as 'light' | 'dark' | 'purple');
         setFontScale(data.settings.fontScale);
         setDisplayMode(data.settings.displayMode as 'both' | 'source' | 'target');
+      }
+    };
+
+    // 要約データの更新を受信（リアルタイム更新用）
+    const handleSummaryDataUpdate = (_event: any, data: {
+      summaries: any[];
+      settings?: any;
+    }) => {
+      console.log('[SummaryView] Received summary data update:', data);
+      
+      // 要約データを追加または更新
+      if (data.summaries) {
+        const newData = convertToProgressiveSummaryData(data.summaries);
+        setSummaryData(prevData => {
+          // 既存データと新データをマージ（重複を避ける）
+          const merged = [...prevData];
+          newData.forEach(newItem => {
+            const existingIndex = merged.findIndex(item => 
+              item.stage === newItem.stage || 
+              item.wordCount === newItem.wordCount
+            );
+            if (existingIndex >= 0) {
+              merged[existingIndex] = newItem;
+            } else {
+              merged.push(newItem);
+            }
+          });
+          return merged.sort((a, b) => a.stage - b.stage);
+        });
       }
     };
 
@@ -66,10 +95,12 @@ const SummaryView: React.FC = () => {
     };
 
     window.electron.on('summary-window-data', handleSummaryWindowData);
+    window.electron.on('summary-data-update', handleSummaryDataUpdate);
     window.electron.on('settings-updated', handleSettingsUpdated);
 
     return () => {
       window.electron?.removeListener('summary-window-data', handleSummaryWindowData);
+      window.electron?.removeListener('summary-data-update', handleSummaryDataUpdate);
       window.electron?.removeListener('settings-updated', handleSettingsUpdated);
     };
   }, []);

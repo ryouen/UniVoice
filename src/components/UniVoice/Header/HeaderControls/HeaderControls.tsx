@@ -153,7 +153,7 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
       {buttons.map((button, index) => {
         // スペーサーの処理
         if (!button) {
-          return <div key={`spacer-${index}`} className={styles.spacer} />;
+          return <div key={`spacer-${index}`} className={styles.spacer} style={{ width: '56px' }} />;
         }
 
         // isVisibleがfalseの場合は、スペースを保持するために透明なボタンを表示
@@ -172,7 +172,9 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
             aria-label={button.ariaLabel}
             type="button"
             style={{
-              visibility: button.isVisible === false ? 'hidden' : 'visible'
+              visibility: button.isVisible === false ? 'hidden' : 'visible',
+              width: '36px',
+              height: '36px'
             }}
             disabled={button.isVisible === false}
           >

@@ -379,9 +379,17 @@ function setupWindowControls(): void {
   });
 
   // Window close
-  ipcMain.handle('window:close', async () => {
-    const mainWindow = getMainWindow();
+  ipcMain.handle('window:close', async (event) => {
+    // Check if the request is from summary window
+    const summaryWindow = windowRegistry.get('summary');
+    if (summaryWindow && !summaryWindow.isDestroyed() && event.sender.id === summaryWindow.webContents.id) {
+      // Hide summary window instead of closing
+      summaryWindow.hide();
+      return;
+    }
 
+    // Otherwise, close the main window
+    const mainWindow = getMainWindow();
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.close();
     }
@@ -564,16 +572,28 @@ function setupWindowControls(): void {
         title: 'プログレッシブ要約 - UniVoice'
       });
 
-      // Wait for window to be ready
-      summaryWindow.once('ready-to-show', () => {
-        // Send initial data to summary window
-        summaryWindow.webContents.send('summary-window-data', data);
-        summaryWindow.show();
-      });
-
-      // Load summary window route
+      // Check if URL needs to be loaded
       const url = windowRegistry.resolveUrl('#/summary');
-      await summaryWindow.loadURL(url);
+      const currentUrl = summaryWindow.webContents.getURL();
+      
+      if (!currentUrl || !currentUrl.includes('#/summary')) {
+        // Load summary window route if not already loaded
+        await summaryWindow.loadURL(url);
+        
+        // Send initial data after page is loaded
+        summaryWindow.webContents.once('did-finish-load', () => {
+          console.log('[Main] Summary window loaded, sending data');
+          summaryWindow.webContents.send('summary-window-data', data);
+        });
+      } else {
+        // Window already loaded, send data immediately
+        console.log('[Main] Summary window already loaded, sending data');
+        summaryWindow.webContents.send('summary-window-data', data);
+      }
+
+      // Show window
+      summaryWindow.show();
+      summaryWindow.focus();
 
       // Note: settings-updated handler is registered globally in setupWindowControls
 
@@ -933,6 +953,15 @@ function setupPipelineService(): void {
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('progressive-summary', summary);
+    }
+
+    // Also send to summary window if it's open
+    const summaryWindow = windowRegistry.get('summary');
+    if (summaryWindow && !summaryWindow.isDestroyed() && summaryWindow.isVisible()) {
+      summaryWindow.webContents.send('summary-data-update', {
+        summaries: [summary],
+        settings: {} // Settings are already synchronized
+      });
     }
   });
   

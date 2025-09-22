@@ -222,9 +222,9 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
       {/* ヘッダーバー */}
       <div className={getThemeClass('headerBar')}>
         {/* 左側: 表示モードボタン群 + テーマボタン */}
-        <div className={styles.leftSection}>
+        <div className={styles.leftSection} style={{paddingLeft: '20px'}}>
           {/* 表示モードグループ */}
-          <div className={styles.displayModeGroup}>
+          <div className={styles.displayModeGroup} style={{gap: '10px'}}>
             <button
               className={classNames(
                 getThemeClass('modeButton'),
@@ -232,6 +232,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
               )}
               onClick={() => handleDisplayModeChange('both')}
               title="両方表示 (Alt+B)"
+              style={{width: '36px', height: '36px'}}
             >
               <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                 <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
@@ -246,6 +247,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
               )}
               onClick={() => handleDisplayModeChange('source')}
               title="原文のみ (Alt+S)"
+              style={{width: '36px', height: '36px'}}
             >
               <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                 <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
@@ -260,6 +262,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
               )}
               onClick={() => handleDisplayModeChange('target')}
               title="翻訳のみ (Alt+T)"
+              style={{width: '36px', height: '36px'}}
             >
               <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                 <rect x="1" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
@@ -268,8 +271,8 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
             </button>
           </div>
 
-          {/* テーマボタン */}
-          <button className={getThemeClass('themeButton')} onClick={cycleTheme} title="テーマ切り替え" style={{ marginLeft: '8px' }}>
+          {/* テーマボタン - メインウィンドウと同じ20pxスペース */}
+          <button className={getThemeClass('themeButton')} onClick={cycleTheme} title="テーマ切り替え" style={{ marginLeft: '20px', width: '36px', height: '36px' }}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
               <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
               <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
@@ -312,27 +315,28 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
         <div className={styles.rightSection}>
           {/* フォントサイズボタン群 */}
           <div className={styles.fontButtonGroup}>
-            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(-1)} title="文字を小さく (Ctrl+-)">
+            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(-1)} title="文字を小さく (Ctrl+-)" style={{width: '36px', height: '36px'}}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
             
-            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(0)} title="リセット (Ctrl+0)">
+            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(0)} title="リセット (Ctrl+0)" style={{width: '36px', height: '36px'}}>
               <span style={{ fontSize: '14px', fontWeight: 600 }}>T</span>
             </button>
             
-            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(1)} title="文字を大きく (Ctrl++)">
+            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(1)} title="文字を大きく (Ctrl++)" style={{width: '36px', height: '36px'}}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
           </div>
 
-          {/* 閉じるボタン */}
-          <button className={getThemeClass('closeButton')} onClick={onClose} title="閉じる (Esc)" style={{ marginLeft: '8px' }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-              <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="2"/>
+          {/* 閉じるボタン - Chromeタブスタイル、56pxマージン */}
+          <button className={getThemeClass('closeButton')} onClick={onClose} title="閉じる (Esc)" style={{ marginLeft: '56px', width: '36px', height: '36px' }}>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="7" fill="currentColor" fillOpacity="0.1"/>
+              <path d="M6 6l6 6M12 6l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </button>
         </div>
