@@ -2269,43 +2269,52 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           flexShrink: 0,
           zIndex: 10002,
           display: 'flex',
-          alignItems: 'center'
+          alignItems: 'center',
+          paddingLeft: 'var(--edge-margin)',
+          paddingRight: 'var(--edge-margin)'
         }}>
-          {/* 録音インジケーター */}
-          <div className={getThemeClass('recordingIndicator')}>
-            <div className={classNames(styles.recordingDot, { [styles.recordingDotPaused]: isPaused })} />
-            <span>{formatTime(recordingTime)}</span>
+          {/* 左側のコントロール群 - 統一コンテナ */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--button-gap)'
+          }}>
+            {/* 録音インジケーター */}
+            <div className={getThemeClass('recordingIndicator')} style={{width: 'var(--recording-width)', flexShrink: 0}}>
+              <div className={classNames(styles.recordingDot, { [styles.recordingDotPaused]: isPaused })} />
+              <span>{formatTime(recordingTime)}</span>
+            </div>
+            
+            {/* 一時停止ボタン */}
+            <button className={getThemeClass('controlButton')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
+              {isPaused ? (
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M4 2 L4 14 L12 8 Z"/>
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M5 3v10h3V3H5zm5 0v10h3V3h-3z"/>
+                </svg>
+              )}
+              <span className={styles.tooltip}>{isPaused ? '再開' : '一時停止'}</span>
+            </button>
+            
+            {/* 授業終了ボタン */}
+            <button className={getThemeClass('controlButton')} onClick={endSession} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="3" y="3" width="10" height="10" rx="1"/>
+              </svg>
+              <span className={styles.tooltip}>授業終了</span>
+            </button>
+            
+            {/* 次の授業へボタン */}
+            <button className={getThemeClass('controlButton')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 8h8m0 0L8 4m4 4L8 12"/>
+              </svg>
+              <span className={styles.tooltip}>次の授業へ</span>
+            </button>
           </div>
-          
-          {/* 一時停止ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag', marginLeft: '10px', width: '36px', height: '36px'}}>
-            {isPaused ? (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M4 2 L4 14 L12 8 Z"/>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M5 3v10h3V3H5zm5 0v10h3V3h-3z"/>
-              </svg>
-            )}
-            <span className={styles.tooltip}>{isPaused ? '再開' : '一時停止'}</span>
-          </button>
-          
-          {/* 授業終了ボタン */}
-          <button className={getThemeClass('controlButton')} onClick={endSession} style={{WebkitAppRegion: 'no-drag', marginLeft: '10px', width: '36px', height: '36px'}}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-              <rect x="2" y="2" width="10" height="10" rx="1"/>
-            </svg>
-            <span className={styles.tooltip}>授業終了</span>
-          </button>
-          
-          {/* 次の授業へボタン */}
-          <button className={getThemeClass('controlButton')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag', marginLeft: '10px', width: '36px', height: '36px'}}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 7h8m0 0L7 3m4 4L7 11"/>
-            </svg>
-            <span className={styles.tooltip}>次の授業へ</span>
-          </button>
           
           
           {autoSaveTime && (
@@ -2321,19 +2330,19 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             transform: 'translateX(-50%)',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            gap: 'var(--button-gap)'
           }}>
             {/* 履歴ボタン（フローティングパネル用） */}
             <button 
               data-testid="history-button"
               className={classNames(getThemeClass('controlButton'), showHistoryPanel && styles.controlButtonActive)}
               onClick={() => togglePanel('history')}
-              style={{WebkitAppRegion: 'no-drag', width: '82px', height: '36px'}}
+              style={{WebkitAppRegion: 'no-drag', width: 'var(--center-button-width)', height: 'var(--button-size)'}}
             >
-              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="4" width="12" height="10" rx="1"/>
-                <line x1="6" y1="7" x2="12" y2="7"/>
-                <line x1="6" y1="10" x2="12" y2="10"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="2" y="3" width="12" height="10" rx="1"/>
+                <line x1="4" y1="6" x2="12" y2="6"/>
+                <line x1="4" y1="9" x2="12" y2="9"/>
               </svg>
               <span className={styles.tooltip}>履歴</span>
             </button>
@@ -2367,12 +2376,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                   console.error('[UniVoice] window.electron.send not available');
                 }
               }}
-              style={{WebkitAppRegion: 'no-drag', width: '82px', height: '36px'}}
+              style={{WebkitAppRegion: 'no-drag', width: 'var(--center-button-width)', height: 'var(--button-size)'}}
             >
-              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="10" width="3" height="5" fill="currentColor" opacity="0.3"/>
-                <rect x="8" y="7" width="3" height="8" fill="currentColor" opacity="0.5"/>
-                <rect x="13" y="4" width="3" height="11" fill="currentColor" opacity="0.7"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="2" y="9" width="3" height="5" fill="currentColor" opacity="0.3"/>
+                <rect x="6.5" y="6" width="3" height="8" fill="currentColor" opacity="0.5"/>
+                <rect x="11" y="3" width="3" height="11" fill="currentColor" opacity="0.7"/>
               </svg>
               <span className={styles.tooltip}>要約</span>
               {summaries.filter(s => s.threshold).length > 0 && (
@@ -2398,10 +2407,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               onClick={() => {
                 setShowQuestionSection(!showQuestionSection);
               }}
-              style={{WebkitAppRegion: 'no-drag', width: '82px', height: '36px'}}
+              style={{WebkitAppRegion: 'no-drag', width: 'var(--center-button-width)', height: 'var(--button-size)'}}
             >
-              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M3 12 L3 7 Q3 4 6 4 L12 4 Q15 4 15 7 L15 12 L10 12 L6 15 L6 12 Z"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M2 11 L2 6 Q2 3 5 3 L11 3 Q14 3 14 6 L14 11 L9 11 L5 14 L5 11 Z"/>
               </svg>
               <span className={styles.tooltip}>質問</span>
               {memoList.length > 0 && (
@@ -2474,11 +2483,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             display: 'flex',
             alignItems: 'center',
             height: '100%',
-            padding: '0 20px',
+            padding: '0 var(--edge-margin)',
             position: 'relative'
           }}>
             {/* 左側のグループ */}
-            <div className={styles.settingsGroupLeft} style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+            <div className={styles.settingsGroupLeft} style={{display: 'flex', alignItems: 'center', gap: 'var(--button-gap)'}}>
               <button 
                 className={classNames(
                   getThemeClass('settingButton', false),
@@ -2523,7 +2532,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               </button>
               
               {/* テーマ切り替えボタン - 左側グループの最後 */}
-              <div style={{ marginLeft: '56px' }}>
+              <div style={{ marginLeft: 'calc(var(--group-gap) - var(--button-gap))' }}>
                 <button className={getThemeClass('settingButton', false)} onClick={cycleTheme} style={{width: '36px', height: '36px'}}>
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                     <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
@@ -2537,10 +2546,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             {/* 右側のボタン群 - ヘッダーボタンと揃える */}
             <div style={{
               position: 'absolute',
-              right: '112px', // ヘッダーの▲ボタン位置と揃える
+              right: 'var(--settings-right-offset)', // ヘッダーの▲ボタン位置と揃える
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: 'var(--button-gap)'
             }}>
               {/* フォント- */}
               <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(-1)} style={{width: '36px', height: '36px'}}>

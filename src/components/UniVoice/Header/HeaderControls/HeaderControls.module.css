@@ -5,17 +5,17 @@
 
 .container {
   position: absolute;
-  right: 20px;
+  right: var(--edge-margin);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--button-gap);
 }
 
 .button {
   /* 既存のcontrolButtonクラスと同じスタイルを継承予定 */
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: var(--button-size);
+  height: var(--button-size);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -64,7 +64,8 @@
 
 /* ボタン間のスペーサー */
 .spacer {
-  width: 20px;
+  /* width指定を削除 - インラインスタイルで制御 */
+  /* LAYOUT-RULES.md: グループ間隔は56px（ボタン1つ分） */
 }
 
 /* ツールチップ */

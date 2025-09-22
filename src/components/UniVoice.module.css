@@ -11,46 +11,11 @@
  */
 
 /* ========================================
-   CSS Variables & Theme Definitions
+   Component-specific Variables
    ======================================== */
 
-:root {
-  /* Light Theme Variables */
-  --theme-light-bg: rgba(255, 255, 255, 0);  /* 基本背景を完全透明に */
-  --theme-light-border: rgba(255, 255, 255, 0.3);
-  --theme-light-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-  --theme-light-text: rgba(0, 0, 0, 0.85);
-  --theme-light-button-bg: rgba(0, 0, 0, 0.06);
-  --theme-light-button-hover: rgba(0, 0, 0, 0.1);
-  
-  /* Dark Theme Variables */
-  --theme-dark-bg: rgba(30, 30, 30, 0);  /* 基本背景を完全透明に */
-  --theme-dark-border: rgba(255, 255, 255, 0.1);
-  --theme-dark-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-  --theme-dark-text: rgba(255, 255, 255, 0.95);
-  --theme-dark-button-bg: rgba(255, 255, 255, 0.15);
-  --theme-dark-button-hover: rgba(255, 255, 255, 0.25);
-  
-  /* Purple Theme Variables */
-  --theme-purple-bg: rgba(102, 51, 153, 0);  /* 基本背景を完全透明に */
-  --theme-purple-border: rgba(255, 255, 255, 0.2);
-  --theme-purple-shadow: 0 8px 32px 0 rgba(102, 51, 153, 0.3);
-  --theme-purple-text: rgba(255, 255, 255, 1);
-  --theme-purple-button-bg: rgba(255, 255, 255, 0.2);
-  --theme-purple-button-hover: rgba(255, 255, 255, 0.3);
-  
-  /* Common Variables */
-  --blur-amount: 10px;  /* blur効果を10pxに設定 */
-  --saturate-amount: 200%;  /* 彩度を180%→200%に強化 */
-  --transition-default: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  /* Layout Variables */
-  --header-height: 60px;
-  --header-compact-height: 32px;
-  --settings-bar-height: 56px;
-  --control-button-size: 36px;
-  --setting-button-height: 32px;
-}
+/* デザイントークンはdesign-tokens.cssで一元管理 */
+/* このファイルはコンポーネント固有のスタイルのみを定義 */
 
 /* ========================================
    Base Styles & Glassmorphism Effects
@@ -387,14 +352,16 @@ a,
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 22px; /* 128px total width: 22+8+8+67+22 = 127px + border */
+  width: var(--recording-width); /* LAYOUT-RULES.md: ボタン3つ分 */
+  padding: 8px 16px; /* 幅をCSS変数で管理、paddingは自動調整 */
   background: rgba(76, 175, 80, 0.2);
   border-radius: 10px;
   color: white;
   font-size: 14px;
   font-weight: 500;
-  height: var(--control-button-size);
+  height: var(--button-size);
   box-sizing: border-box;
+  justify-content: center;
 }
 
 /* 時間表示用の等幅フォント */

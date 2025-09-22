@@ -48,19 +48,21 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
       icon: (
         <svg 
           className={styles.icon} 
-          viewBox="0 0 18 18" 
+          width="16"
+          height="16"
+          viewBox="0 0 16 16" 
           fill={isAlwaysOnTop ? "currentColor" : "none"} 
           stroke="currentColor" 
           strokeWidth={isAlwaysOnTop ? "2" : "1.5"}
         >
           <path 
-            d="M7 3 L11 3 L11 9 L13 11 L9 15 L5 11 L7 9 Z" 
+            d="M6 2 L10 2 L10 8 L12 10 L8 14 L4 10 L6 8 Z" 
             fill={isAlwaysOnTop ? "currentColor" : "none"} 
             opacity={isAlwaysOnTop ? "1" : "0.8"}
           />
-          <line x1="9" y1="15" x2="9" y2="18" opacity={isAlwaysOnTop ? "0.5" : "1"}/>
+          <line x1="8" y1="14" x2="8" y2="16" opacity={isAlwaysOnTop ? "0.5" : "1"}/>
           {isAlwaysOnTop && (
-            <circle cx="9" cy="9" r="1.5" fill="currentColor" opacity="0.8"/>
+            <circle cx="8" cy="8" r="1.5" fill="currentColor" opacity="0.8"/>
           )}
         </svg>
       )
@@ -75,13 +77,15 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
       icon: (
         <svg 
           className={styles.icon} 
-          viewBox="0 0 18 18" 
+          width="16"
+          height="16"
+          viewBox="0 0 16 16" 
           fill="none" 
           stroke="currentColor" 
           strokeWidth="1.5"
         >
-          <rect x="3" y="3" width="12" height="12" rx="1"/>
-          <path d="M6 7 L9 10 L12 7" strokeLinecap="round"/>
+          <rect x="2" y="2" width="12" height="12" rx="1"/>
+          <path d="M5 6 L8 9 L11 6" strokeLinecap="round"/>
         </svg>
       )
     },
@@ -95,18 +99,18 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
       icon: (
         <svg 
           className={styles.icon} 
-          viewBox="0 0 18 18" 
+          width="16"
+          height="16"
+          viewBox="0 0 16 16" 
           fill="none" 
           stroke="currentColor" 
           strokeWidth="1.5"
         >
-          <rect x="3" y="3" width="12" height="12" rx="1"/>
-          <path d="M6 10 L9 7 L12 10" strokeLinecap="round"/>
+          <rect x="2" y="2" width="12" height="12" rx="1"/>
+          <path d="M5 9 L8 6 L11 9" strokeLinecap="round"/>
         </svg>
       )
     },
-    // スペーサー（null で表現）
-    null,
     // 閉じるボタン
     {
       id: 'close',
@@ -116,10 +120,12 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
       icon: (
         <svg 
           className={styles.icon} 
-          viewBox="0 0 16 16" 
+          width="14"
+          height="14"
+          viewBox="0 0 14 14" 
           fill="currentColor"
         >
-          <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+          <path d="M4 4 L10 10 M10 4 L4 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
         </svg>
       )
     }
@@ -153,7 +159,7 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
       {buttons.map((button, index) => {
         // スペーサーの処理
         if (!button) {
-          return <div key={`spacer-${index}`} className={styles.spacer} style={{ width: '56px' }} />;
+          return <div key={`spacer-${index}`} className={styles.spacer} style={{ width: 'var(--group-gap)' }} />;
         }
 
         // isVisibleがfalseの場合は、スペースを保持するために透明なボタンを表示
@@ -174,7 +180,8 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
             style={{
               visibility: button.isVisible === false ? 'hidden' : 'visible',
               width: '36px',
-              height: '36px'
+              height: '36px',
+              ...(button.id === 'close' && { marginLeft: 'calc(var(--group-gap) - var(--button-gap))' })
             }}
             disabled={button.isVisible === false}
           >

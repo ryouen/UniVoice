@@ -1,0 +1,84 @@
+/**
+ * Utility Classes - Minimal Set (YAGNI Principle)
+ * 
+ * 実際に頻出するパターンのみを抽出
+ * 過度な抽象化は避け、必要なものだけを定義
+ * 
+ * @since 2025-01-21
+ */
+
+/* ========================================
+   Layout Utilities
+   ======================================== */
+
+/* フレックスレイアウト（最も頻出） */
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-gap {
+  display: flex;
+  align-items: center;
+  gap: var(--button-gap);
+}
+
+/* ========================================
+   Size Utilities
+   ======================================== */
+
+/* ボタンの標準サイズ */
+.button-size {
+  width: var(--button-size);
+  height: var(--button-size);
+}
+
+/* 中央ボタンサイズ */
+.center-button-size {
+  width: var(--center-button-width);
+  height: var(--button-size);
+}
+
+/* ========================================
+   Spacing Utilities
+   ======================================== */
+
+/* グループ間隔 */
+.group-spacing-left {
+  margin-left: var(--group-gap);
+}
+
+.edge-padding {
+  padding-left: var(--edge-margin);
+  padding-right: var(--edge-margin);
+}
+
+/* ========================================
+   Position Utilities
+   ======================================== */
+
+/* 絶対配置（設定バー用） */
+.absolute-right {
+  position: absolute;
+  right: var(--settings-right-offset);
+}
+
+/* ========================================
+   Drag Region
+   ======================================== */
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Note: これ以上のutilityクラスは必要になるまで作らない（YAGNI） */

@@ -1,0 +1,85 @@
+/**
+ * Design Tokens - Single Source of Truth
+ * 
+ * UniVoice 2.0のすべてのCSS変数を一元管理
+ * YAGNI原則: 実際に使用される変数のみを定義
+ * 
+ * @since 2025-01-21
+ */
+
+:root {
+  /* ========================================
+     Theme Colors
+     ======================================== */
+  
+  /* Light Theme */
+  --theme-light-bg: rgba(255, 255, 255, 0);
+  --theme-light-border: rgba(0, 0, 0, 0.1);
+  --theme-light-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --theme-light-text: rgba(0, 0, 0, 0.85);
+  --theme-light-button-bg: rgba(0, 0, 0, 0.06);
+  --theme-light-button-hover: rgba(0, 0, 0, 0.1);
+  
+  /* Dark Theme */
+  --theme-dark-bg: rgba(30, 30, 30, 0);
+  --theme-dark-border: rgba(255, 255, 255, 0.1);
+  --theme-dark-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --theme-dark-text: rgba(255, 255, 255, 0.95);
+  --theme-dark-button-bg: rgba(255, 255, 255, 0.15);
+  --theme-dark-button-hover: rgba(255, 255, 255, 0.25);
+  
+  /* Purple Theme */
+  --theme-purple-bg: rgba(102, 51, 153, 0);
+  --theme-purple-border: rgba(255, 255, 255, 0.2);
+  --theme-purple-shadow: 0 8px 32px 0 rgba(102, 51, 153, 0.3);
+  --theme-purple-text: rgba(255, 255, 255, 1);
+  --theme-purple-button-bg: rgba(255, 255, 255, 0.2);
+  --theme-purple-button-hover: rgba(255, 255, 255, 0.3);
+  
+  /* ========================================
+     Glassmorphism Effects
+     ======================================== */
+  
+  --blur-amount: 10px;
+  --saturate-amount: 200%;
+  
+  /* Background gradients */
+  --bg-gradient-light: linear-gradient(135deg, rgba(245, 247, 250, 0.3) 0%, rgba(195, 207, 226, 0.3) 100%);
+  --bg-gradient-dark: linear-gradient(135deg, rgba(26, 26, 46, 0.3) 0%, rgba(22, 33, 62, 0.3) 100%);
+  --bg-gradient-purple: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+  
+  /* ========================================
+     Layout System (LAYOUT-RULES.md準拠)
+     ======================================== */
+  
+  /* Base units */
+  --button-size: 36px;
+  --button-gap: 10px;
+  --edge-margin: 20px;
+  
+  /* Calculated values (マジックナンバーではない) */
+  --group-gap: 56px;              /* ボタン1つ分 + margin */
+  --recording-width: 128px;       /* ボタン3つ分 + gap×2 */
+  --center-button-width: 82px;    /* ボタン2つ分 + gap */
+  --settings-right-offset: 112px; /* 右端計算値 */
+  
+  /* Heights */
+  --header-height: 60px;
+  --header-compact-height: 32px;
+  --settings-bar-height: 56px;
+  --control-button-size: 36px;    /* = button-size */
+  --setting-button-height: 32px;
+  
+  /* ========================================
+     Typography
+     ======================================== */
+  
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-scale: 1;
+  
+  /* ========================================
+     Transitions
+     ======================================== */
+  
+  --transition-default: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

@@ -3,40 +3,8 @@
  * プログレッシブ要約ウィンドウのスタイル定義
  */
 
-/* CSS Variables */
-:root {
-  /* Theme Colors - メイン画面と同じ定義 */
-  --theme-light-bg: rgba(255, 255, 255, 0);
-  --theme-light-button-bg: rgba(0, 0, 0, 0.06);
-  --theme-light-button-hover: rgba(0, 0, 0, 0.1);
-  --theme-light-border: rgba(0, 0, 0, 0.1);
-  --theme-light-text: #333;
-  
-  --theme-dark-bg: rgba(30, 30, 30, 0);
-  --theme-dark-button-bg: rgba(255, 255, 255, 0.15);
-  --theme-dark-button-hover: rgba(255, 255, 255, 0.25);
-  --theme-dark-border: rgba(255, 255, 255, 0.1);
-  --theme-dark-text: #e0e0e0;
-  
-  --theme-purple-bg: rgba(102, 51, 153, 0);
-  --theme-purple-button-bg: rgba(255, 255, 255, 0.2);
-  --theme-purple-button-hover: rgba(255, 255, 255, 0.3);
-  --theme-purple-border: rgba(255, 255, 255, 0.15);
-  --theme-purple-text: #f0e8ff;
-  
-  /* Glassmorphism */
-  --blur-amount: 10px;
-  --saturate-amount: 200%;
-  
-  /* Background gradients - メインウィンドウと同じ */
-  --bg-gradient-light: linear-gradient(135deg, rgba(245, 247, 250, 0.3) 0%, rgba(195, 207, 226, 0.3) 100%);
-  --bg-gradient-dark: linear-gradient(135deg, rgba(26, 26, 46, 0.3) 0%, rgba(22, 33, 62, 0.3) 100%);
-  --bg-gradient-purple: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
-  
-  /* Layout - メインウィンドウと同じ */
-  --control-button-size: 36px;
-  --settings-bar-height: 48px;
-}
+/* デザイントークンはdesign-tokens.cssで一元管理 */
+/* このファイルはSummaryWindow固有のスタイルのみを定義 */
 
 /* Glassmorphism エフェクト */
 .glassmorphism {

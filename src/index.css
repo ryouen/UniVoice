@@ -1,3 +1,9 @@
+/* Design Tokens - Single Source of Truth */
+@import './styles/design-tokens.css';
+
+/* Utility Classes - Minimal Set */
+@import './styles/utilities.css';
+
 /* CSS Reset for UniVoice */
 * {
   box-sizing: border-box;
@@ -45,11 +51,6 @@ body::before {
   /* UniVoice Light Theme */
   color: #333;
   background-color: transparent;
-  
-  /* グラスモーフィズム用の背景グラデーション変数 */
-  --bg-gradient-light: linear-gradient(135deg, rgba(245, 247, 250, 0.3) 0%, rgba(195, 207, 226, 0.3) 100%);
-  --bg-gradient-dark: linear-gradient(135deg, rgba(26, 26, 46, 0.3) 0%, rgba(22, 33, 62, 0.3) 100%);
-  --bg-gradient-purple: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
   
   /* 現在の背景グラデーション（初期値はライトテーマ） */
   --current-bg-gradient: var(--bg-gradient-light);
