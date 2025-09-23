@@ -1,0 +1,94 @@
+[
+  {
+    "file": "src/components/UniVoice.tsx",
+    "lines": 2785
+  },
+  {
+    "file": "src/hooks/useUnifiedPipeline.ts",
+    "lines": 1598
+  },
+  {
+    "file": "electron/services/domain/UnifiedPipelineService.ts",
+    "lines": 1573
+  },
+  {
+    "file": "electron/main.ts",
+    "lines": 1420
+  },
+  {
+    "file": "src/presentation/components/UniVoice/sections/SetupSection/SetupSection.tsx",
+    "lines": 1228
+  },
+  {
+    "file": "electron/services/domain/AdvancedFeatureService.ts",
+    "lines": 779
+  },
+  {
+    "file": "electron/services/domain/DataPersistenceService.ts",
+    "lines": 692
+  },
+  {
+    "file": "electron/services/adapters/DeepgramStreamAdapter.ts",
+    "lines": 633
+  },
+  {
+    "file": "src/domain/services/SessionMemoryService.ts",
+    "lines": 608
+  },
+  {
+    "file": "electron/services/adapters/monitoring/HealthChecker.ts",
+    "lines": 563
+  },
+  {
+    "file": "src/utils/RealtimeDisplayManager.ts",
+    "lines": 519
+  },
+  {
+    "file": "src/domain/services/RealtimeDisplayService.ts",
+    "lines": 512
+  },
+  {
+    "file": "electron/services/adapters/monitoring/MetricsCollector.ts",
+    "lines": 510
+  },
+  {
+    "file": "electron/preload.ts",
+    "lines": 506
+  },
+  {
+    "file": "electron/services/DevTestService.ts",
+    "lines": 473
+  },
+  {
+    "file": "electron/services/ipc/contracts.ts",
+    "lines": 455
+  },
+  {
+    "file": "electron/services/domain/SummaryService.ts",
+    "lines": 445
+  },
+  {
+    "file": "electron/main/WindowRegistry.ts",
+    "lines": 439
+  },
+  {
+    "file": "electron/services/adapters/monitoring/TracingService.ts",
+    "lines": 415
+  },
+  {
+    "file": "src/components/UnifiedHistoryRenderer.tsx",
+    "lines": 414
+  },
+  {
+    "file": "src/components/UniVoice/hooks/useSessionControl.ts",
+    "lines": 403
+  },
+  {
+    "file": "src/utils/SessionMemoryManager.ts",
+    "lines": 400
+  },
+  {
+    "file": "src/windows/SummaryWindow.tsx",
+    "lines": 400
+  }
+]

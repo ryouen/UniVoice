@@ -34,6 +34,28 @@ interface WindowManagerAPI {
   toggleSummary: () => Promise<boolean>;
 }
 
+// Full History Data type
+interface FullHistoryData {
+  blocks: any[];
+  entries: Array<{
+    id: string;
+    original: string;
+    translation: string;
+    timestamp: number;
+    segmentIds?: string[];
+    speaker?: string;
+    confidence?: number;
+  }>;
+  metadata: {
+    totalSegments: number;
+    totalSentences: number;
+    totalWords: number;
+    duration: number;
+    startTime?: number;
+    endTime?: number;
+  };
+}
+
 // Extend the UniVoiceAPI interface
 declare global {
   interface Window {
@@ -54,6 +76,8 @@ declare global {
       generateCorrelationId?: () => string;
       getDebugInfo?: () => Promise<any>;
       onUnifiedEvent?: (callback: (event: any) => void) => () => void;
+      // Full history data API
+      getFullHistory?: () => Promise<FullHistoryData>;
       // Window control API
       window?: WindowAPI;
       // Window manager API

@@ -39,6 +39,12 @@ Clean Architecture + CQRS + Event-Driven パターンで構築されています
 - SessionStorageServiceは実装済みだが完全に未使用（データ永続化の欠如）
 - 実装進捗は約50%（リアルタイム100%、高度機能70%、永続化0%）
 
+**🔴 2025-09-23 リファクタリング進捗と技術的発見**:
+- UniVoice.tsx Phase 1-2完了（2891行→2771行、モーダル分離・質問セクション分離）
+- 透過ウィンドウのフォーカス問題を1%不透明度（`#01000000`）で解決
+- CSS Modulesクラス名生成バグ修正（themeThemeLight問題）
+- Windows環境では完全透明（`#00000000`）のピクセルはクリック不可という重要な知見
+
 **⚠️ 重要な訂正 (あなたが疑ったり、改悪しては絶対にならないもの)**: 
 - Responses API は2025年3月にリリースされた実在のAPIです
 - GPT-5シリーズ（gpt-5、gpt-5-mini、gpt-5-nano）は実在のモデルです
@@ -140,6 +146,7 @@ UniVoice/
 - SegmentManager（重複除去）
 
 ### 🚧 Phase 2: Advanced Features（実装中）
+- [x] UniVoice.tsxリファクタリング Phase 1-2（モーダル/質問セクション分離）✅ 2025-09-23
 - [x] 文単位履歴管理（SentenceCombiner）- 統合済み・動作中 ✅
 - [x] 二段階翻訳システム（リアルタイム/履歴）- 完了
 - [x] 高品質翻訳の動的更新 - 完了
@@ -344,8 +351,10 @@ npm run clean
 - [API契約仕様](docs/API-CONTRACTS.md)
 
 ### 開発支援ドキュメント
-- [GitHubバックアップ差分詳細分析](docs/GITHUB-DIFF-FACTUAL-ANALYSIS-20250919.md) 🔴 NEW (2025-09-19) - 現在の変更とGitHubの差分を詳細分析（透過設定復元を含む）
-- [Windows透過設定復元ログ](docs/TRANSPARENCY-RESTORATION-LOG-20250919.md) 🔴 NEW (2025-09-19) - グラスモーフィズム効果の復元作業記録
+- [透過ウィンドウ実装ガイド](docs/TRANSPARENT-WINDOW-FOCUS-FIX.md) 🔴 NEW (2025-09-23) - Windows環境でのフォーカス問題解決方法
+- [リファクタリング進捗レポート](docs/REFACTORING-PROGRESS-20250923.md) 🔴 NEW (2025-09-23) - UniVoice.tsxのClean Architecture移行状況
+- [GitHubバックアップ差分詳細分析](docs/GITHUB-DIFF-FACTUAL-ANALYSIS-20250919.md) (2025-09-19) - 現在の変更とGitHubの差分を詳細分析（透過設定復元を含む）
+- [Windows透過設定復元ログ](docs/TRANSPARENCY-RESTORATION-LOG-20250919.md) (2025-09-19) - グラスモーフィズム効果の復元作業記録
 - [自動テスト・ログ収集システム](docs/development/AUTO-TEST-LOGGING-SYSTEM.md) 🔴 NEW
 - [型定義同期に関する調査結果](docs/TYPE-SYNCHRONIZATION-FINDINGS.md) 🔴 NEW - ビルドエラーの原因と解決策
 - [LocalStorage廃止・移行計画](docs/LOCALSTORAGE-MIGRATION-PLAN.md) 🔴 NEW (2025-09-16) - Setup画面スキップ問題の根本解決

@@ -1,234 +1,57 @@
 {
-  "lastUpdated": "2025-09-19T15:00:00Z",
-  "projectVersion": "2.0.0-alpha",
-  "currentPhase": "Clean Architectureリファクタリング進行中 / データ永続化実装待ち / プログレッシブ要約UI修正待ち",
-  "sessionSummary": {
-    "startTime": "2025-08-30T07:00:00Z",
-    "continuedFrom": "Data Persistence統合完了",
-    "mainObjective": "履歴翻訳システムの問題調査と統合実装",
-    "keyAchievements": [
-      "型定義の不整合問題を発見（フロントエンドとバックエンドで異なるcontracts.ts）",
-      "自動型同期スクリプト作成による恒久対策",
-      "型同期実行とビルド成功確認",
-      "SentenceCombinerが実際は完全統合済みであることを確認（2025-09-17）",
-      "深層分析レポート作成（DEEP-THINK-ANALYSIS-HISTORY-ISSUE-20250830.md）",
-      "実装計画書作成（SENTENCE-COMBINER-INTEGRATION-PLAN.md）",
-      "誤解を招くドキュメントの修正（実装済みと誤記載されていた箇所）",
-      "START-HERE-UPDATED-20250830.md作成（最新状況の明確化）",
-      "Phase 1実装完了：「翻訳中...」問題の修正",
-      "FlexibleHistoryGrouperに更新メソッド追加",
-      "高品質翻訳の状態同期問題を解決",
-      "Phase 2実装完了：ParagraphBuilderによるパラグラフベース履歴表示（2025-09-02）",
-      "ParagraphCompleteEvent型定義と統合完了",
-      "30-60秒単位でのパラグラフ形成システム実装",
-      "FlexibleHistoryGrouperのパラグラフ対応拡張",
-      "AdvancedFeatureService初期化バグが既に修正済みであることを確認（2025-09-04）",
-      "ドキュメント整理とCLAUDE.md/START-HERE.md更新（2025-09-04）",
-      "データ永続化機構の完全監査実施（2025-09-16）",
-      "SessionStorageService未使用問題の発見と文書化（2025-09-16）",
-      "SessionMemoryServiceの統合実装完了（2025-09-18）",
-      "セッション再開UI簡略化実装（最新セッション自動再開）（2025-09-18）",
-      "UniVoice.tsx構造分析とClean Architectureリファクタリング開始（2025-09-19）",
-      "型定義・定数・ユーティリティの分離実装（2025-09-19）",
-      "カスタムフック作成（useSessionManagement, useWindowResize）（2025-09-19）",
-      "重複関数定義の削除とビルドエラー解消（2025-09-19）"
-    ],
-    "currentIssue": {
-      "description": "Clean Architectureに基づくコードベースの整理とコンポーネント分割",
-      "resolvedIssues": [
-        "型定義の同期問題（sync-contracts.jsで解決）",
-        "履歴翻訳が動作しない根本原因の特定",
-        "「翻訳中...」が残り続ける問題（Phase 1で修正）",
-        "FlexibleHistoryGrouperとReactステートの同期問題",
-        "パラグラフベース履歴表示の実装（Phase 2で完了）",
-        "AdvancedFeatureService未初期化バグ（既に修正済みと判明）",
-        "Setup画面での無限ループ問題（一時的に回避）",
-        "Setup画面遷移問題（JavaScript hoisting問題を修正）（2025-09-19）",
-        "重複関数定義によるスコープ問題（2025-09-19）"
-      ],
-      "discoveries": [
-        "SentenceCombinerクラスは既に完全に実装・統合済み（UnifiedPipelineService.ts:203）",
-        "CombinedSentenceEventは正しく発行されている（handleCombinedSentenceメソッド内）",
-        "segmentToCombinedMapの処理も実装済み（useUnifiedPipeline.ts内）",
-        "SessionStorageServiceが完全に未使用でデータ永続化が欠如（2025-09-17発見）",
-        "SetupScreenとSetupSectionの2つのSetup画面が混在（2025-09-15発見）",
-        "App.tsxでの不要な条件分岐が画面遷移を破綻させている",
-        "UniVoice.tsxが2890行の巨大ファイルで技術的負債の温床（2025-09-19発見）",
-        "JavaScript hoistingによる重複関数定義がSetup画面遷移を妨げていた（2025-09-19発見）"
-      ],
-      "remainingTasks": {
-        "immediate": [
-          "UniVoice.tsxのコンポーネント分割（HeaderSection, TranscriptSection等）",
-          "processTranscriptSegmentメソッドの復元検討",
-          "WindowClientの直接import方式への回帰",
-          "SessionStorageServiceの統合実装（最優先）",
-          "プログレッシブ要約のUI表示修正",
-          "Clean Architecture準拠のディレクトリ構造再編"
-        ],
-        "P1": [
-          "統合後のE2Eテスト実施",
-          "セッション再開UI（セッション一覧・続きから再開）",
-          "レポート生成UI（モーダル表示、Markdown→HTML変換）"
-        ],
-        "P2": [
-          "単語帳表示UI実装",
-          "履歴UIのライトテーマ化",
-          "パフォーマンス最適化"
-        ]
-      }
-    }
+  "lastUpdated": "2025-09-23",
+  "sessionInfo": {
+    "currentPhase": "Phase 3: UI/UX改善フェーズ",
+    "activeWork": "UniVoice.tsx リファクタリング",
+    "completedToday": [
+      "透過ウィンドウのフォーカス問題解決",
+      "UniVoice.tsx Phase 1-2完了",
+      "CSS Modulesクラス名生成バグ修正"
+    ]
   },
-  "architecture": {
-    "pattern": "Clean Architecture + CQRS + Event-Driven",
-    "layers": {
-      "ui": "React components with hooks",
-      "application": "Use cases and application services",
-      "domain": "Business logic and domain services",
-      "infrastructure": "External adapters (IPC, monitoring)"
+  "technicalFindings": {
+    "transparentWindow": {
+      "problem": "Windows環境で完全透明（#00000000）だとクリックイベントが通過",
+      "solution": "背景色を#01000000（1%不透明）に設定",
+      "result": "グラスモーフィズム効果維持しつつフォーカス切り替え可能"
     },
-    "keyComponents": {
-      "UnifiedPipelineService": "メインの処理パイプライン（ASR + Translation）- 二段階翻訳対応",
-      "StreamCoalescer": "UI更新最適化（50%削減目標）",
-      "SegmentManager": "セグメント管理と重複除去",
-      "SentenceCombiner": "文単位結合（2-3文を1セグメントに）- NEW",
-      "TranslationQueueManager": "優先度制御付き翻訳キュー管理",
-      "IPCGateway": "型安全なIPC通信（Zod検証）",
-      "LanguageConfig": "16言語対応の翻訳プロンプト生成",
-      "AdvancedFeatureService": "要約・語彙・レポート生成 - 多言語対応済み"
-    }
-  },
-  "technicalDetails": {
-    "environment": {
-      "node": "v24.4.0",
-      "electron": "^33.2.0",
-      "typescript": "^5.6.3",
-      "react": "^18.3.1"
-    },
-    "apiKeys": {
-      "openai": "設定済み（.envファイル）",
-      "deepgram": "設定済み（.envファイル）"
-    },
-    "models": {
-      "translate": "gpt-5-nano（Responses API）",
-      "summary": "gpt-5-mini",
-      "vocabulary": "gpt-5-mini",
-      "report": "gpt-5"
-    },
-    "languageSupport": {
-      "supported": 16,
-      "languages": ["ja", "en", "zh", "es", "fr", "de", "ko", "pt", "ru", "it", "ar", "hi", "vi", "th", "tr", "pl"],
-      "default": {
-        "source": "en",
-        "target": "ja"
-      }
-    }
-  },
-  "fileStructure": {
-    "modifiedFiles": [
-      "electron/services/domain/UnifiedPipelineService.ts",
-      "src/hooks/useUnifiedPipeline.ts",
-      "src/components/UniVoice.tsx",
-      "START-HERE.md",
-      "docs/ACTIVE/STATE.json"
-    ],
-    "newFiles": [
-      "electron/services/domain/SentenceCombiner.ts",
-      "tests/integration/test-sentence-combiner.js",
-      "tests/integration/test-verify-sentence-combining.js",
-      "tests/integration/test-high-quality-translation.js",
-      "docs/SENTENCE-BASED-HISTORY-IMPLEMENTATION.md",
-      "docs/HIGH-QUALITY-TRANSLATION-IMPLEMENTATION.md",
-      "docs/CRITICAL-INVESTIGATION-REPORT-20250830.md",
-      "docs/TYPE-SYNCHRONIZATION-FINDINGS.md",
-      "docs/HISTORY-TRANSLATION-IMPLEMENTATION-COMPLETE.md",
-      "docs/PHASE1-IMPLEMENTATION-REPORT.md",
-      "test-clean-startup.bat",
-      "scripts/sync-contracts.js",
-      "docs/PARAGRAPH-BASED-HISTORY-MIGRATION-PLAN.md",
-      "docs/PARAGRAPH-BASED-HISTORY-IMPLEMENTATION-STATUS.md",
-      "docs/PARAGRAPH-MODE-IMPLEMENTATION-SUMMARY.md",
-      "docs/ADVANCED-FEATURE-SERVICE-VERIFICATION-20250904.md",
-      "docs/DOCUMENTATION-CLEANUP-REPORT-20250904.md"
-    ],
-    "buildOutput": "dist-electron/"
-  },
-  "testResults": {
-    "unitTests": {
-      "UnifiedPipelineService": "✅ SentenceCombiner統合済み・動作中",
-      "SentenceCombiner": "✅ 統合済み・正常動作",
-      "TranslationQueueManager": "✅ 優先度制御確認",
-      "LanguageConfig": "✅ 16言語サポート確認",
-      "FlexibleHistoryGrouper": "⚠️ 高品質翻訳受信待ち"
-    },
-    "integrationTests": {
-      "文単位履歴管理": "✅ SentenceCombiner統合済み・動作中",
-      "二段階翻訳": "⚠️ バックエンド実装済み、フロント接続不可",
-      "優先度制御": "✅ 低優先度で干渉なし確認",
-      "高品質翻訳統合": "✅ 二段階翻訳システム実装済み",
-      "多言語翻訳": "⚠️ 基本動作確認済み（詳細テスト必要）"
-    }
-  },
-  "todoStatus": {
-    "completed": [
-      "SentenceCombinerクラス作成・統合完了 - 2025-08-24",
-      "TranslationQueueManager実装 - 2025-08-24",
-      "型同期スクリプト作成（sync-contracts.js）- 2025-08-30",
-      "問題の根本原因分析完了 - 2025-08-30",
-      "多言語対応実装（16言語）- 2025-08-23",
-      "SetupSectionに言語選択UI追加 - 2025-08-23",
-      "UnifiedPipelineServiceの動的プロンプト対応 - 2025-08-23",
-      "AdvancedFeatureServiceの多言語化 - 2025-08-23",
-      "履歴重複キー問題の解決 - 2025-08-23",
-      "DataPersistenceService統合 - 2025-08-28",
-      "全IPCイベント送信実装 - 2025-08-28",
-      "セッションデータ自動保存機能実装 - 2025-08-28",
-      "ParagraphBuilder実装とUnifiedPipelineService統合 - 2025-09-02",
-      "ParagraphCompleteEvent型定義と処理実装 - 2025-09-02",
-      "FlexibleHistoryGrouperのパラグラフ対応拡張 - 2025-09-02",
-      "パラグラフモード完全統合と動作確認 - 2025-09-03",
-      "AdvancedFeatureService初期化確認（バグ修正済み） - 2025-09-04",
-      "ドキュメント整理と最新情報反映 - 2025-09-04",
-      "WindowRegistryとBoundsStore実装 - 2025-09-14",
-      "mainWindow参照エラー修正（51箇所） - 2025-09-14",
-      "ウィンドウリサイズ無限ループ解決 - 2025-09-14",
-      "Setup画面スキップ問題解決（LocalStorage/セッション管理） - 2025-09-17",
-      "374px問題解決（BoundsStore/WindowRegistry修正） - 2025-09-17",
-      "パイプライン開始時の無限レンダリング解決 - 2025-09-17",
-      "文字化け問題調査完了（問題なし） - 2025-09-17",
-      "SentenceCombiner統合確認（既に実装済みだった） - 2025-09-17",
-      "handleCombinedSentenceメソッド実装確認 - 2025-09-17",
-      "フロントエンドのcombinedSentenceイベント処理確認 - 2025-09-17",
-      "TypeScriptビルド成功確認 - 2025-09-17"
-    ],
-    "inProgress": [
-      "SessionStorageService統合実装",
-      "プログレッシブ要約UI修正",
-      "Setup画面統一作業"
-    ],
-    "pending": {
-      "P0_最優先_今すぐ": [
-        "SessionStorageService統合（データ永続化）",
-        "SetupScreen.tsxの削除",
-        "App.tsxからSetupScreen関連コードの削除",
-        "プログレッシブ要約UIのデータバインディング修正",
-        "check-today-sessionハンドラー実装",
-        "get-available-sessionsハンドラー実装",
-        "load-sessionハンドラー実装"
-      ],
-      "P1_重要_即対応": [
-        "セッション再開UI実装（セッション一覧・続きから再開ボタン） - 工数2-3時間",
-        "レポート生成UI実装（モーダル表示、Markdown→HTML変換） - 工数3-4時間"
-      ],
-      "P2_中程度_次対応": [
-        "単語帳表示UI実装（JSON→テーブル表示） - 工数2-3時間",
-        "履歴UIのライトテーマ化（現在ダークで見づらい） - 工数1-2時間"
-      ],
-      "P3_低優先度_余裕時": [
-        "翻訳差分表示機能（リアルタイムvs高品質の比較） - 工数3-4時間",
-        "GPT-5推論漏れ修正（reasoning内容が稀に表示） - 工数1-2時間",
-        "E2Eテスト充実化（Electron環境での統合テスト）",
-        "長時間セッションのメモリ最適化"
+    "refactoring": {
+      "originalLines": 2891,
+      "currentLines": 2771,
+      "reduction": 120,
+      "separatedComponents": [
+        "useModalManager.ts",
+        "useMemoManager.ts", 
+        "QuestionSection.tsx"
       ]
     }
-  }
+  },
+  "currentState": {
+    "coreFeatures": {
+      "transcription": "stable",
+      "realtimeTranslation": "stable",
+      "sessionPersistence": "stable",
+      "progressiveSummary": "backend-ready",
+      "vocabularyExtraction": "backend-ready",
+      "finalReport": "backend-ready"
+    },
+    "uiComponents": {
+      "mainWindow": "refactoring-in-progress",
+      "summaryWindow": "functional",
+      "historyWindow": "functional",
+      "setupWindow": "stable"
+    }
+  },
+  "nextSteps": [
+    "UniVoice.tsx Phase 3: メモリスト管理の分離",
+    "UniVoice.tsx Phase 4: 状態管理のContext化",
+    "SessionStorageServiceの統合",
+    "プログレッシブ要約UIの修正"
+  ],
+  "blockers": [],
+  "criticalNotes": [
+    "透過ウィンドウは1%不透明度が必要",
+    "CSS Modulesでbaseが'theme'の場合は特別処理が必要",
+    "stale closure問題に注意（useCallback依存関係）"
+  ]
 }

@@ -1,0 +1,484 @@
+{
+  "generatedAt": "2025-09-23T10:40:00.134Z",
+  "fileCount": 132,
+  "edges": {
+    "src/App.tsx": [
+      "external:react",
+      "external:react-router-dom",
+      "src/components/UniVoice",
+      "src/components/TestComponent.tsx",
+      "src/components/DebugInfo.tsx",
+      "src/utils/debug-helper.ts",
+      "src/App.css"
+    ],
+    "src/components/CustomTitleBar.tsx": [
+      "external:react"
+    ],
+    "src/components/DebugInfo.tsx": [
+      "external:react"
+    ],
+    "src/components/FlexibleHistoryDisplay.tsx": [
+      "external:react",
+      "src/utils/FlexibleHistoryGrouper.ts",
+      "src/components/UnifiedHistoryRenderer.tsx",
+      "src/components/UnifiedHistoryRenderer-Flow.tsx"
+    ],
+    "src/components/HistoryView.tsx": [
+      "external:react",
+      "src/components/HistoryView.module.css"
+    ],
+    "src/components/SummaryView.tsx": [
+      "external:react",
+      "src/windows/SummaryWindow.tsx",
+      "src/types/summary-window.types.ts"
+    ],
+    "src/components/SyncedRealtimeDisplay.tsx": [
+      "external:react",
+      "src/utils/SyncedRealtimeDisplayManager.ts"
+    ],
+    "src/components/TestComponent.tsx": [
+      "external:react"
+    ],
+    "src/components/UnifiedHistoryRenderer-Flow.tsx": [
+      "external:react",
+      "src/utils/FlexibleHistoryGrouper.ts"
+    ],
+    "src/components/UnifiedHistoryRenderer.tsx": [
+      "external:react",
+      "src/utils/FlexibleHistoryGrouper.ts"
+    ],
+    "src/components/UniVoice/components/ControlsSection/ControlsSection.tsx": [
+      "external:react",
+      "external:classnames",
+      "src/components/UniVoice/components/ControlsSection/ControlsSection.module.css"
+    ],
+    "src/components/UniVoice/components/ControlsSection/index.ts": [],
+    "src/components/UniVoice/components/Header/Header.tsx": [
+      "external:react",
+      "external:classnames",
+      "src/components/UniVoice/components/Header/Header.module.css"
+    ],
+    "src/components/UniVoice/components/Header/index.ts": [],
+    "src/components/UniVoice/components/TranscriptSection/index.ts": [],
+    "src/components/UniVoice/components/TranscriptSection/TranscriptSection.tsx": [
+      "external:react",
+      "external:classnames",
+      "src/components/UniVoice/components/TranscriptSection/TranscriptSection.module.css"
+    ],
+    "src/components/UniVoice/Header/HeaderControls/HeaderControls.tsx": [
+      "external:react",
+      "external:classnames",
+      "src/components/UniVoice/Header/HeaderControls/HeaderControls.module.css",
+      "src/components/UniVoice/Header/HeaderControls/HeaderControls.types.ts"
+    ],
+    "src/components/UniVoice/Header/HeaderControls/HeaderControls.types.ts": [
+      "external:react"
+    ],
+    "src/components/UniVoice/Header/HeaderControls/index.ts": [],
+    "src/components/UniVoice/HistorySection.tsx": [
+      "external:react",
+      "src/utils/FlexibleHistoryGrouper.ts"
+    ],
+    "src/components/UniVoice/hooks/index.ts": [],
+    "src/components/UniVoice/hooks/useSessionControl.ts": [
+      "external:react",
+      "src/domain/models/Session.ts",
+      "src/services/SessionStorageService.ts",
+      "src/services/WindowClient.ts",
+      "src/hooks/useUnifiedPipeline.ts",
+      "src/hooks/useSessionMemory.ts"
+    ],
+    "src/components/UniVoice/QuestionSection.tsx": [
+      "external:react",
+      "src/components/UniVoice.module.css",
+      "external:classnames"
+    ],
+    "src/components/UniVoice/UniVoiceModals.tsx": [
+      "external:react"
+    ],
+    "src/components/UniVoice.tsx": [
+      "external:react",
+      "src/hooks/useUnifiedPipeline.ts",
+      "src/hooks/useSessionMemory.ts",
+      "src/hooks/useBottomResize.ts",
+      "src/hooks/useHeaderControls.ts",
+      "src/hooks/useModalManager.ts",
+      "src/hooks/useMemoManager.ts",
+      "src/components/UniVoice/Header/HeaderControls/HeaderControls.tsx",
+      "src/components/UniVoice/QuestionSection.tsx",
+      "src/components/components/UniVoice/hooks/useSessionControl",
+      "src/utils/RealtimeDisplayManager.ts",
+      "src/utils/FlexibleHistoryGrouper.ts",
+      "src/presentation/components/UniVoice/sections/SetupSection",
+      "src/presentation/components/UniVoice/sections/RealtimeSection",
+      "src/presentation/components/UniVoice/sections/HistorySection",
+      "src/presentation/components/UniVoice/sections/SummarySection.tsx",
+      "src/presentation/components/UniVoice/sections/ProgressiveSummarySection.tsx",
+      "src/presentation/components/UniVoice/sections/UserInputSection.tsx",
+      "src/presentation/components/UniVoice/modals",
+      "src/components/UnifiedHistoryRenderer.tsx",
+      "src/components/UnifiedHistoryRenderer-Flow.tsx",
+      "src/services/SessionStorageService.ts",
+      "src/services/WindowClient.ts",
+      "src/components/UniVoice.module.css",
+      "external:classnames",
+      "src/types/univoice.types.ts",
+      "src/constants/layout.constants.ts",
+      "src/utils/format.utils.ts",
+      "src/utils/theme.utils.ts",
+      "src/utils/exportUtils",
+      "src/presentation/components/UniVoice/modals/types.ts"
+    ],
+    "src/constants/layout.constants.ts": [],
+    "src/domain/models/Session.ts": [],
+    "src/domain/models/Summary.ts": [],
+    "src/domain/models/Transcript.ts": [],
+    "src/domain/ports/StoragePort.ts": [],
+    "src/domain/Result.ts": [],
+    "src/domain/services/RealtimeDisplayService.ts": [],
+    "src/domain/services/SessionMemoryService.ts": [
+      "src/domain/Result.ts",
+      "src/domain/ports/StoragePort.ts",
+      "src/hooks/useUnifiedPipeline.ts",
+      "src/utils/StreamingBuffer.ts"
+    ],
+    "src/hooks/useBottomResize.ts": [
+      "external:react"
+    ],
+    "src/hooks/useHeaderControls.ts": [
+      "external:react"
+    ],
+    "src/hooks/useMemoManager.ts": [
+      "external:react",
+      "src/presentation/components/UniVoice/modals/types.ts"
+    ],
+    "src/hooks/useModalManager.ts": [
+      "external:react"
+    ],
+    "src/hooks/useSession.ts": [
+      "external:react"
+    ],
+    "src/hooks/useSessionManagement.ts": [
+      "external:react",
+      "src/services/SessionStorageService.ts",
+      "src/services/WindowClient.ts",
+      "src/hooks/useUnifiedPipeline.ts",
+      "src/hooks/useSessionMemory.ts"
+    ],
+    "src/hooks/useSessionMemory.ts": [
+      "external:react",
+      "src/domain/services/SessionMemoryService.ts",
+      "src/domain/ports/StoragePort.ts",
+      "src/utils/StreamingBuffer.ts",
+      "src/hooks/useUnifiedPipeline.ts"
+    ],
+    "src/hooks/useThemeClassResolver.ts": [
+      "external:react",
+      "external:classnames",
+      "src/types/univoice.types.ts",
+      "src/presentation/theme/ThemeClassResolver.ts"
+    ],
+    "src/hooks/useUnifiedPipeline.ts": [
+      "external:react",
+      "src/shared/types/contracts.ts",
+      "src/utils/SyncedRealtimeDisplayManager.ts",
+      "src/utils/FlexibleHistoryGrouper.ts",
+      "src/utils/IncrementalTextManager.ts",
+      "src/utils/StreamBatcher.ts",
+      "src/utils/TranslationTimeoutManager.ts",
+      "src/shared/types/ipcEvents.ts",
+      "src/hooks/useSessionMemory.ts",
+      "src/types/audio-processor.types.ts",
+      "src/infrastructure/audio/AudioWorkletProcessor.ts",
+      "src/presentation/presenters/RealtimeDisplayPresenter.ts"
+    ],
+    "src/hooks/useWindowResize.ts": [
+      "external:react",
+      "src/constants/layout.constants.ts",
+      "src/types/univoice.types.ts"
+    ],
+    "src/infrastructure/audio/AudioWorkletProcessor.ts": [
+      "src/types/audio-processor.types.ts"
+    ],
+    "src/infrastructure/audio/index.ts": [],
+    "src/infrastructure/audio/__tests__/AudioWorkletProcessor.test.ts": [
+      "src/infrastructure/audio/AudioWorkletProcessor.ts",
+      "src/types/audio-processor.types.ts"
+    ],
+    "src/main.tsx": [
+      "external:react",
+      "external:react-dom/client",
+      "src/App.tsx",
+      "src/index.css"
+    ],
+    "src/presentation/components/common/index.ts": [],
+    "src/presentation/components/common/ResizeHandle.tsx": [
+      "external:react"
+    ],
+    "src/presentation/components/UniVoice/modals/FloatingPanel.tsx": [
+      "external:react",
+      "src/presentation/components/UniVoice/modals/types.ts"
+    ],
+    "src/presentation/components/UniVoice/modals/FullscreenModal.tsx": [
+      "external:react",
+      "src/presentation/components/UniVoice/modals/types.ts"
+    ],
+    "src/presentation/components/UniVoice/modals/index.ts": [],
+    "src/presentation/components/UniVoice/modals/MemoModal.tsx": [
+      "external:react",
+      "src/presentation/components/UniVoice/modals/types.ts"
+    ],
+    "src/presentation/components/UniVoice/modals/ReportModal.tsx": [
+      "external:react",
+      "src/presentation/components/UniVoice/modals/types.ts"
+    ],
+    "src/presentation/components/UniVoice/modals/SessionResumeModal.tsx": [
+      "external:react",
+      "src/presentation/components/UniVoice/modals/types.ts"
+    ],
+    "src/presentation/components/UniVoice/modals/types.ts": [],
+    "src/presentation/components/UniVoice/sections/HistorySection/EmptyState.tsx": [
+      "external:react"
+    ],
+    "src/presentation/components/UniVoice/sections/HistorySection/HistorySection.tsx": [
+      "external:react",
+      "src/components/FlexibleHistoryDisplay.tsx",
+      "src/utils/FlexibleHistoryGrouper.ts",
+      "src/presentation/components/common",
+      "src/presentation/components/UniVoice/sections/HistorySection/EmptyState.tsx"
+    ],
+    "src/presentation/components/UniVoice/sections/HistorySection/index.ts": [],
+    "src/presentation/components/UniVoice/sections/ProgressiveSummarySection.tsx": [
+      "external:react"
+    ],
+    "src/presentation/components/UniVoice/sections/RealtimeSection/index.ts": [],
+    "src/presentation/components/UniVoice/sections/RealtimeSection/RealtimeSection.tsx": [
+      "external:react",
+      "src/presentation/components/UniVoice/sections/RealtimeSection/ThreeLineDisplay.tsx"
+    ],
+    "src/presentation/components/UniVoice/sections/RealtimeSection/ThreeLineDisplay.tsx": [
+      "external:react"
+    ],
+    "src/presentation/components/UniVoice/sections/SetupSection/index.ts": [],
+    "src/presentation/components/UniVoice/sections/SetupSection/SetupSection.tsx": [
+      "external:react",
+      "src/services/WindowClient.ts"
+    ],
+    "src/presentation/components/UniVoice/sections/SummarySection.tsx": [
+      "external:react"
+    ],
+    "src/presentation/components/UniVoice/sections/UserInputSection.tsx": [
+      "external:react"
+    ],
+    "src/presentation/hooks/index.ts": [],
+    "src/presentation/hooks/useResize.ts": [
+      "external:react"
+    ],
+    "src/presentation/presenters/RealtimeDisplayPresenter.ts": [
+      "src/utils/SyncedRealtimeDisplayManager.ts"
+    ],
+    "src/presentation/theme/ThemeClassResolver.ts": [
+      "src/components/UniVoice.module.css",
+      "src/types/univoice.types.ts"
+    ],
+    "src/services/claude/ClaudeIntegration.ts": [
+      "src/services/claude/ClaudeService.ts",
+      "external:events"
+    ],
+    "src/services/claude/ClaudeService.ts": [
+      "external:@anthropic-ai/sdk",
+      "electron/utils/logger.ts"
+    ],
+    "src/services/claude/index.ts": [],
+    "src/services/index.ts": [],
+    "src/services/SessionStorageService.ts": [],
+    "src/services/WindowClient.ts": [],
+    "src/shared/constants/events.ts": [],
+    "src/shared/types/contracts.ts": [],
+    "src/shared/types/ipcEvents.ts": [
+      "external:zod"
+    ],
+    "src/shared/utils/EventBus.ts": [
+      "src/shared/constants/events.ts"
+    ],
+    "src/styles/design-tokens.ts": [],
+    "src/types/audio-processor.types.ts": [],
+    "src/types/css-modules.d.ts": [],
+    "src/types/global.d.ts": [],
+    "src/types/index.d.ts": [],
+    "src/types/summary-window.types.ts": [
+      "src/hooks/useUnifiedPipeline.ts"
+    ],
+    "src/types/univoice.types.ts": [],
+    "src/types/window.d.ts": [
+      "src/shared/types/contracts.ts",
+      "src/shared/types/ipcEvents.ts"
+    ],
+    "src/utils/debug-helper.ts": [],
+    "src/utils/FlexibleHistoryGrouper.ts": [],
+    "src/utils/format.utils.ts": [],
+    "src/utils/IncrementalTextManager.ts": [],
+    "src/utils/RealtimeDisplayManager.ts": [],
+    "src/utils/SessionMemoryManager.ts": [
+      "src/hooks/useUnifiedPipeline.ts",
+      "src/utils/StreamingBuffer.ts"
+    ],
+    "src/utils/StreamBatcher.ts": [],
+    "src/utils/StreamingBuffer.ts": [],
+    "src/utils/SyncedRealtimeDisplayManager.ts": [],
+    "src/utils/theme.utils.ts": [
+      "src/types/univoice.types.ts",
+      "src/constants/layout.constants.ts"
+    ],
+    "src/utils/TranslationTimeoutManager.ts": [],
+    "src/windows/SummaryWindow.tsx": [
+      "external:react",
+      "external:classnames",
+      "src/types/summary-window.types.ts",
+      "src/windows/SummaryWindow.module.css"
+    ],
+    "electron/infrastructure/llm/LLMGateway.ts": [
+      "electron/infrastructure/llm/types.ts"
+    ],
+    "electron/infrastructure/llm/OpenAIGateway.ts": [
+      "external:openai",
+      "electron/infrastructure/llm/types.ts",
+      "electron/utils/logger.ts"
+    ],
+    "electron/infrastructure/llm/types.ts": [],
+    "electron/main/BoundsStore.ts": [
+      "external:electron",
+      "external:path",
+      "external:fs"
+    ],
+    "electron/main/WindowRegistry.ts": [
+      "external:electron",
+      "external:path",
+      "electron/main/BoundsStore.ts"
+    ],
+    "electron/main.ts": [
+      "external:electron",
+      "external:dotenv",
+      "external:path",
+      "external:os",
+      "electron/services/ipc/gateway.ts",
+      "electron/services/domain/UnifiedPipelineService.ts",
+      "electron/services/domain/DataPersistenceService.ts",
+      "electron/services/domain/AdvancedFeatureService.ts",
+      "electron/utils/logger.ts",
+      "electron/utils/startup-check.ts",
+      "electron/main/WindowRegistry.ts",
+      "electron/services/DevTestService.ts",
+      "electron/shared/ipcEvents.ts"
+    ],
+    "electron/preload.ts": [
+      "external:electron",
+      "electron/services/ipc/contracts.ts",
+      "electron/shared/ipcEvents.ts"
+    ],
+    "electron/services/adapters/DeepgramStreamAdapter.ts": [
+      "external:events",
+      "external:ws",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/adapters/monitoring/HealthChecker.ts": [
+      "external:events",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/adapters/monitoring/index.ts": [
+      "electron/services/adapters/monitoring/MetricsCollector.ts",
+      "electron/services/adapters/monitoring/TracingService.ts",
+      "electron/services/adapters/monitoring/HealthChecker.ts"
+    ],
+    "electron/services/adapters/monitoring/MetricsCollector.ts": [
+      "external:events",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/adapters/monitoring/TracingService.ts": [
+      "external:events",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/DevTestService.ts": [
+      "external:electron",
+      "external:events",
+      "external:fs/promises",
+      "external:path",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/domain/AdvancedFeatureService.ts": [
+      "external:events",
+      "external:openai",
+      "electron/utils/logger.ts",
+      "electron/services/ipc/contracts.ts"
+    ],
+    "electron/services/domain/DataPersistenceService.ts": [
+      "external:electron",
+      "external:fs/promises",
+      "external:path",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/domain/DeepgramLanguageSupport.ts": [
+      "electron/services/domain/LanguageConfig.ts"
+    ],
+    "electron/services/domain/LanguageConfig.ts": [],
+    "electron/services/domain/ParagraphBuilder.ts": [],
+    "electron/services/domain/PipelineStateManager.ts": [
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/domain/SegmentManager.ts": [
+      "external:events",
+      "electron/services/domain/StreamCoalescer.ts",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/domain/SentenceCombiner.ts": [],
+    "electron/services/domain/SessionService.ts": [
+      "external:events",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/domain/StreamCoalescer.ts": [
+      "external:events",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/domain/SummaryService.ts": [
+      "external:events",
+      "external:openai",
+      "electron/services/ipc/contracts.ts",
+      "electron/utils/logger.ts"
+    ],
+    "electron/services/domain/TranslationQueueManager.ts": [],
+    "electron/services/domain/UnifiedPipelineService.ts": [
+      "external:events",
+      "electron/services/adapters/DeepgramStreamAdapter.ts",
+      "external:openai",
+      "electron/services/domain/SegmentManager.ts",
+      "electron/services/ipc/contracts.ts",
+      "electron/services/domain/LanguageConfig.ts",
+      "electron/services/domain/DeepgramLanguageSupport.ts",
+      "electron/utils/logger.ts",
+      "electron/services/domain/TranslationQueueManager.ts",
+      "electron/services/domain/SentenceCombiner.ts",
+      "electron/services/domain/ParagraphBuilder.ts",
+      "electron/infrastructure/llm/types.ts",
+      "electron/infrastructure/llm/OpenAIGateway.ts",
+      "electron/services/domain/PipelineStateManager.ts"
+    ],
+    "electron/services/ipc/contracts.ts": [
+      "external:zod"
+    ],
+    "electron/services/ipc/gateway.ts": [
+      "external:events",
+      "electron/services/ipc/contracts.ts",
+      "electron/utils/logger.ts"
+    ],
+    "electron/shared/ipcEvents.ts": [],
+    "electron/utils/logger.ts": [
+      "external:fs",
+      "external:path"
+    ],
+    "electron/utils/startup-check.ts": [
+      "external:fs",
+      "external:path",
+      "electron/utils/logger.ts"
+    ]
+  }
+}
