@@ -20,7 +20,9 @@ import { useSessionMemory } from '../hooks/useSessionMemory';
 import { useBottomResize } from '../hooks/useBottomResize';
 import { useHeaderControls } from '../hooks/useHeaderControls';
 import { useModalManager } from '../hooks/useModalManager';
+import { useMemoManager } from '../hooks/useMemoManager';
 import { HeaderControls } from './UniVoice/Header/HeaderControls/HeaderControls';
+import { QuestionSection } from './UniVoice/QuestionSection';
 // 段階的リファクタリング: useSessionControlフックを並行実装用にインポート
 // TODO: 段階的に既存のセッション管理コードと置き換え
 // import { useSessionControl } from './components/UniVoice/hooks/useSessionControl';
@@ -259,8 +261,19 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     closeReportModal,
   } = useModalManager();
   
-  // メモリスト
-  const [memoList, setMemoList] = useState<Memo[]>([]);
+  // メモ管理（カスタムフックで管理）
+  const {
+    memoList,
+    questionInputRef,
+    saveAsMemo,
+    saveMemoEdit,
+    clearMemoList,
+    setMemoList,
+  } = useMemoManager({
+    targetLanguage,
+    sourceLanguage,
+    onUserTranslate: onUserTranslate
+  });
   
   // フローティングパネルの状態（理想UI用）
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
@@ -300,9 +313,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // アプリコンテナ全体のref（自動リサイズ用）
   const appContainerRef = useRef<HTMLDivElement>(null);
-  
-  // 質問入力欄のref（document.getElementByIdを置き換えるため）
-  const questionInputRef = useRef<HTMLTextAreaElement>(null);
   
   // 現在の表示テキスト（3行表示用）
   // Phase 2: Override または パイプラインデータを使用
@@ -1644,58 +1654,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   };;
 
-  const saveAsMemo = async () => {
-    const textarea = questionInputRef.current;
-    if (!textarea || !textarea.value.trim()) return;
+  // Memo saving logic moved to useMemoManager hook
 
-    // 質問機能: Target言語で入力 → Source言語へ翻訳
-    const inputText = textarea.value.trim();
-    
-    try {
-      // 翻訳API呼び出し（Target→Source方向）
-      const translatedText = await generateQuestionTranslation(inputText);
-      
-      // Memo型の期待する形式に合わせる
-      // TODO: Memo型をリファクタリングしてsource/target概念に統一すべき
-      // 現在は後方互換性のためjapanese/englishフィールドを使用
-      const memo: Memo = {
-        id: Date.now().toString(),
-        timestamp: formatTime(recordingTime),
-        // 暫定的な実装: japanese/englishフィールドにマッピング
-        japanese: targetLanguage === 'ja' ? inputText : 
-                  sourceLanguage === 'ja' ? translatedText : 
-                  `[${targetLanguage}] ${inputText}`,
-        english: targetLanguage === 'en' ? inputText : 
-                 sourceLanguage === 'en' ? translatedText : 
-                 `[${sourceLanguage}] ${translatedText}`
-      };
-
-      setMemoList([...memoList, memo]);
-      textarea.value = '';
-      
-      console.log('[UniVoice] Memo saved with translation from', targetLanguage, 'to', sourceLanguage);
-    } catch (error) {
-      console.error('[UniVoice] Failed to save memo with translation:', error);
-      // エラー時は翻訳なしで保存
-      const memo: Memo = {
-        id: Date.now().toString(),
-        timestamp: formatTime(recordingTime),
-        japanese: targetLanguage === 'ja' ? inputText : '[Translation failed]',
-        english: targetLanguage === 'en' ? inputText : '[Translation failed]'
-      };
-      setMemoList([...memoList, memo]);
-      textarea.value = '';
-    }
-  };
-
-  const saveMemoEdit = (memoId: string) => {
-    // MemoModalの期待する型に合わせる
-    const memo = memoList.find(m => m.id === memoId);
-    if (memo) {
-      // 編集機能の実装
-      console.log('[UniVoice] Memo edit requested for:', memoId);
-    }
-  };
+  // Memo edit logic moved to useMemoManager hook
 
 
 
@@ -1753,7 +1714,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     });
     
     // メモリストをクリア
-    setMemoList([]);
+    clearMemoList();
     
     // 入力欄をクリア
     const textarea = questionInputRef.current;
@@ -1964,22 +1925,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   };
   
-  // ユーザー入力の翻訳生成（Target→Source方向）
-  const generateQuestionTranslation = async (inputText: string): Promise<string> => {
-    try {
-      if (onUserTranslate) {
-        // 質問機能では逆方向（Target→Source）に翻訳
-        const translation = await onUserTranslate(inputText, targetLanguage, sourceLanguage);
-        return translation || `Translation failed: ${inputText}`;
-      } else {
-        console.warn('[UniVoice] onUserTranslate not provided');
-        return `Translation not available: ${inputText}`;
-      }
-    } catch (error: any) {
-      console.error('[UniVoice] 翻訳例外:', error);
-      return `Translation error: ${inputText.substring(0, 30)}...`;
-    }
-  };
+  // Question translation logic moved to useMemoManager hook
   
   // ========== ヘルパー関数 ==========
   
@@ -2749,97 +2695,14 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           {/* リサイズハンドルを削除 - Electronウィンドウのリサイズのみを使用 */}
 
           {/* 質問セクション（折りたたみ可能） */}
-          <div className={classNames(
-            getThemeClass('questionArea'),
-            showQuestionSection ? styles.questionVisible : styles.questionHidden
-          )} style={{
-            height: showQuestionSection ? '160px' : '0',
-            overflow: showQuestionSection ? 'visible' : 'hidden',
-            transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-            position: 'relative',
-            flexShrink: 0,
-            WebkitAppRegion: 'no-drag'  // 入力エリアは操作可能にする
-          }}>
-            <div className={styles.questionInner} style={{
-              padding: '20px 30px',
-              display: 'flex',
-              gap: '20px',
-              height: '100%',
-              borderTop: `1px solid ${currentTheme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`
-            }}>
-              <textarea 
-                ref={questionInputRef}
-                className={getThemeClass('questionInput')}
-                placeholder="質問・発言したい内容・メモを入力（日本語でOK）"
-                style={{
-                  flex: 1,
-                  padding: '16px 20px',
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  border: '2px solid rgba(102, 126, 234, 0.3)',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  color: '#333',
-                  resize: 'none',
-                  height: '100%',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                  lineHeight: 1.5,
-                  outline: 'none'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.6)';
-                  e.currentTarget.style.background = 'white';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.3)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-                }}
-              />
-              <div className={styles.questionActions} style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                justifyContent: 'center'
-              }}>
-                <button 
-                  className={classNames(styles.qBtnSecondary, currentTheme !== 'light' && styles[`theme${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`])}
-                  onClick={openMemoModal}
-                  style={{
-                    padding: '10px 18px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.2s',
-                    background: 'rgba(0, 0, 0, 0.05)',
-                    color: '#666'
-                  }}
-                >
-                  メモ一覧
-                </button>
-                <button 
-                  className={styles.qBtnPrimary}
-                  onClick={saveAsMemo}
-                  style={{
-                    padding: '10px 18px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.2s',
-                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                    color: 'white'
-                  }}
-                >
-                  英訳して保存
-                </button>
-              </div>
-            </div>
-          </div>
+          <QuestionSection
+            isVisible={showQuestionSection}
+            theme={currentTheme}
+            questionInputRef={questionInputRef}
+            onSaveAsMemo={saveAsMemo}
+            onOpenMemoModal={openMemoModal}
+            getThemeClass={getThemeClass}
+          />
         </div>
       </div>
       
