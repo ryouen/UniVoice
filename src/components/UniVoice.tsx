@@ -1146,13 +1146,19 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     // ウィンドウリサイズをIPCで実行
     const windowAPI = window.univoice?.window;
     if (windowAPI?.autoResize) {
-      await windowAPI.autoResize(targetHeight);
-      
-      // リサイズ完了後、モードをリセット（遅延を入れて安定性を確保）
-      setTimeout(() => {
-        setCurrentResizeMode(ResizeMode.NONE);
-      }, 200);
+      try {
+        await windowAPI.autoResize(targetHeight);
+        console.log('[Window Resize] Resize completed successfully');
+      } catch (error) {
+        console.error('[Window Resize] Resize failed:', error);
+      } finally {
+        // リサイズ完了後、モードをリセット（短い遅延で安定性を確保）
+        setTimeout(() => {
+          setCurrentResizeMode(ResizeMode.NONE);
+        }, 50); // 200ms -> 50msに短縮
+      }
     } else {
+      console.warn('[Window Resize] Window API not available');
       // APIが利用できない場合は即座にリセット
       setCurrentResizeMode(ResizeMode.NONE);
     }
@@ -1180,6 +1186,15 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // セクション変更時のウィンドウリサイズ
   useEffect(() => {
     if (!activeSession) return;
+
+    // デバッグログ追加
+    console.log('[Window Resize] Section state changed:', {
+      showHeader,
+      showSettings,
+      showQuestionSection,
+      currentResizeMode,
+      activeSession: !!activeSession
+    });
 
     // CSSアニメーションを考慮した遅延
     const timer = setTimeout(() => {
@@ -1272,7 +1287,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         // モードをリセット
         setTimeout(() => {
           setCurrentResizeMode(ResizeMode.NONE);
-        }, 100);
+        }, 50); // 100ms -> 50msに短縮
       }, WINDOW_RESIZE_DEBOUNCE_MS);
     };
     
@@ -2362,6 +2377,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <button 
               className={classNames(getThemeClass('button'), showQuestionSection && styles.buttonActive)}
               onClick={() => {
+                console.log('[UniVoice] Question button clicked. Current state:', showQuestionSection);
                 setShowQuestionSection(!showQuestionSection);
               }}
               style={{WebkitAppRegion: 'no-drag', width: 'var(--center-button-width)', height: 'var(--button-size)'}}
