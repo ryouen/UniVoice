@@ -1,0 +1,88 @@
+/**
+ * WindowContainer CSS Modules
+ * ウィンドウコンテナのスタイル定義
+ */
+
+/* Glassmorphism エフェクト */
+.glassmorphism {
+  backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(var(--saturate-amount));
+}
+
+/* ウィンドウコンテナ基本スタイル */
+.windowContainer {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+  border-radius: 12px;
+}
+
+/* テーマ別のウィンドウスタイル */
+.windowLight {
+  position: relative;
+  background: transparent;
+  color: var(--theme-light-text);
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.windowLight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-gradient-light);
+  z-index: -2;
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+.windowDark {
+  position: relative;
+  background: transparent;
+  color: var(--theme-dark-text);
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.windowDark::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-gradient-dark);
+  z-index: -2;
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+.windowPurple {
+  position: relative;
+  background: transparent;
+  color: var(--theme-purple-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.windowPurple::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-gradient-purple);
+  z-index: -2;
+  pointer-events: none;
+  border-radius: 12px;
+}

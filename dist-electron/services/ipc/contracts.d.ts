@@ -28,7 +28,6 @@ export declare const ASREventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "asr";
     correlationId: string;
-    timestamp: number;
     data: {
         text: string;
         confidence: number;
@@ -36,10 +35,10 @@ export declare const ASREventSchema: z.ZodObject<{
         segmentId?: string | undefined;
         language?: string | undefined;
     };
+    timestamp: number;
 }, {
     type: "asr";
     correlationId: string;
-    timestamp: number;
     data: {
         text: string;
         confidence: number;
@@ -47,6 +46,7 @@ export declare const ASREventSchema: z.ZodObject<{
         segmentId?: string | undefined;
         language?: string | undefined;
     };
+    timestamp: number;
 }>;
 /**
  * Translation Events
@@ -83,7 +83,6 @@ export declare const TranslationEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "translation";
     correlationId: string;
-    timestamp: number;
     data: {
         sourceLanguage: string;
         targetLanguage: string;
@@ -93,10 +92,10 @@ export declare const TranslationEventSchema: z.ZodObject<{
         translatedText: string;
         segmentId?: string | undefined;
     };
+    timestamp: number;
 }, {
     type: "translation";
     correlationId: string;
-    timestamp: number;
     data: {
         sourceLanguage: string;
         targetLanguage: string;
@@ -106,6 +105,7 @@ export declare const TranslationEventSchema: z.ZodObject<{
         translatedText: string;
         segmentId?: string | undefined;
     };
+    timestamp: number;
 }>;
 /**
  * Segment Management Events
@@ -136,7 +136,6 @@ export declare const SegmentEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "segment";
     correlationId: string;
-    timestamp: number;
     data: {
         status: "error" | "completed" | "processing";
         text: string;
@@ -144,10 +143,10 @@ export declare const SegmentEventSchema: z.ZodObject<{
         metadata?: Record<string, unknown> | undefined;
         translation?: string | undefined;
     };
+    timestamp: number;
 }, {
     type: "segment";
     correlationId: string;
-    timestamp: number;
     data: {
         status: "error" | "completed" | "processing";
         text: string;
@@ -155,6 +154,7 @@ export declare const SegmentEventSchema: z.ZodObject<{
         metadata?: Record<string, unknown> | undefined;
         translation?: string | undefined;
     };
+    timestamp: number;
 }>;
 /**
  * Error Events
@@ -182,23 +182,23 @@ export declare const ErrorEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "error";
     correlationId: string;
-    timestamp: number;
     data: {
         message: string;
         code: string;
         recoverable: boolean;
         details?: Record<string, unknown> | undefined;
     };
+    timestamp: number;
 }, {
     type: "error";
     correlationId: string;
-    timestamp: number;
     data: {
         message: string;
         code: string;
         recoverable: boolean;
         details?: Record<string, unknown> | undefined;
     };
+    timestamp: number;
 }>;
 /**
  * Summary Events
@@ -229,7 +229,6 @@ export declare const SummaryEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "summary";
     correlationId: string;
-    timestamp: number;
     data: {
         english: string;
         japanese: string;
@@ -237,10 +236,10 @@ export declare const SummaryEventSchema: z.ZodObject<{
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
+    timestamp: number;
 }, {
     type: "summary";
     correlationId: string;
-    timestamp: number;
     data: {
         english: string;
         japanese: string;
@@ -248,6 +247,7 @@ export declare const SummaryEventSchema: z.ZodObject<{
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
+    timestamp: number;
 }>;
 /**
  * Progressive Summary Events (word count based)
@@ -281,7 +281,6 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "progressiveSummary";
     correlationId: string;
-    timestamp: number;
     data: {
         threshold: number;
         wordCount: number;
@@ -290,10 +289,10 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
+    timestamp: number;
 }, {
     type: "progressiveSummary";
     correlationId: string;
-    timestamp: number;
     data: {
         threshold: number;
         wordCount: number;
@@ -302,6 +301,7 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
+    timestamp: number;
 }>;
 /**
  * Status Events
@@ -323,19 +323,19 @@ export declare const StatusEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "status";
     correlationId: string;
-    timestamp: number;
     data: {
         state: "error" | "processing" | "idle" | "starting" | "listening" | "stopping" | "paused";
         details?: Record<string, unknown> | undefined;
     };
+    timestamp: number;
 }, {
     type: "status";
     correlationId: string;
-    timestamp: number;
     data: {
         state: "error" | "processing" | "idle" | "starting" | "listening" | "stopping" | "paused";
         details?: Record<string, unknown> | undefined;
     };
+    timestamp: number;
 }>;
 /**
  * Vocabulary Events
@@ -377,7 +377,6 @@ export declare const VocabularyEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "vocabulary";
     correlationId: string;
-    timestamp: number;
     data: {
         items: {
             term: string;
@@ -386,10 +385,10 @@ export declare const VocabularyEventSchema: z.ZodObject<{
         }[];
         totalTerms: number;
     };
+    timestamp: number;
 }, {
     type: "vocabulary";
     correlationId: string;
-    timestamp: number;
     data: {
         items: {
             term: string;
@@ -398,6 +397,7 @@ export declare const VocabularyEventSchema: z.ZodObject<{
         }[];
         totalTerms: number;
     };
+    timestamp: number;
 }>;
 /**
  * Final Report Events
@@ -425,23 +425,23 @@ export declare const FinalReportEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "finalReport";
     correlationId: string;
-    timestamp: number;
     data: {
         report: string;
         summaryCount: number;
         totalWordCount: number;
         vocabularyCount: number;
     };
+    timestamp: number;
 }, {
     type: "finalReport";
     correlationId: string;
-    timestamp: number;
     data: {
         report: string;
         summaryCount: number;
         totalWordCount: number;
         vocabularyCount: number;
     };
+    timestamp: number;
 }>;
 /**
  * Combined Sentence Events
@@ -477,7 +477,6 @@ export declare const CombinedSentenceEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "combinedSentence";
     correlationId: string;
-    timestamp: number;
     data: {
         timestamp: number;
         originalText: string;
@@ -486,10 +485,10 @@ export declare const CombinedSentenceEventSchema: z.ZodObject<{
         endTimestamp: number;
         segmentCount: number;
     };
+    timestamp: number;
 }, {
     type: "combinedSentence";
     correlationId: string;
-    timestamp: number;
     data: {
         timestamp: number;
         originalText: string;
@@ -498,6 +497,7 @@ export declare const CombinedSentenceEventSchema: z.ZodObject<{
         endTimestamp: number;
         segmentCount: number;
     };
+    timestamp: number;
 }>;
 /**
  * Paragraph Complete Events
@@ -615,7 +615,6 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: "paragraphComplete";
     correlationId: string;
-    timestamp: number;
     data: {
         wordCount: number;
         startTime: number;
@@ -640,10 +639,10 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
             cleanedText?: string | undefined;
         } | undefined;
     };
+    timestamp: number;
 }, {
     type: "paragraphComplete";
     correlationId: string;
-    timestamp: number;
     data: {
         wordCount: number;
         startTime: number;
@@ -668,6 +667,7 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
             cleanedText?: string | undefined;
         } | undefined;
     };
+    timestamp: number;
 }>;
 export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
     type: z.ZodLiteral<"asr">;
@@ -695,7 +695,6 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "asr";
     correlationId: string;
-    timestamp: number;
     data: {
         text: string;
         confidence: number;
@@ -703,10 +702,10 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         segmentId?: string | undefined;
         language?: string | undefined;
     };
+    timestamp: number;
 }, {
     type: "asr";
     correlationId: string;
-    timestamp: number;
     data: {
         text: string;
         confidence: number;
@@ -714,6 +713,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         segmentId?: string | undefined;
         language?: string | undefined;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"translation">;
     timestamp: z.ZodNumber;
@@ -746,7 +746,6 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "translation";
     correlationId: string;
-    timestamp: number;
     data: {
         sourceLanguage: string;
         targetLanguage: string;
@@ -756,10 +755,10 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         translatedText: string;
         segmentId?: string | undefined;
     };
+    timestamp: number;
 }, {
     type: "translation";
     correlationId: string;
-    timestamp: number;
     data: {
         sourceLanguage: string;
         targetLanguage: string;
@@ -769,6 +768,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         translatedText: string;
         segmentId?: string | undefined;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"segment">;
     timestamp: z.ZodNumber;
@@ -795,7 +795,6 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "segment";
     correlationId: string;
-    timestamp: number;
     data: {
         status: "error" | "completed" | "processing";
         text: string;
@@ -803,10 +802,10 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         metadata?: Record<string, unknown> | undefined;
         translation?: string | undefined;
     };
+    timestamp: number;
 }, {
     type: "segment";
     correlationId: string;
-    timestamp: number;
     data: {
         status: "error" | "completed" | "processing";
         text: string;
@@ -814,6 +813,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         metadata?: Record<string, unknown> | undefined;
         translation?: string | undefined;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"summary">;
     timestamp: z.ZodNumber;
@@ -840,7 +840,6 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "summary";
     correlationId: string;
-    timestamp: number;
     data: {
         english: string;
         japanese: string;
@@ -848,10 +847,10 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
+    timestamp: number;
 }, {
     type: "summary";
     correlationId: string;
-    timestamp: number;
     data: {
         english: string;
         japanese: string;
@@ -859,6 +858,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"progressiveSummary">;
     timestamp: z.ZodNumber;
@@ -888,7 +888,6 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "progressiveSummary";
     correlationId: string;
-    timestamp: number;
     data: {
         threshold: number;
         wordCount: number;
@@ -897,10 +896,10 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
+    timestamp: number;
 }, {
     type: "progressiveSummary";
     correlationId: string;
-    timestamp: number;
     data: {
         threshold: number;
         wordCount: number;
@@ -909,6 +908,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"error">;
     timestamp: z.ZodNumber;
@@ -932,23 +932,23 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "error";
     correlationId: string;
-    timestamp: number;
     data: {
         message: string;
         code: string;
         recoverable: boolean;
         details?: Record<string, unknown> | undefined;
     };
+    timestamp: number;
 }, {
     type: "error";
     correlationId: string;
-    timestamp: number;
     data: {
         message: string;
         code: string;
         recoverable: boolean;
         details?: Record<string, unknown> | undefined;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"status">;
     timestamp: z.ZodNumber;
@@ -966,19 +966,19 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "status";
     correlationId: string;
-    timestamp: number;
     data: {
         state: "error" | "processing" | "idle" | "starting" | "listening" | "stopping" | "paused";
         details?: Record<string, unknown> | undefined;
     };
+    timestamp: number;
 }, {
     type: "status";
     correlationId: string;
-    timestamp: number;
     data: {
         state: "error" | "processing" | "idle" | "starting" | "listening" | "stopping" | "paused";
         details?: Record<string, unknown> | undefined;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"vocabulary">;
     timestamp: z.ZodNumber;
@@ -1016,7 +1016,6 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "vocabulary";
     correlationId: string;
-    timestamp: number;
     data: {
         items: {
             term: string;
@@ -1025,10 +1024,10 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         }[];
         totalTerms: number;
     };
+    timestamp: number;
 }, {
     type: "vocabulary";
     correlationId: string;
-    timestamp: number;
     data: {
         items: {
             term: string;
@@ -1037,6 +1036,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         }[];
         totalTerms: number;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"finalReport">;
     timestamp: z.ZodNumber;
@@ -1060,23 +1060,23 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "finalReport";
     correlationId: string;
-    timestamp: number;
     data: {
         report: string;
         summaryCount: number;
         totalWordCount: number;
         vocabularyCount: number;
     };
+    timestamp: number;
 }, {
     type: "finalReport";
     correlationId: string;
-    timestamp: number;
     data: {
         report: string;
         summaryCount: number;
         totalWordCount: number;
         vocabularyCount: number;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"combinedSentence">;
     timestamp: z.ZodNumber;
@@ -1106,7 +1106,6 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "combinedSentence";
     correlationId: string;
-    timestamp: number;
     data: {
         timestamp: number;
         originalText: string;
@@ -1115,10 +1114,10 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         endTimestamp: number;
         segmentCount: number;
     };
+    timestamp: number;
 }, {
     type: "combinedSentence";
     correlationId: string;
-    timestamp: number;
     data: {
         timestamp: number;
         originalText: string;
@@ -1127,6 +1126,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         endTimestamp: number;
         segmentCount: number;
     };
+    timestamp: number;
 }>, z.ZodObject<{
     type: z.ZodLiteral<"paragraphComplete">;
     timestamp: z.ZodNumber;
@@ -1238,7 +1238,6 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
 }, "strip", z.ZodTypeAny, {
     type: "paragraphComplete";
     correlationId: string;
-    timestamp: number;
     data: {
         wordCount: number;
         startTime: number;
@@ -1263,10 +1262,10 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
             cleanedText?: string | undefined;
         } | undefined;
     };
+    timestamp: number;
 }, {
     type: "paragraphComplete";
     correlationId: string;
-    timestamp: number;
     data: {
         wordCount: number;
         startTime: number;
@@ -1291,6 +1290,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
             cleanedText?: string | undefined;
         } | undefined;
     };
+    timestamp: number;
 }>]>;
 export declare const StartListeningCommandSchema: z.ZodObject<{
     command: z.ZodLiteral<"startListening">;
@@ -1366,6 +1366,16 @@ export declare const GetHistoryCommandSchema: z.ZodObject<{
         limit?: number | undefined;
         offset?: number | undefined;
     };
+}>;
+export declare const GetFullHistoryCommandSchema: z.ZodObject<{
+    command: z.ZodLiteral<"getFullHistory">;
+    params: z.ZodObject<{}, "strip", z.ZodTypeAny, {}, {}>;
+}, "strip", z.ZodTypeAny, {
+    command: "getFullHistory";
+    params: {};
+}, {
+    command: "getFullHistory";
+    params: {};
 }>;
 export declare const ClearHistoryCommandSchema: z.ZodObject<{
     command: z.ZodLiteral<"clearHistory">;
@@ -1545,6 +1555,15 @@ export declare const IPCCommandSchema: z.ZodDiscriminatedUnion<"command", [z.Zod
         offset?: number | undefined;
     };
 }>, z.ZodObject<{
+    command: z.ZodLiteral<"getFullHistory">;
+    params: z.ZodObject<{}, "strip", z.ZodTypeAny, {}, {}>;
+}, "strip", z.ZodTypeAny, {
+    command: "getFullHistory";
+    params: {};
+}, {
+    command: "getFullHistory";
+    params: {};
+}>, z.ZodObject<{
     command: z.ZodLiteral<"clearHistory">;
     params: z.ZodObject<{}, "strip", z.ZodTypeAny, {}, {}>;
 }, "strip", z.ZodTypeAny, {
@@ -1660,6 +1679,7 @@ export type PipelineEvent = z.infer<typeof PipelineEventSchema>;
 export type StartListeningCommand = z.infer<typeof StartListeningCommandSchema>;
 export type StopListeningCommand = z.infer<typeof StopListeningCommandSchema>;
 export type GetHistoryCommand = z.infer<typeof GetHistoryCommandSchema>;
+export type GetFullHistoryCommand = z.infer<typeof GetFullHistoryCommandSchema>;
 export type ClearHistoryCommand = z.infer<typeof ClearHistoryCommandSchema>;
 export type GenerateVocabularyCommand = z.infer<typeof GenerateVocabularyCommandSchema>;
 export type GenerateFinalReportCommand = z.infer<typeof GenerateFinalReportCommandSchema>;

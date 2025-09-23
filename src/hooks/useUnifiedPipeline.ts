@@ -972,7 +972,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
           historyGrouperRef.current.addSentence({
             id: event.data.combinedId,
             original: event.data.originalText,
-            translation: '', // 空文字列に変更（Phase 1修正）
+            translation: '翻訳中...', // 翻訳待ちのプレースホルダー表示
             timestamp: event.data.timestamp
           });
           

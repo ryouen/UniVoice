@@ -102,6 +102,14 @@ export class IPCGateway extends EventEmitter {
         });
         break;
 
+      case 'getFullHistory':
+        this.emit('domain-command', {
+          type: 'getFullHistory',
+          params: command.params,
+          correlationId,
+        });
+        break;
+
       case 'clearHistory':
         this.emit('domain-command', {
           type: 'clearHistory',

@@ -4,7 +4,7 @@
  */
 
 /* デザイントークンはdesign-tokens.cssで一元管理 */
-/* このファイルはHistoryWindow固有のスタイルのみを定義 */
+/* このファイルはSummaryWindow固有のスタイルのみを定義 */
 
 /* Glassmorphism エフェクト */
 .glassmorphism {
@@ -22,18 +22,19 @@
   user-select: none;
   overflow: hidden;
   position: relative;
-  border-radius: 12px;
+  border-radius: 12px; /* メインウィンドウと同じ角丸 */
 }
 
-/* テーマ別のウィンドウスタイル - SummaryWindowと同じ構造 */
+/* テーマ別のウィンドウスタイル - メインウィンドウと同じ構造 */
 .window {
   position: relative;
   background: transparent;
   color: var(--theme-light-text);
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 12px; /* メインウィンドウと同じ角丸 */
 }
 
+/* Light theme background - メインウィンドウと同じ */
 .window::before {
   content: '';
   position: absolute;
@@ -44,17 +45,20 @@
   background: var(--bg-gradient-light);
   z-index: -2;
   pointer-events: none;
-  border-radius: 12px;
+  border-radius: 12px; /* 角丸を継承 */
 }
+
+/* window::after レイヤーを削除 - 透過効果を妨げていたため */
 
 .windowDark {
   position: relative;
   background: transparent;
   color: var(--theme-dark-text);
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 12px; /* メインウィンドウと同じ角丸 */
 }
 
+/* Dark theme background - メインウィンドウと同じ */
 .windowDark::before {
   content: '';
   position: absolute;
@@ -65,8 +69,10 @@
   background: var(--bg-gradient-dark);
   z-index: -2;
   pointer-events: none;
-  border-radius: 12px;
+  border-radius: 12px; /* 角丸を継承 */
 }
+
+/* windowDark::after レイヤーを削除 - 透過効果を妨げていたため */
 
 .windowPurple {
   position: relative;
@@ -74,9 +80,10 @@
   color: var(--theme-purple-text);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 12px; /* メインウィンドウと同じ角丸 */
 }
 
+/* Purple theme background - メインウィンドウと同じ */
 .windowPurple::before {
   content: '';
   position: absolute;
@@ -87,303 +94,685 @@
   background: var(--bg-gradient-purple);
   z-index: -2;
   pointer-events: none;
-  border-radius: 12px;
+  border-radius: 12px; /* 角丸を継承 */
 }
 
-/* ヘッダーバー - SummaryWindowと共通構造 */
+/* windowPurple::after レイヤーを削除 - 透過効果を妨げていたため */
+
+/* ヘッダーバー */
 .headerBar {
+  height: var(--settings-bar-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
-  padding: 0 16px;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  -webkit-app-region: drag;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 10;
+}
+
+.headerBarLight {
+  composes: headerBar;
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
 }
 
 .headerBarDark {
-  background: rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  composes: headerBar;
+  background: rgba(40, 40, 40, 0.8);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .headerBarPurple {
-  background: rgba(139, 92, 246, 0.05);
-  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+  composes: headerBar;
+  background: rgba(110, 60, 160, 0.8);
+  border-bottom-color: rgba(224, 213, 240, 0.2);
 }
 
-/* 中央セクション - 検索ボックス用に変更 */
-.centerSection {
+/* セクション */
+.leftSection {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex: 1;
-  justify-content: center;
-  max-width: 500px;
-  margin: 0 auto;
+  gap: var(--button-gap);  /* 10px - 統一化 */
+  -webkit-app-region: no-drag;
 }
 
-/* 検索ボックス */
+.searchSection {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 66.67%; /* 2/3の幅に変更 */
+  margin: 0 auto;
+  -webkit-app-region: no-drag;
+}
+
 .searchBox {
   position: relative;
-  flex: 1;
-  max-width: 400px;
-  -webkit-app-region: no-drag;
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .searchIcon {
   position: absolute;
   left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.5;
+  color: inherit;
+  opacity: 0.6;
   pointer-events: none;
 }
 
 .searchInput {
   width: 100%;
-  height: var(--button-size);
+  height: calc(var(--control-button-size) - 4px);
   padding: 0 36px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  padding-right: 32px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: calc(var(--control-button-size) / 2);
+  background: rgba(128, 128, 128, 0.1);
   color: inherit;
   font-size: 14px;
   outline: none;
-  transition: all 0.2s ease;
-}
-
-.searchInput::placeholder {
-  opacity: 0.5;
+  transition: all 0.2s;
 }
 
 .searchInput:focus {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: #667eea;
+  background: rgba(128, 128, 128, 0.15);
 }
 
 .clearButton {
   position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
+  right: 4px;
   padding: 0;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.2s ease;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  transition: all 0.2s;
 }
 
 .clearButton:hover {
-  opacity: 0.8;
+  opacity: 1;
+  background: rgba(128, 128, 128, 0.2);
 }
 
-.resultCount {
-  font-size: 12px;
-  opacity: 0.7;
-  white-space: nowrap;
-}
-
-/* 右セクション */
 .rightSection {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--button-gap);
+  gap: var(--button-gap);  /* 10px - 統一化 */
   -webkit-app-region: no-drag;
 }
 
-/* フォントボタングループ */
-.fontButtonGroup {
-  display: flex;
-  gap: var(--button-gap);
-}
-
-/* ボタンスタイル - design-tokens.cssから継承 */
+/* Unified Button System - 統一ボタンシステム (2025-09-22) */
+/* Clean Architecture: すべてのボタンの基本クラス */
 .button {
-  /* 基本スタイルはdesign-tokens.cssで定義済み */
-}
-
-.active {
-  background-color: rgba(var(--button-active-bg), 0.15);
-  color: var(--button-active-color);
-}
-
-/* コンテンツエリア */
-.contentArea {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-}
-
-/* 履歴コンテンツ */
-.historyContent {
-  height: 100%;
-  overflow-y: auto;
-  padding: 24px;
-  font-size: calc(14px * var(--font-scale, 1));
-  line-height: 1.8;
-}
-
-/* スクロールバーのカスタマイズ */
-.historyContent::-webkit-scrollbar {
-  width: 10px;
-}
-
-.historyContent::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.historyContent::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.3);
-  border-radius: 5px;
-}
-
-.historyContent::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.5);
-}
-
-/* 履歴リスト */
-.historyList {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-width: 1200px;
-  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: var(--transition-default);
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+  -webkit-app-region: no-drag;
 }
 
-/* 履歴アイテム */
-.historyItem {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  padding: 16px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
+/* Size Modifiers - サイズ修飾子 */
+.buttonNav {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border-radius: 6px;
+  color: inherit;
 }
 
-.historyItem:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
+/* Theme Variants - テーマバリアント */
+.buttonLight {
+  composes: button;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
 }
 
-/* ダークテーマの履歴アイテム */
-.windowDark .historyItem {
-  background: rgba(0, 0, 0, 0.2);
-  border-color: rgba(255, 255, 255, 0.05);
+.buttonLight:hover {
+  background: var(--theme-light-button-hover);
+  transform: translateY(-2px);
 }
 
-.windowDark .historyItem:hover {
-  background: rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.08);
+.buttonDark {
+  composes: button;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
 }
 
-/* タイムスタンプ */
-.timestamp {
+.buttonDark:hover {
+  background: var(--theme-dark-button-hover);
+  transform: translateY(-2px);
+}
+
+.buttonPurple {
+  composes: button;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.buttonPurple:hover {
+  background: var(--theme-purple-button-hover);
+  transform: translateY(-2px);
+}
+
+/* Active State - アクティブ状態は削除（BaseButtonで管理） */
+
+
+/* 履歴エントリー */
+.historyEntry {
+  margin-bottom: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.historyEntry:last-child {
+  border-bottom: none;
+}
+
+.entryHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.entryTime {
   font-size: 12px;
   opacity: 0.6;
-  margin-bottom: 8px;
-}
-
-/* スピーカー名 */
-.speaker {
   font-weight: 500;
-  color: var(--accent-color, #4A9EFF);
-  margin-right: 4px;
 }
 
-/* 原文テキスト */
-.originalText {
-  margin-bottom: 8px;
-  line-height: 1.6;
+.entryContent {
+  font-size: calc(16px * var(--font-scale, 1));
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
-/* アイテム内の区切り線 */
-.itemDivider {
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.05);
-  margin: 12px 0;
-}
-
-/* 翻訳テキスト */
-.translatedText {
-  line-height: 1.6;
-  opacity: 0.9;
-}
-
-/* 表示モード別のレイアウト */
-.mode-source .translatedText,
-.mode-target .originalText {
-  display: none;
-}
-
-.mode-source .itemDivider,
-.mode-target .itemDivider {
-  display: none;
-}
-
-/* ローディング状態 */
-.loading {
+/* 読み込み中・空状態・エラー状態 */
+.loadingState,
+.emptyState,
+.errorState {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  color: rgba(128, 128, 128, 0.6);
+  font-size: 16px;
   gap: 16px;
-  color: rgba(255, 255, 255, 0.6);
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.6);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.errorState {
+  color: #ff6b6b;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.retryButton {
+  padding: 8px 16px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.retryButton:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.fontButtonGroup {
+  display: flex;
+  gap: 10px;
+}
+
+.displayModeGroup {
+  display: flex;
+  gap: 4px;
+}
+
+.modeButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* テーマ別のボタンスタイル */
+.modeButtonLight {
+  composes: modeButton;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.modeButtonDark {
+  composes: modeButton;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.modeButtonPurple {
+  composes: modeButton;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.modeButtonLight:hover {
+  background: var(--theme-light-button-hover);
+}
+
+.modeButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+}
+
+.modeButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+}
+
+.themeButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* テーマ別のボタンスタイル */
+.themeButtonLight {
+  composes: themeButton;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.themeButtonDark {
+  composes: themeButton;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.themeButtonPurple {
+  composes: themeButton;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.themeButtonLight:hover {
+  background: var(--theme-light-button-hover);
+}
+
+.themeButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+}
+
+.themeButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+}
+
+/* フォントセクション - leftSectionとrightSectionで管理するため削除 */
+
+.fontButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* テーマ別のボタンスタイル */
+.fontButtonLight {
+  composes: fontButton;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.fontButtonDark {
+  composes: fontButton;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.fontButtonPurple {
+  composes: fontButton;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.fontButtonLight:hover {
+  background: var(--theme-light-button-hover);
+}
+
+.fontButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+}
+
+.fontButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+}
+
+/* 閉じるボタン */
+.closeButton {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+  -webkit-app-region: no-drag;
+}
+
+.closeButtonLight {
+  composes: closeButton;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.closeButtonDark {
+  composes: closeButton;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.closeButtonPurple {
+  composes: closeButton;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.closeButtonLight:hover {
+  background: var(--theme-light-button-hover);
+}
+
+.closeButtonDark:hover {
+  background: var(--theme-dark-button-hover);
+}
+
+.closeButtonPurple:hover {
+  background: var(--theme-purple-button-hover);
+}
+
+/* コンテンツエリア - realtimeAreaと同じスタイル */
+.contentArea {
+  flex: 1;
+  overflow: hidden;
+  padding: 24px;
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.historyContent {
+  height: 100%;
+  display: flex;
+  gap: 24px;
+  font-size: calc(16px * var(--font-scale, 1));
+  line-height: 1.8;
+}
+
+/* 表示モード別レイアウト */
+.mode-both {
+  display: flex;
+}
+
+.mode-source .targetColumn,
+.mode-target .sourceColumn {
+  display: none;
+}
+
+.mode-source .sourceColumn,
+.mode-target .targetColumn {
+  flex: 1;
+}
+
+/* カラム */
+.sourceColumn,
+.targetColumn {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  background: transparent;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* テーマ別のテキストカラー - realtimeAreaと同じスタイル */
+/* Light theme */
+.windowLight .sourceColumn {
+  color: #333;  /* 黒 */
+}
+
+.windowLight .targetColumn {
+  color: #0044cc;  /* 青 */
+  font-weight: 600;
+}
+
+/* Dark theme */
+.windowDark .sourceColumn {
+  color: #e0e0e0;  /* 明るいグレー */
+}
+
+.windowDark .targetColumn {
+  color: #66b3ff;  /* 明るい青 */
+  font-weight: 600;
+}
+
+/* Purple theme */
+.windowPurple .sourceColumn {
+  color: #ffffff;  /* 白 */
+}
+
+.windowPurple .targetColumn {
+  color: #b3d9ff;  /* 薄い青白 */
+  font-weight: 600;
+}
+
+/* 区切り線 */
+.divider {
+  width: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 12px;
+}
+
+.windowDark .divider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.windowPurple .divider {
+  background: rgba(224, 213, 240, 0.2);
+}
+
+/* パラグラフ */
+.paragraph {
+  margin-bottom: 1.5em;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
 }
 
 /* 空状態 */
-.empty {
+.emptyState {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
   font-size: 16px;
-  opacity: 0.5;
+  color: #666;
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 768px) {
-  .headerBar {
-    padding: 0 12px;
-  }
+.emptyStateLight {
+  composes: emptyState;
+  color: #666;
+}
 
-  .centerSection {
-    max-width: 300px;
-  }
+.emptyStateDark {
+  composes: emptyState;
+  color: #999;
+}
 
-  .historyContent {
-    padding: 16px;
-  }
+.emptyStatePurple {
+  composes: emptyState;
+  color: #b0a0c0;
+}
 
-  .historyList {
-    gap: 12px;
-  }
+/* 空のカラム表示 */
+.emptyColumn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(128, 128, 128, 0.6);
+  font-size: 14px;
+  text-align: center;
+}
 
-  .historyItem {
-    padding: 12px 16px;
+/* スクロールバー */
+.sourceColumn::-webkit-scrollbar,
+.targetColumn::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sourceColumn::-webkit-scrollbar-track,
+.targetColumn::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sourceColumn::-webkit-scrollbar-thumb,
+.targetColumn::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.sourceColumn::-webkit-scrollbar-thumb:hover,
+.targetColumn::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ダークテーマのスクロールバー */
+.windowDark .sourceColumn::-webkit-scrollbar-thumb,
+.windowDark .targetColumn::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.windowDark .sourceColumn::-webkit-scrollbar-thumb:hover,
+.windowDark .targetColumn::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* バッジ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 10px;
+}
+
+/* ツールチップ */
+.tooltip {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+*:hover > .tooltip {
+  opacity: 1;
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.historyContent {
+  animation: fadeIn 0.3s ease-out;
 }

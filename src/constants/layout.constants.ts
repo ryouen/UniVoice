@@ -85,10 +85,10 @@ export const THEME_CONFIGS = {
   },
   purple: {
     backgroundColor: '#f0f4f8',
-    primaryColor: '#2b6cb0',
-    secondaryColor: '#1a5490',
+    primaryColor: '#667eea',
+    secondaryColor: '#764ba2',
     textColor: '#333333',
-    borderColor: 'rgba(43,108,176,0.1)',
+    borderColor: 'rgba(102,126,234,0.1)',
   },
 } as const;
 

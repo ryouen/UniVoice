@@ -563,5 +563,49 @@ class DataPersistenceService {
             return { exists: false };
         }
     }
+    /**
+     * 現在のセッションの全履歴データを取得
+     * HistoryWindow用にフォーマットして返す
+     */
+    async getFullHistory() {
+        if (!this.currentSessionData || !this.currentSessionData.history) {
+            // 空のデータを返す
+            return {
+                blocks: [],
+                entries: [],
+                metadata: {
+                    totalSegments: 0,
+                    totalSentences: 0,
+                    totalWords: 0,
+                    duration: 0
+                }
+            };
+        }
+        // HistoryBlockから個別のエントリーに展開
+        const entries = [];
+        for (const block of this.currentSessionData.history.blocks) {
+            for (const sentence of block.sentences) {
+                entries.push({
+                    id: sentence.id,
+                    original: sentence.original,
+                    translation: sentence.translation,
+                    timestamp: sentence.timestamp
+                });
+            }
+        }
+        const metadata = {
+            totalSegments: this.currentSessionData.history.totalSegments || 0,
+            totalSentences: entries.length,
+            totalWords: this.currentSessionData.history.totalWords || 0,
+            duration: this.sessionStartTime ? Date.now() - this.sessionStartTime.getTime() : 0,
+            startTime: this.sessionStartTime?.getTime(),
+            endTime: Date.now()
+        };
+        return {
+            blocks: this.currentSessionData.history.blocks,
+            entries,
+            metadata
+        };
+    }
 }
 exports.DataPersistenceService = DataPersistenceService;

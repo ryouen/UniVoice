@@ -1,0 +1,82 @@
+/**
+ * BaseButton CSS Modules
+ * 基本ボタンのスタイル定義
+ */
+
+/* 基本ボタンスタイル */
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--button-radius);
+  font: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  background: transparent;
+  color: currentColor;
+}
+
+.button:hover {
+  background-color: rgba(128, 128, 128, 0.1);
+}
+
+.button:active {
+  transform: scale(0.95);
+}
+
+/* テーマ別スタイル */
+.buttonLight {
+  color: var(--theme-light-text);
+}
+
+.buttonLight:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.buttonDark {
+  color: var(--theme-dark-text);
+}
+
+.buttonDark:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.buttonPurple {
+  color: var(--theme-purple-text);
+}
+
+.buttonPurple:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* アクティブ状態 - メインウィンドウと同じスタイル */
+.active {
+  background-color: rgba(102, 126, 234, 0.15);
+  box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.3);
+}
+
+.active:hover {
+  background-color: rgba(102, 126, 234, 0.25);
+  box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.4);
+}
+
+/* ダークテーマのアクティブ状態 */
+.buttonDark.active {
+  background-color: rgba(102, 126, 234, 0.25);
+}
+
+.buttonDark.active:hover {
+  background-color: rgba(102, 126, 234, 0.35);
+}
+
+/* サイズバリエーション */
+.size-small {
+  font-size: 12px;
+}
+
+.size-large {
+  font-size: 18px;
+}

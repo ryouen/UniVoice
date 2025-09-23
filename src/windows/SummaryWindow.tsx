@@ -1,13 +1,23 @@
 /**
  * SummaryWindow - プログレッシブ要約表示ウィンドウ
  * 
- * 実装計画書に基づいた要約専用ウィンドウ
+ * 共通コンポーネントを使用してリファクタリング済み
  * メイン画面と同じ設定（テーマ、フォントサイズ、表示モード）を共有
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import classNames from 'classnames';
 import type { SummaryWindowProps, ProgressiveSummaryData } from '../types/summary-window.types';
+import {
+  WindowContainer,
+  WindowHeader,
+  DisplayModeButtons,
+  ThemeButton,
+  FontSizeButtons,
+  CloseButton,
+  BaseButton,
+  ContentArea
+} from '../components/shared/window';
 import styles from './SummaryWindow.module.css';
 
 /**
@@ -73,11 +83,8 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
     }
   }, [internalTheme, internalFontScale, onDisplayModeChange]);
 
-  // テーマ切り替えハンドラー
-  const cycleTheme = useCallback(() => {
-    const themes: Array<'light' | 'dark' | 'purple'> = ['light', 'dark', 'purple'];
-    const currentIndex = themes.indexOf(internalTheme);
-    const nextTheme = themes[(currentIndex + 1) % themes.length];
+  // テーマ変更ハンドラー
+  const handleThemeChange = useCallback((nextTheme: 'light' | 'dark' | 'purple') => {
     setInternalTheme(nextTheme);
     onThemeChange(nextTheme);
     
@@ -89,24 +96,10 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
         displayMode: internalDisplayMode
       });
     }
-  }, [internalTheme, internalFontScale, internalDisplayMode, onThemeChange]);
+  }, [internalFontScale, internalDisplayMode, onThemeChange]);
 
   // フォントサイズ変更ハンドラー
-  const changeFontScale = useCallback((direction: -1 | 0 | 1) => {
-    let newScale = internalFontScale;
-    
-    switch (direction) {
-      case 0:
-        newScale = 1;
-        break;
-      case 1:
-        newScale = Math.min(2.0, internalFontScale * 1.1);
-        break;
-      case -1:
-        newScale = Math.max(0.7, internalFontScale * 0.9);
-        break;
-    }
-    
+  const handleFontScaleChange = useCallback((newScale: number) => {
     setInternalFontScale(newScale);
     onFontScaleChange(newScale);
     
@@ -118,7 +111,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
         displayMode: internalDisplayMode
       });
     }
-  }, [internalTheme, internalDisplayMode, internalFontScale, onFontScaleChange]);
+  }, [internalTheme, internalDisplayMode, onFontScaleChange]);
 
   // ステージナビゲーション
   const previousStage = useCallback(() => {
@@ -151,14 +144,14 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case '0':
-            changeFontScale(0);
+            handleFontScaleChange(1);
             break;
           case '+':
           case '=':
-            changeFontScale(1);
+            handleFontScaleChange(Math.min(2.0, internalFontScale * 1.1));
             break;
           case '-':
-            changeFontScale(-1);
+            handleFontScaleChange(Math.max(0.7, internalFontScale / 1.1));
             break;
         }
       }
@@ -179,28 +172,9 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleDisplayModeChange, changeFontScale, previousStage, nextStage, onClose]);
+  }, [handleDisplayModeChange, handleFontScaleChange, internalFontScale, previousStage, nextStage, onClose]);
 
-  // テーマクラスの取得（新しい統一ボタンシステム対応）
-  const getThemeClass = useCallback((baseClass: string) => {
-    const themeSuffix = internalTheme.charAt(0).toUpperCase() + internalTheme.slice(1);
-    
-    // 新しい統一ボタンシステムの場合
-    if (baseClass === 'button') {
-      return classNames(styles.button, styles[`button${themeSuffix}`]);
-    }
-    
-    // その他のクラスは従来通り
-    return classNames(
-      styles[baseClass],
-      styles[`${baseClass}${themeSuffix}`]
-    );
-  }, [internalTheme]);
 
-  // フォントスケールのCSS変数設定
-  useEffect(() => {
-    document.documentElement.style.setProperty('--font-scale', internalFontScale.toString());
-  }, [internalFontScale]);
   
   // メインウィンドウからの設定変更を受信
   useEffect(() => {
@@ -226,131 +200,82 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
   }, [internalTheme, internalFontScale, internalDisplayMode]);
 
   return (
-    <div className={classNames(styles.summaryWindow, styles.glassmorphism, getThemeClass('window'))}>
-      {/* ヘッダーバー */}
-      <div className={getThemeClass('headerBar')}>
-        {/* 左側: 表示モードボタン群 + テーマボタン */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 'var(--button-gap)'}}>
-          <button
-            className={classNames(
-              getThemeClass('button'),
-              internalDisplayMode === 'both' && styles.active
-            )}
-            onClick={() => handleDisplayModeChange('both')}
-            title="両方表示 (Alt+B)"
-            style={{width: 'var(--button-size)', height: 'var(--button-size)'}}
-          >
-            <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
-              <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
-              <rect x="10" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
-            </svg>
-          </button>
-          
-          <button
-            className={classNames(
-              getThemeClass('button'),
-              internalDisplayMode === 'source' && styles.active
-            )}
-            onClick={() => handleDisplayModeChange('source')}
-            title="原文のみ (Alt+S)"
-            style={{width: 'var(--button-size)', height: 'var(--button-size)'}}
-          >
-            <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
-              <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
-              <rect x="10" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
-            </svg>
-          </button>
-          
-          <button
-            className={classNames(
-              getThemeClass('button'),
-              internalDisplayMode === 'target' && styles.active
-            )}
-            onClick={() => handleDisplayModeChange('target')}
-            title="翻訳のみ (Alt+T)"
-            style={{width: 'var(--button-size)', height: 'var(--button-size)'}}
-          >
-            <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
-              <rect x="1" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
-              <rect x="10" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
-            </svg>
-          </button>
-          
-          {/* テーマボタン - 56pxグループ間隔 */}
-          <div style={{ marginLeft: 'calc(var(--group-gap) - var(--button-gap))' }}>
-            <button className={getThemeClass('button')} onClick={cycleTheme} title="テーマ切り替え" style={{ width: 'var(--button-size)', height: 'var(--button-size)' }}>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
-              </svg>
-            </button>
+    <WindowContainer theme={internalTheme} fontScale={internalFontScale} className={styles.summaryWindow}>
+      <WindowHeader
+        theme={internalTheme}
+        leftSection={
+          <div style={{display: 'flex', alignItems: 'center', gap: 'var(--button-gap)'}}>
+            <DisplayModeButtons
+              mode={internalDisplayMode}
+              onModeChange={handleDisplayModeChange}
+              theme={internalTheme}
+            />
+            {/* テーマボタン - 56pxグループ間隔 */}
+            <div style={{ marginLeft: 'calc(var(--group-gap) - var(--button-gap))' }}>
+              <ThemeButton
+                theme={internalTheme}
+                onThemeChange={handleThemeChange}
+              />
+            </div>
           </div>
-        </div>
+        }
 
-        {/* 中央: ナビゲーション */}
-        <div className={styles.centerSection}>
-          <button
-            className={classNames(getThemeClass('button'), styles.buttonNav)}
-            onClick={previousStage}
-            disabled={currentStageIndex === 0 || summaryData.length === 0}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" fill="none" />
-            </svg>
-          </button>
-          
-          <span className={styles.stageInfo}>
-            {summaryData.length > 0 ? (
-              `Summary ${currentStageIndex + 1}/${summaryData.length}`
-            ) : (
-              'Summary'
-            )}
-          </span>
-          
-          <button
-            className={classNames(getThemeClass('button'), styles.buttonNav)}
-            onClick={nextStage}
-            disabled={currentStageIndex === summaryData.length - 1 || summaryData.length === 0}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2" fill="none" />
-            </svg>
-          </button>
-        </div>
-
-        {/* 右側: フォントサイズ + 閉じるボタン */}
-        <div className={styles.rightSection}>
-          {/* フォントサイズボタン群 */}
-          <div className={styles.fontButtonGroup}>
-            <button className={getThemeClass('button')} onClick={() => changeFontScale(-1)} title="文字を小さく (Ctrl+-)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        centerSection={
+          <div className={styles.centerSection}>
+            <BaseButton
+              theme={internalTheme}
+              className={styles.buttonNav}
+              onClick={previousStage}
+              disabled={currentStageIndex === 0 || summaryData.length === 0}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" fill="none" />
               </svg>
-            </button>
+            </BaseButton>
             
-            <button className={getThemeClass('button')} onClick={() => changeFontScale(0)} title="リセット (Ctrl+0)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
-              <span style={{ fontSize: '14px', fontWeight: 600 }}>T</span>
-            </button>
+            <span className={styles.stageInfo}>
+              {summaryData.length > 0 ? (
+                `Summary ${currentStageIndex + 1}/${summaryData.length}`
+              ) : (
+                'Summary'
+              )}
+            </span>
             
-            <button className={getThemeClass('button')} onClick={() => changeFontScale(1)} title="文字を大きく (Ctrl++)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <BaseButton
+              theme={internalTheme}
+              className={styles.buttonNav}
+              onClick={nextStage}
+              disabled={currentStageIndex === summaryData.length - 1 || summaryData.length === 0}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2" fill="none" />
               </svg>
-            </button>
+            </BaseButton>
           </div>
+        }
 
-          {/* 閉じるボタン - Chromeタブスタイル、56pxマージン */}
-          <button className={getThemeClass('button')} onClick={onClose} title="閉じる (Esc)" style={{ marginLeft: 'calc(var(--group-gap) - var(--button-gap))', width: 'var(--button-size)', height: 'var(--button-size)' }}>
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <circle cx="9" cy="9" r="7" fill="currentColor" fillOpacity="0.1"/>
-              <path d="M6 6l6 6M12 6l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
-      </div>
+        rightSection={
+          <div className={styles.rightSection}>
+            {/* フォントサイズボタン群 */}
+            <FontSizeButtons
+              fontScale={internalFontScale}
+              onFontScaleChange={handleFontScaleChange}
+              theme={internalTheme}
+            />
+
+            {/* 閉じるボタン - Chromeタブスタイル、56pxマージン */}
+            <div style={{ marginLeft: 'calc(var(--group-gap) - var(--button-gap))' }}>
+              <CloseButton
+                theme={internalTheme}
+                onClick={onClose}
+              />
+            </div>
+          </div>
+        }
+      />
 
       {/* メインコンテンツ */}
-      <div className={styles.contentArea}>
+      <ContentArea theme={internalTheme}>
         <div className={classNames(
           styles.summaryContent,
           styles[`mode-${internalDisplayMode}`]
@@ -394,7 +319,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </ContentArea>
+    </WindowContainer>
   );
 };

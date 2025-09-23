@@ -1,0 +1,11 @@
+/**
+ * FontSizeButtons CSS Modules
+ * フォントサイズボタン群のスタイル定義
+ */
+
+/* ボタングループ */
+.buttonGroup {
+  display: flex;
+  gap: var(--button-gap);
+  align-items: center;
+}

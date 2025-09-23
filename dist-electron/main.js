@@ -570,6 +570,14 @@ function setupIPCGateway() {
             catch (e) {
                 // Ignore console errors to prevent EPIPE
             }
+            // Special handling for getFullHistory command
+            if (command?.command === 'getFullHistory') {
+                if (dataPersistenceService) {
+                    const data = await dataPersistenceService.getFullHistory();
+                    return { success: true, data };
+                }
+                return { success: false, error: 'DataPersistenceService not initialized' };
+            }
             await gateway_1.ipcGateway.handleCommand(command);
             mainLogger.performance('info', 'IPC command handled', startTime, {
                 command: command?.command,
@@ -602,6 +610,31 @@ function setupIPCGateway() {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error'
             };
+        }
+    });
+    // Handle getFullHistory directly
+    electron_1.ipcMain.handle('univoice:getFullHistory', async () => {
+        try {
+            if (dataPersistenceService) {
+                const historyData = await dataPersistenceService.getFullHistory();
+                return historyData;
+            }
+            else {
+                // Return empty data if no persistence service
+                return {
+                    entries: [],
+                    metadata: {
+                        totalSegments: 0,
+                        totalSentences: 0,
+                        totalWords: 0,
+                        duration: 0
+                    }
+                };
+            }
+        }
+        catch (error) {
+            mainLogger.error('Failed to get full history', { error: error instanceof Error ? error.message : String(error) });
+            throw error;
         }
     });
     // Forward pipeline events to renderer
@@ -1185,6 +1218,7 @@ function setupPipelineService() {
             });
         }
     });
+    // getFullHistory command is now handled in the main IPC gateway via domain commands
     // Handle next class (次の授業へボタン)
     electron_1.ipcMain.on('next-class', async (_event) => {
         try {

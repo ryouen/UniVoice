@@ -168,4 +168,28 @@ export declare class DataPersistenceService {
         exists: boolean;
         sessionNumber?: number;
     }>;
+    /**
+     * 現在のセッションの全履歴データを取得
+     * HistoryWindow用にフォーマットして返す
+     */
+    getFullHistory(): Promise<{
+        blocks: any[];
+        entries: Array<{
+            id: string;
+            original: string;
+            translation: string;
+            timestamp: number;
+            segmentIds?: string[];
+            speaker?: string;
+            confidence?: number;
+        }>;
+        metadata: {
+            totalSegments: number;
+            totalSentences: number;
+            totalWords: number;
+            duration: number;
+            startTime?: number;
+            endTime?: number;
+        };
+    }>;
 }

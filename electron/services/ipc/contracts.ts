@@ -248,6 +248,11 @@ export const GetHistoryCommandSchema = z.object({
   }),
 });
 
+export const GetFullHistoryCommandSchema = z.object({
+  command: z.literal('getFullHistory'),
+  params: z.object({}),
+});
+
 export const ClearHistoryCommandSchema = z.object({
   command: z.literal('clearHistory'),
   params: z.object({}),
@@ -288,6 +293,7 @@ export const IPCCommandSchema = z.discriminatedUnion('command', [
   StartListeningCommandSchema,
   StopListeningCommandSchema,
   GetHistoryCommandSchema,
+  GetFullHistoryCommandSchema,
   ClearHistoryCommandSchema,
   GenerateVocabularyCommandSchema,
   GenerateFinalReportCommandSchema,
@@ -315,6 +321,7 @@ export type PipelineEvent = z.infer<typeof PipelineEventSchema>;
 export type StartListeningCommand = z.infer<typeof StartListeningCommandSchema>;
 export type StopListeningCommand = z.infer<typeof StopListeningCommandSchema>;
 export type GetHistoryCommand = z.infer<typeof GetHistoryCommandSchema>;
+export type GetFullHistoryCommand = z.infer<typeof GetFullHistoryCommandSchema>;
 export type ClearHistoryCommand = z.infer<typeof ClearHistoryCommandSchema>;
 export type GenerateVocabularyCommand = z.infer<typeof GenerateVocabularyCommandSchema>;
 export type GenerateFinalReportCommand = z.infer<typeof GenerateFinalReportCommandSchema>;

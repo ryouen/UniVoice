@@ -1,0 +1,59 @@
+/**
+ * WindowHeader CSS Modules
+ * 共通ヘッダーのスタイル定義
+ */
+
+/* ヘッダーバー基本スタイル */
+.headerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+/* テーマ別スタイル */
+.headerBarLight {
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.headerBarDark {
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.headerBarPurple {
+  background: rgba(139, 92, 246, 0.05);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+/* セクション共通スタイル */
+.leftSection,
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: var(--button-gap);
+  -webkit-app-region: no-drag;
+}
+
+/* 中央セクション */
+.centerSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  justify-content: center;
+  -webkit-app-region: no-drag;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .headerBar {
+    padding: 0 12px;
+  }
+}

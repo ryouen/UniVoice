@@ -34,6 +34,17 @@ function createCommandSender() {
         startListening: (params) => sendCommand({ command: 'startListening', params }),
         stopListening: (params) => sendCommand({ command: 'stopListening', params }),
         getHistory: (params = { limit: 100, offset: 0 }) => sendCommand({ command: 'getHistory', params }),
+        getFullHistory: async () => {
+            try {
+                // Use direct IPC invoke for getFullHistory
+                const result = await electron_1.ipcRenderer.invoke('univoice:getFullHistory');
+                return result;
+            }
+            catch (error) {
+                console.error('[Preload] getFullHistory error:', error);
+                return null;
+            }
+        },
         clearHistory: () => sendCommand({ command: 'clearHistory', params: {} }),
         generateVocabulary: (params) => sendCommand({ command: 'generateVocabulary', params }),
         generateFinalReport: (params) => sendCommand({ command: 'generateFinalReport', params })

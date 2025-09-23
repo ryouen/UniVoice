@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createParagraphCompleteEvent = exports.createCombinedSentenceEvent = exports.createProgressiveSummaryEvent = exports.createFinalReportEvent = exports.createVocabularyEvent = exports.createStatusEvent = exports.createSummaryEvent = exports.createErrorEvent = exports.createSegmentEvent = exports.createTranslationEvent = exports.createASREvent = exports.validateIPCCommand = exports.validatePipelineEvent = exports.IPCCommandSchema = exports.LoadSessionCommandSchema = exports.GetAvailableSessionsCommandSchema = exports.GenerateFinalReportCommandSchema = exports.GenerateVocabularyCommandSchema = exports.ClearHistoryCommandSchema = exports.GetHistoryCommandSchema = exports.StopListeningCommandSchema = exports.StartListeningCommandSchema = exports.PipelineEventSchema = exports.ParagraphCompleteEventSchema = exports.CombinedSentenceEventSchema = exports.FinalReportEventSchema = exports.VocabularyEventSchema = exports.StatusEventSchema = exports.ProgressiveSummaryEventSchema = exports.SummaryEventSchema = exports.ErrorEventSchema = exports.SegmentEventSchema = exports.TranslationEventSchema = exports.ASREventSchema = void 0;
+exports.createParagraphCompleteEvent = exports.createCombinedSentenceEvent = exports.createProgressiveSummaryEvent = exports.createFinalReportEvent = exports.createVocabularyEvent = exports.createStatusEvent = exports.createSummaryEvent = exports.createErrorEvent = exports.createSegmentEvent = exports.createTranslationEvent = exports.createASREvent = exports.validateIPCCommand = exports.validatePipelineEvent = exports.IPCCommandSchema = exports.LoadSessionCommandSchema = exports.GetAvailableSessionsCommandSchema = exports.GenerateFinalReportCommandSchema = exports.GenerateVocabularyCommandSchema = exports.ClearHistoryCommandSchema = exports.GetFullHistoryCommandSchema = exports.GetHistoryCommandSchema = exports.StopListeningCommandSchema = exports.StartListeningCommandSchema = exports.PipelineEventSchema = exports.ParagraphCompleteEventSchema = exports.CombinedSentenceEventSchema = exports.FinalReportEventSchema = exports.VocabularyEventSchema = exports.StatusEventSchema = exports.ProgressiveSummaryEventSchema = exports.SummaryEventSchema = exports.ErrorEventSchema = exports.SegmentEventSchema = exports.TranslationEventSchema = exports.ASREventSchema = void 0;
 const zod_1 = require("zod");
 // ========================================
 // Core Domain Types
@@ -232,6 +232,10 @@ exports.GetHistoryCommandSchema = zod_1.z.object({
         offset: zod_1.z.number().optional().default(0),
     }),
 });
+exports.GetFullHistoryCommandSchema = zod_1.z.object({
+    command: zod_1.z.literal('getFullHistory'),
+    params: zod_1.z.object({}),
+});
 exports.ClearHistoryCommandSchema = zod_1.z.object({
     command: zod_1.z.literal('clearHistory'),
     params: zod_1.z.object({}),
@@ -267,6 +271,7 @@ exports.IPCCommandSchema = zod_1.z.discriminatedUnion('command', [
     exports.StartListeningCommandSchema,
     exports.StopListeningCommandSchema,
     exports.GetHistoryCommandSchema,
+    exports.GetFullHistoryCommandSchema,
     exports.ClearHistoryCommandSchema,
     exports.GenerateVocabularyCommandSchema,
     exports.GenerateFinalReportCommandSchema,

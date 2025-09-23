@@ -44,9 +44,9 @@
   --saturate-amount: 200%;
   
   /* Background gradients */
-  --bg-gradient-light: linear-gradient(135deg, rgba(245, 247, 250, 0.3) 0%, rgba(195, 207, 226, 0.3) 100%);
-  --bg-gradient-dark: linear-gradient(135deg, rgba(26, 26, 46, 0.3) 0%, rgba(22, 33, 62, 0.3) 100%);
-  --bg-gradient-purple: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+  --bg-gradient-light: linear-gradient(135deg, rgba(245, 247, 250, 0.6) 0%, rgba(195, 207, 226, 0.6) 100%);
+  --bg-gradient-dark: linear-gradient(135deg, rgba(26, 26, 46, 0.6) 0%, rgba(22, 33, 62, 0.6) 100%);
+  --bg-gradient-purple: linear-gradient(135deg, rgba(102, 126, 234, 0.6) 0%, rgba(118, 75, 162, 0.6) 100%);
   
   /* ========================================
      Layout System (LAYOUT-RULES.md準拠)
@@ -82,4 +82,12 @@
      ======================================== */
   
   --transition-default: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* ========================================
+     Button States (Active/Selected)
+     ======================================== */
+  
+  --button-active-bg: 102, 126, 234; /* #667eea in RGB */
+  --button-active-color: #667eea;
+  --button-radius: 10px;
 }

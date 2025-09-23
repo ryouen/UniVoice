@@ -624,6 +624,15 @@ function setupIPCGateway(): void {
         // Ignore console errors to prevent EPIPE
       }
       
+      // Special handling for getFullHistory command
+      if (command?.command === 'getFullHistory') {
+        if (dataPersistenceService) {
+          const data = await dataPersistenceService.getFullHistory();
+          return { success: true, data };
+        }
+        return { success: false, error: 'DataPersistenceService not initialized' };
+      }
+      
       await ipcGateway.handleCommand(command);
       
       mainLogger.performance('info', 'IPC command handled', startTime, {
@@ -656,6 +665,30 @@ function setupIPCGateway(): void {
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
       };
+    }
+  });
+
+  // Handle getFullHistory directly
+  ipcMain.handle('univoice:getFullHistory', async () => {
+    try {
+      if (dataPersistenceService) {
+        const historyData = await dataPersistenceService.getFullHistory();
+        return historyData;
+      } else {
+        // Return empty data if no persistence service
+        return {
+          entries: [],
+          metadata: {
+            totalSegments: 0,
+            totalSentences: 0,
+            totalWords: 0,
+            duration: 0
+          }
+        };
+      }
+    } catch (error) {
+      mainLogger.error('Failed to get full history', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
     }
   });
 
@@ -1296,6 +1329,8 @@ function setupPipelineService(): void {
       });
     }
   });
+  
+  // getFullHistory command is now handled in the main IPC gateway via domain commands
 
   // Handle next class (次の授業へボタン)
   ipcMain.on('next-class', async (_event) => {

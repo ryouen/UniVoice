@@ -1,0 +1,32 @@
+/**
+ * ContentArea CSS Modules
+ * コンテンツエリアのスタイル定義
+ */
+
+/* コンテンツエリア基本スタイル */
+.contentArea {
+  flex: 1;
+  overflow: hidden;
+  padding: 24px;
+  position: relative;
+  -webkit-app-region: no-drag;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Light theme */
+.contentAreaLight {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--theme-light-text);
+}
+
+/* Dark theme */
+.contentAreaDark {
+  background: rgba(25, 25, 25, 0.85);
+  color: var(--theme-dark-text);
+}
+
+/* Purple theme */
+.contentAreaPurple {
+  background: rgba(90, 45, 145, 0.85);
+  color: var(--theme-purple-text);
+}

@@ -115,19 +115,19 @@
 
 .headerBarLight {
   composes: headerBar;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.8);
   border-bottom-color: rgba(0, 0, 0, 0.06);
 }
 
 .headerBarDark {
   composes: headerBar;
-  background: rgba(40, 40, 40, 0.95);
+  background: rgba(40, 40, 40, 0.8);
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .headerBarPurple {
   composes: headerBar;
-  background: rgba(110, 60, 160, 0.95);
+  background: rgba(110, 60, 160, 0.8);
   border-bottom-color: rgba(224, 213, 240, 0.2);
 }
 
@@ -220,28 +220,7 @@
   transform: translateY(-2px);
 }
 
-/* Active State - アクティブ状態 */
-.active {
-  background: #667eea !important;
-  color: white !important;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-/* テーマ別のアクティブ状態 */
-.buttonLight.active {
-  background: #667eea !important;
-  color: white !important;
-}
-
-.buttonDark.active {
-  background: #667eea !important;
-  color: white !important;
-}
-
-.buttonPurple.active {
-  background: #667eea !important;
-  color: white !important;
-}
+/* Active State - アクティブ状態は削除（BaseButtonで管理） */
 
 
 .stageInfo {
@@ -468,25 +447,8 @@
   flex: 1;
   overflow: hidden;
   padding: 24px;
-  background: rgba(255, 255, 255, 0.85);  /* Light theme default */
   position: relative;
   -webkit-app-region: no-drag;
-}
-
-/* テーマ別の背景色とテキストカラー */
-.windowLight .contentArea {
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--theme-light-text);
-}
-
-.windowDark .contentArea {
-  background: rgba(25, 25, 25, 0.85);
-  color: var(--theme-dark-text);
-}
-
-.windowPurple .contentArea {
-  background: rgba(90, 45, 145, 0.85);
-  color: var(--theme-purple-text);
 }
 
 .summaryContent {

@@ -56,6 +56,7 @@ interface UniVoiceAPI {
         success: boolean;
         error?: string;
     }>;
+    getFullHistory: () => Promise<any>;
     clearHistory: () => Promise<{
         success: boolean;
         error?: string;

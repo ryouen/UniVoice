@@ -36,6 +36,7 @@ interface UniVoiceAPI {
   startListening: (params: StartListeningCommand['params']) => Promise<{ success: boolean; error?: string }>;
   stopListening: (params: StopListeningCommand['params']) => Promise<{ success: boolean; error?: string }>;
   getHistory: (params?: GetHistoryCommand['params']) => Promise<{ success: boolean; error?: string }>;
+  getFullHistory: () => Promise<any>; // Returns full history data for HistoryWindow
   clearHistory: () => Promise<{ success: boolean; error?: string }>;
   generateVocabulary: (params: GenerateVocabularyCommand['params']) => Promise<{ success: boolean; error?: string }>;
   generateFinalReport: (params: GenerateFinalReportCommand['params']) => Promise<{ success: boolean; error?: string }>;

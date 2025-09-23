@@ -131,14 +131,8 @@ function createCommandSender() {
       sendCommand({ command: 'getHistory', params }),
     
     getFullHistory: async () => {
-      try {
-        // Use direct IPC invoke for getFullHistory
-        const result = await ipcRenderer.invoke('univoice:getFullHistory');
-        return result;
-      } catch (error) {
-        console.error('[Preload] getFullHistory error:', error);
-        return null;
-      }
+      const result = await sendCommand({ command: 'getFullHistory', params: {} });
+      return (result as any).data || null;
     },
     
     clearHistory: () => 

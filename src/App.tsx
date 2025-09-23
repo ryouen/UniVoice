@@ -6,8 +6,8 @@ import DebugInfo from './components/DebugInfo';
 import { setupDebugHelpers } from './utils/debug-helper';
 import './App.css';
 
-// Lazy load history and summary views for better performance
-const HistoryView = lazy(() => import('./components/HistoryView'));
+// Lazy load history and summary windows for better performance
+const HistoryWindow = lazy(() => import('./windows/HistoryWindow').then(module => ({ default: module.HistoryWindow })));
 const SummaryView = lazy(() => import('./components/SummaryView'));
 
 function App() {
@@ -68,7 +68,7 @@ function App() {
         <Suspense fallback={<div>Loading...</div>}>
           <Routes>
             <Route path="/" element={<UniVoice />} />
-            <Route path="/history" element={<HistoryView />} />
+            <Route path="/history" element={<HistoryWindow />} />
             <Route path="/summary" element={<SummaryView />} />
           </Routes>
         </Suspense>
