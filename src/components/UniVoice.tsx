@@ -1152,10 +1152,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       } catch (error) {
         console.error('[Window Resize] Resize failed:', error);
       } finally {
-        // リサイズ完了後、モードをリセット（短い遅延で安定性を確保）
-        setTimeout(() => {
-          setCurrentResizeMode(ResizeMode.NONE);
-        }, 50); // 200ms -> 50msに短縮
+        // リサイズ完了後、即座にモードをリセット
+        setCurrentResizeMode(ResizeMode.NONE);
       }
     } else {
       console.warn('[Window Resize] Window API not available');
@@ -1179,9 +1177,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
 
     // 初回レンダリング時にウィンドウリサイズを実行
+    // activeSession が設定された時点で実行されるようにする
+    console.log('[Window Resize] Initial resize for active session');
     executeWindowResize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 初回のみ
+  }, [activeSession, executeWindowResize]); // activeSessionとexecuteWindowResizeに依存
 
   // セクション変更時のウィンドウリサイズ
   useEffect(() => {
@@ -1598,7 +1597,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // Duplicate handleStartSession removed - using the implementation from line 459
   
-  const togglePause = async () => {
+  const togglePause = useCallback(async () => {
     // 🔴 CRITICAL: isRunning（pipeline）を使用し、正しい関数を呼び出す
     if (isRunning) {
       // 一時停止
@@ -1635,7 +1634,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         console.error('[UniVoice] 再開エラー:', error);
       }
     }
-  };
+  }, [isRunning, pipeline]);
   
   
   // 時間フォーマット関数
@@ -1647,7 +1646,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   };
 
   // パネル切り替え関数
-  const togglePanel = async (type: 'history' | 'summary') => {
+  const togglePanel = useCallback(async (type: 'history' | 'summary') => {
     if (type === 'history') {
       // WindowClient経由で履歴ウィンドウをトグル（外部ウィンドウのみ）
       const success = await windowClient.toggleHistory();
@@ -1667,7 +1666,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       setShowSummaryPanel(false);
       setShowHistoryPanel(false);
     }
-  };;
+  }, [windowClient]);
 
   // Memo saving logic moved to useMemoManager hook
 
@@ -1678,15 +1677,15 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
 
   // Duplicate endSession removed - using the wrapper from line 597
   
-  const generateReport = (showModal: boolean = true) => {
+  const generateReport = useCallback((showModal: boolean = true) => {
     // レポート生成ロジック（仮実装）
     console.log('[UniVoice] Generating report...');
     if (showModal) {
       openReportModal();
     }
-  };
+  }, [openReportModal]);
   
-  const generateFinalReport = async () => {
+  const generateFinalReport = useCallback(async () => {
     try {
       console.log('[UniVoice] Generating final report...');
       // TODO: 実際のレポート生成ロジックを実装
@@ -1705,12 +1704,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       console.error('[UniVoice] Failed to generate final report:', error);
       return null;
     }
-  };
+  }, [summaryEnglish, summaryJapanese, selectedClass, recordingTime, memoList]);
 
   // Duplicate nextClass removed - using the implementation from line 557
   
   // すべてのコンテンツをクリア
-  const clearAllContent = () => {
+  const clearAllContent = useCallback(() => {
     // 履歴をクリア
     setHistoryEntries([]);
     
@@ -1734,13 +1733,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     // 入力欄をクリア
     const textarea = questionInputRef.current;
     if (textarea) textarea.value = '';
-  };
+  }, [clearMemoList, questionInputRef]);
   
   // Duplicate generateFinalReport removed - using the implementation from line 1437
   
   
   // 表示モード切り替え関数
-  const setDisplay = (mode: 'both' | 'source' | 'target') => {
+  const setDisplay = useCallback((mode: 'both' | 'source' | 'target') => {
     setDisplayMode(mode);
     
     // 他のウィンドウに設定変更を通知
@@ -1751,10 +1750,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         displayMode: mode
       });
     }
-  };
+  }, [currentTheme, currentFontScale]);
   
   // フォントサイズ変更関数
-  const changeFont = (direction: number) => {
+  const changeFont = useCallback((direction: number) => {
     let newScale: number;
     
     if (direction === 0) {
@@ -1777,14 +1776,14 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         displayMode: displayMode
       });
     }
-  };
+  }, [currentFontScale, currentTheme, displayMode]);
   
   
   /**
    * 🎨 テーマ切り替え関数
    * light → dark → purple → light の順番で循環
    */
-  const cycleTheme = () => {
+  const cycleTheme = useCallback(() => {
     setCurrentTheme(prev => {
       const nextTheme = prev === 'light' ? 'dark' : prev === 'dark' ? 'purple' : 'light';
       
@@ -1799,7 +1798,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       
       return nextTheme;
     });
-  };
+  }, [currentFontScale, displayMode]);
   
   // テーマ変更時に背景グラデーションを更新
   useEffect(() => {
@@ -2192,7 +2191,10 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
     
     // 従来のパターン: {base}Theme{suffix}
-    const themeClassName = `${base}Theme${themeSuffix}`;
+    // ただし、baseが既に'theme'で終わる場合は重複を避ける
+    const themeClassName = base.endsWith('theme') || base === 'theme' 
+      ? `${base}${themeSuffix}`
+      : `${base}Theme${themeSuffix}`;
     const themeClass = styles[themeClassName];
     
     // エラーを早期発見（開発環境のみ）
@@ -2211,6 +2213,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // ========== メイン画面 ==========
   return (
     <>
+      {/* クリック可能な透明レイヤー（フォーカス問題の修正） */}
+      <div className={styles.clickableLayer} />
+      
+      {/* グラスモーフィズム用背景レイヤー */}
+      <div className={styles.backgroundLayer} />
+      
       {/* アプリコンテナ（フレームレス対応） */}
       <div ref={appContainerRef} className={classNames(styles.app, getThemeClass('theme', false))} style={{
         width: '100%',
@@ -2222,15 +2230,16 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
         '--font-scale': currentFontScale,
         fontSize: `calc(16px * var(--font-scale))`
       } as React.CSSProperties}>
-        {/* メインウィンドウ - backgroundクラスを追加し、全体をドラッグ可能に */}
+        {/* メインウィンドウ */}
         <div 
-          className={classNames(styles.mainWindow, "main-content", "background")} 
+          className={classNames(styles.mainWindow, "main-content")} 
           style={{
             width: '100%',
             height: '100%', // 親要素の高さに従う
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            WebkitAppRegion: 'no-drag'  // メインウィンドウはドラッグ不可
           }}>
         {/* ヘッダー */}
         {showHeader && (

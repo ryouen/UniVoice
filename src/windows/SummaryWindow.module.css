@@ -45,17 +45,7 @@
   pointer-events: none;
 }
 
-.window::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.95);
-  z-index: -1;
-  pointer-events: none;
-}
+/* window::after レイヤーを削除 - 透過効果を妨げていたため */
 
 .windowDark {
   position: relative;
@@ -77,17 +67,7 @@
   pointer-events: none;
 }
 
-.windowDark::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(30, 30, 30, 0.95);
-  z-index: -1;
-  pointer-events: none;
-}
+/* windowDark::after レイヤーを削除 - 透過効果を妨げていたため */
 
 .windowPurple {
   position: relative;
@@ -110,17 +90,7 @@
   pointer-events: none;
 }
 
-.windowPurple::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(102, 51, 153, 0.95);
-  z-index: -1;
-  pointer-events: none;
-}
+/* windowPurple::after レイヤーを削除 - 透過効果を妨げていたため */
 
 /* ヘッダーバー */
 .headerBar {
@@ -244,9 +214,26 @@
 }
 
 /* Active State - アクティブ状態 */
-.buttonActive {
-  background: #667eea;
-  color: white;
+.active {
+  background: #667eea !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* テーマ別のアクティブ状態 */
+.buttonLight.active {
+  background: #667eea !important;
+  color: white !important;
+}
+
+.buttonDark.active {
+  background: #667eea !important;
+  color: white !important;
+}
+
+.buttonPurple.active {
+  background: #667eea !important;
+  color: white !important;
 }
 
 
@@ -316,11 +303,6 @@
 
 .modeButtonPurple:hover {
   background: var(--theme-purple-button-hover);
-}
-
-.modeButton.active {
-  background: #667eea;
-  color: white;
 }
 
 .themeButton {
@@ -474,21 +456,30 @@
   background: var(--theme-purple-button-hover);
 }
 
-/* コンテンツエリア */
+/* コンテンツエリア - realtimeAreaと同じスタイル */
 .contentArea {
   flex: 1;
   overflow: hidden;
   padding: 24px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.85);  /* Light theme default */
   position: relative;
+  -webkit-app-region: no-drag;
+}
+
+/* テーマ別の背景色とテキストカラー */
+.windowLight .contentArea {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--theme-light-text);
 }
 
 .windowDark .contentArea {
   background: rgba(25, 25, 25, 0.85);
+  color: var(--theme-dark-text);
 }
 
 .windowPurple .contentArea {
   background: rgba(90, 45, 145, 0.85);
+  color: var(--theme-purple-text);
 }
 
 .summaryContent {
@@ -524,6 +515,37 @@
   min-height: 100px;
   display: flex;
   flex-direction: column;
+}
+
+/* テーマ別のテキストカラー - realtimeAreaと同じスタイル */
+/* Light theme */
+.windowLight .sourceColumn {
+  color: #333;  /* 黒 */
+}
+
+.windowLight .targetColumn {
+  color: #0044cc;  /* 青 */
+  font-weight: 600;
+}
+
+/* Dark theme */
+.windowDark .sourceColumn {
+  color: #e0e0e0;  /* 明るいグレー */
+}
+
+.windowDark .targetColumn {
+  color: #66b3ff;  /* 明るい青 */
+  font-weight: 600;
+}
+
+/* Purple theme */
+.windowPurple .sourceColumn {
+  color: #ffffff;  /* 白 */
+}
+
+.windowPurple .targetColumn {
+  color: #b3d9ff;  /* 薄い青白 */
+  font-weight: 600;
 }
 
 /* 区切り線 */

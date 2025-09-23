@@ -36,12 +36,19 @@ export const useBottomResize = ({
   const startYRef = useRef<number>(0);
   const startHeightRef = useRef<number>(0);
   const animationFrameRef = useRef<number>();
+  
+  // isActiveをrefに保存して最新の値を参照できるようにする
+  const isActiveRef = useRef(isActive);
+  useEffect(() => {
+    isActiveRef.current = isActive;
+    console.log('[useBottomResize] isActive changed:', isActive);
+  }, [isActive]);
 
   /**
    * マウスダウン時の処理
    */
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!isActive) return;
+    if (!isActiveRef.current) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -58,9 +65,10 @@ export const useBottomResize = ({
 
     console.log('[useBottomResize] Resize started:', {
       startY: e.clientY,
-      startHeight: realtimeHeight
+      startHeight: realtimeHeight,
+      isActive: isActiveRef.current
     });
-  }, [realtimeHeight, isActive]);
+  }, [realtimeHeight]);
 
   /**
    * マウス移動時の処理

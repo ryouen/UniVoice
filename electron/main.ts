@@ -127,7 +127,7 @@ async function createWindow() {
     show: false, // Prevent flash of unstyled window
     frame: false, // フレームレスウィンドウ（全OS対応）
     transparent: supportsTransparency, // プラットフォームに応じて透過を設定
-    backgroundColor: supportsTransparency ? '#00000000' : '#f0f0f0', // 非対応環境ではフォールバック
+    backgroundColor: supportsTransparency ? '#01000000' : '#f0f0f0', // 1%不透明でフォーカス問題解決
     focusable: true, // 明示的にフォーカス可能に設定
     // Windows固有の設定
     ...(isWindows ? {
