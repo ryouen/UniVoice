@@ -158,7 +158,7 @@
 .leftSection {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--button-gap);  /* 10px - 統一化 */
   -webkit-app-region: no-drag;
 }
 
@@ -168,7 +168,7 @@
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--button-gap);  /* 10px - 統一化 */
   -webkit-app-region: no-drag;
 }
 
@@ -176,41 +176,79 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--button-gap);  /* 10px - 統一化 */
   -webkit-app-region: no-drag;
 }
 
-.navButton {
-  width: 32px;
-  height: 32px;
+/* Unified Button System - 統一ボタンシステム (2025-09-22) */
+/* Clean Architecture: すべてのボタンの基本クラス */
+.button {
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border-radius: 10px;
   border: none;
-  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+  transition: var(--transition-default);
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+  -webkit-app-region: no-drag;
+}
+
+/* Size Modifiers - サイズ修飾子 */
+.buttonNav {
+  width: 32px;
+  height: 32px;
+  background: transparent;
   border-radius: 6px;
-  transition: all 0.2s;
   color: inherit;
 }
 
-.navButton:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
+/* Theme Variants - テーマバリアント */
+.buttonLight {
+  composes: button;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
 }
 
-.navButton:disabled {
-  opacity: 0.3;
-  cursor: default;
+.buttonLight:hover {
+  background: var(--theme-light-button-hover);
+  transform: translateY(-2px);
 }
 
-.windowDark .navButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+.buttonDark {
+  composes: button;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
 }
 
-.windowPurple .navButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+.buttonDark:hover {
+  background: var(--theme-dark-button-hover);
+  transform: translateY(-2px);
 }
+
+.buttonPurple {
+  composes: button;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.buttonPurple:hover {
+  background: var(--theme-purple-button-hover);
+  transform: translateY(-2px);
+}
+
+/* Active State - アクティブ状態 */
+.buttonActive {
+  background: #667eea;
+  color: white;
+}
+
 
 .stageInfo {
   font-size: 14px;

@@ -167,7 +167,7 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
           <button
             key={button.id}
             className={classNames(
-              getThemeClass('controlButton'),
+              getThemeClass('button'),
               styles.button,
               button.isActive && styles.buttonActive
             )}

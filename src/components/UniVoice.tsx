@@ -2210,7 +2210,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     );
   }
   
-  // CSS Modules用のヘルパー関数（命名規則統一版）
+  // CSS Modules用のヘルパー関数（統一ボタンシステム対応）
   const getThemeClass = (base: string, includeBase: boolean = true) => {
     const themeMap: Record<string, string> = {
       'light': 'Light',
@@ -2219,7 +2219,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     };
     const themeSuffix = themeMap[currentTheme] || 'Light';
     
-    // 統一された命名規則: {base}Theme{suffix}
+    // 新しい統一ボタンシステムの場合
+    if (base === 'button') {
+      const buttonThemeClass = `button${themeSuffix}`;
+      return includeBase ? classNames(styles.button, styles[buttonThemeClass]) : styles[buttonThemeClass];
+    }
+    
+    // 従来のパターン: {base}Theme{suffix}
     const themeClassName = `${base}Theme${themeSuffix}`;
     const themeClass = styles[themeClassName];
     
@@ -2286,7 +2292,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             </div>
             
             {/* 一時停止ボタン */}
-            <button className={getThemeClass('controlButton')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
+            <button className={getThemeClass('button')} onClick={togglePause} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
               {isPaused ? (
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M4 2 L4 14 L12 8 Z"/>
@@ -2300,7 +2306,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             </button>
             
             {/* 授業終了ボタン */}
-            <button className={getThemeClass('controlButton')} onClick={endSession} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
+            <button className={getThemeClass('button')} onClick={endSession} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                 <rect x="3" y="3" width="10" height="10" rx="1"/>
               </svg>
@@ -2308,7 +2314,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             </button>
             
             {/* 次の授業へボタン */}
-            <button className={getThemeClass('controlButton')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
+            <button className={getThemeClass('button')} onClick={nextClass} style={{WebkitAppRegion: 'no-drag', width: 'var(--button-size)', height: 'var(--button-size)'}}>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M4 8h8m0 0L8 4m4 4L8 12"/>
               </svg>
@@ -2335,7 +2341,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             {/* 履歴ボタン（フローティングパネル用） */}
             <button 
               data-testid="history-button"
-              className={classNames(getThemeClass('controlButton'), showHistoryPanel && styles.controlButtonActive)}
+              className={classNames(getThemeClass('button'), showHistoryPanel && styles.buttonActive)}
               onClick={() => togglePanel('history')}
               style={{WebkitAppRegion: 'no-drag', width: 'var(--center-button-width)', height: 'var(--button-size)'}}
             >
@@ -2350,7 +2356,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             {/* 要約ボタン（プログレッシブ要約機能統合） */}
             <button
               data-testid="summary-button"
-              className={classNames(getThemeClass('controlButton'), showProgressiveSummary && styles.controlButtonActive)}
+              className={classNames(getThemeClass('button'), showProgressiveSummary && styles.buttonActive)}
               onClick={() => {
                 console.log('[UniVoice] Summary button clicked');
                 console.log('[UniVoice] Summaries:', summaries);
@@ -2403,7 +2409,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             
             {/* 質問ボタン */}
             <button 
-              className={classNames(getThemeClass('controlButton'), showQuestionSection && styles.controlButtonActive)}
+              className={classNames(getThemeClass('button'), showQuestionSection && styles.buttonActive)}
               onClick={() => {
                 setShowQuestionSection(!showQuestionSection);
               }}
@@ -2490,11 +2496,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <div className={styles.settingsGroupLeft} style={{display: 'flex', alignItems: 'center', gap: 'var(--button-gap)'}}>
               <button 
                 className={classNames(
-                  getThemeClass('settingButton', false),
+                  getThemeClass('button', false),
                   displayMode === 'both' && styles.settingActive
                 )}
                 onClick={() => setDisplay('both')}
-                style={{width: '36px', height: '36px'}}
+                style={{width: 'var(--button-size)', height: 'var(--button-size)'}}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.5"/>
@@ -2504,11 +2510,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               </button>
               <button 
                 className={classNames(
-                  getThemeClass('settingButton', false),
+                  getThemeClass('button', false),
                   displayMode === 'source' && styles.settingActive
                 )}
                 onClick={() => setDisplay('source')}
-                style={{width: '36px', height: '36px'}}
+                style={{width: 'var(--button-size)', height: 'var(--button-size)'}}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" fill="currentColor" opacity="0.8"/>
@@ -2518,11 +2524,11 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               </button>
               <button 
                 className={classNames(
-                  getThemeClass('settingButton', false),
+                  getThemeClass('button', false),
                   displayMode === 'target' && styles.settingActive
                 )}
                 onClick={() => setDisplay('target')}
-                style={{width: '36px', height: '36px'}}
+                style={{width: 'var(--button-size)', height: 'var(--button-size)'}}
               >
                 <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
                   <rect x="1" y="1" width="7" height="10" rx="1" stroke="currentColor" fill="none" opacity="0.3"/>
@@ -2533,7 +2539,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               
               {/* テーマ切り替えボタン - 左側グループの最後 */}
               <div style={{ marginLeft: 'calc(var(--group-gap) - var(--button-gap))' }}>
-                <button className={getThemeClass('settingButton', false)} onClick={cycleTheme} style={{width: '36px', height: '36px'}}>
+                <button className={getThemeClass('button', false)} onClick={cycleTheme} style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                     <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                     <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
@@ -2552,7 +2558,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               gap: 'var(--button-gap)'
             }}>
               {/* フォント- */}
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(-1)} style={{width: '36px', height: '36px'}}>
+              <button className={getThemeClass('button', false)} onClick={() => changeFont(-1)} style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
@@ -2560,13 +2566,13 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               </button>
               
               {/* T */}
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(0)} style={{width: '36px', height: '36px'}}>
+              <button className={getThemeClass('button', false)} onClick={() => changeFont(0)} style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>T</span>
                 <span className={styles.sTooltip}>リセット</span>
               </button>
               
               {/* フォント+ */}
-              <button className={getThemeClass('settingButton', false)} onClick={() => changeFont(1)} style={{width: '36px', height: '36px'}}>
+              <button className={getThemeClass('button', false)} onClick={() => changeFont(1)} style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>

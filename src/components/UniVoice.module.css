@@ -232,21 +232,85 @@
    Interactive Elements
    ======================================== */
 
-/* Control Button Base */
-.controlButton {
+/* Unified Button System - 統一ボタンシステム (2025-09-22) */
+/* Clean Architecture: すべてのボタンの基本クラス */
+.button {
   width: var(--control-button-size);
   height: var(--control-button-size);
+  padding: 0;
   border-radius: 10px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+  transition: var(--transition-default);
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
   
   /* フレームレスウィンドウ: ボタンはドラッグ不可 */
   -webkit-app-region: no-drag;
-  transition: var(--transition-default);
-  position: relative;
+}
+
+/* Size Modifiers - サイズ修飾子 */
+.buttonCenter {
+  width: var(--center-button-width);  /* 82px */
+  height: var(--control-button-size);  /* 36px */
+}
+
+.buttonNav {
+  width: 32px;
+  height: 32px;
+}
+
+/* Theme Variants - テーマバリアント */
+.buttonLight {
+  composes: button;
+  background: var(--theme-light-button-bg);
+  color: var(--theme-light-text);
+}
+
+.buttonLight:hover {
+  background: var(--theme-light-button-hover);
+  transform: translateY(-2px);
+}
+
+.buttonDark {
+  composes: button;
+  background: var(--theme-dark-button-bg);
+  color: var(--theme-dark-text);
+}
+
+.buttonDark:hover {
+  background: var(--theme-dark-button-hover);
+  transform: translateY(-2px);
+}
+
+.buttonPurple {
+  composes: button;
+  background: var(--theme-purple-button-bg);
+  color: var(--theme-purple-text);
+}
+
+.buttonPurple:hover {
+  background: var(--theme-purple-button-hover);
+  transform: translateY(-2px);
+}
+
+/* Active State - アクティブ状態 */
+.buttonActive {
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.buttonLight.buttonActive {
+  background: rgba(102, 126, 234, 0.15);
+}
+
+.buttonDark.buttonActive,
+.buttonPurple.buttonActive {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 /* すべてのインタラクティブ要素をドラッグ不可に */
@@ -257,53 +321,6 @@ select,
 a,
 [role="button"] {
   -webkit-app-region: no-drag;
-}
-
-.controlButtonThemeLight {
-  composes: controlButton;
-  background: var(--theme-light-button-bg);
-  color: #333;
-}
-
-.controlButtonThemeLight:hover {
-  background: var(--theme-light-button-hover);
-  transform: translateY(-2px);
-}
-
-.controlButtonThemeDark {
-  composes: controlButton;
-  background: var(--theme-dark-button-bg);
-  color: white;
-}
-
-.controlButtonThemeDark:hover {
-  background: var(--theme-dark-button-hover);
-  transform: translateY(-2px);
-}
-
-.controlButtonThemePurple {
-  composes: controlButton;
-  background: var(--theme-purple-button-bg);
-  color: white;
-}
-
-.controlButtonThemePurple:hover {
-  background: var(--theme-purple-button-hover);
-  transform: translateY(-2px);
-}
-
-/* Active State */
-.controlButtonActive {
-  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
-}
-
-.controlButtonThemeLight.controlButtonActive {
-  background: rgba(102, 126, 234, 0.15);
-}
-
-.controlButtonThemeDark.controlButtonActive,
-.controlButtonThemePurple.controlButtonActive {
-  background: rgba(255, 255, 255, 0.35);
 }
 
 /* ツールチップ */

@@ -181,11 +181,19 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleDisplayModeChange, changeFontScale, previousStage, nextStage, onClose]);
 
-  // テーマクラスの取得
+  // テーマクラスの取得（新しい統一ボタンシステム対応）
   const getThemeClass = useCallback((baseClass: string) => {
+    const themeSuffix = internalTheme.charAt(0).toUpperCase() + internalTheme.slice(1);
+    
+    // 新しい統一ボタンシステムの場合
+    if (baseClass === 'button') {
+      return classNames(styles.button, styles[`button${themeSuffix}`]);
+    }
+    
+    // その他のクラスは従来通り
     return classNames(
       styles[baseClass],
-      styles[`${baseClass}${internalTheme.charAt(0).toUpperCase() + internalTheme.slice(1)}`]
+      styles[`${baseClass}${themeSuffix}`]
     );
   }, [internalTheme]);
 
@@ -225,7 +233,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
         <div style={{display: 'flex', alignItems: 'center', gap: 'var(--button-gap)'}}>
           <button
             className={classNames(
-              getThemeClass('modeButton'),
+              getThemeClass('button'),
               internalDisplayMode === 'both' && styles.active
             )}
             onClick={() => handleDisplayModeChange('both')}
@@ -240,7 +248,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
           
           <button
             className={classNames(
-              getThemeClass('modeButton'),
+              getThemeClass('button'),
               internalDisplayMode === 'source' && styles.active
             )}
             onClick={() => handleDisplayModeChange('source')}
@@ -255,7 +263,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
           
           <button
             className={classNames(
-              getThemeClass('modeButton'),
+              getThemeClass('button'),
               internalDisplayMode === 'target' && styles.active
             )}
             onClick={() => handleDisplayModeChange('target')}
@@ -270,7 +278,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
           
           {/* テーマボタン - 56pxグループ間隔 */}
           <div style={{ marginLeft: 'calc(var(--group-gap) - var(--button-gap))' }}>
-            <button className={getThemeClass('themeButton')} onClick={cycleTheme} title="テーマ切り替え" style={{ width: 'var(--button-size)', height: 'var(--button-size)' }}>
+            <button className={getThemeClass('button')} onClick={cycleTheme} title="テーマ切り替え" style={{ width: 'var(--button-size)', height: 'var(--button-size)' }}>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                 <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                 <path d="M8 2 A6 6 0 0 1 8 14 A3 3 0 0 0 8 2" fill="currentColor"/>
@@ -282,7 +290,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
         {/* 中央: ナビゲーション */}
         <div className={styles.centerSection}>
           <button
-            className={styles.navButton}
+            className={classNames(getThemeClass('button'), styles.buttonNav)}
             onClick={previousStage}
             disabled={currentStageIndex === 0 || summaryData.length === 0}
           >
@@ -300,7 +308,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
           </span>
           
           <button
-            className={styles.navButton}
+            className={classNames(getThemeClass('button'), styles.buttonNav)}
             onClick={nextStage}
             disabled={currentStageIndex === summaryData.length - 1 || summaryData.length === 0}
           >
@@ -314,17 +322,17 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
         <div className={styles.rightSection}>
           {/* フォントサイズボタン群 */}
           <div className={styles.fontButtonGroup}>
-            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(-1)} title="文字を小さく (Ctrl+-)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
+            <button className={getThemeClass('button')} onClick={() => changeFontScale(-1)} title="文字を小さく (Ctrl+-)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
             
-            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(0)} title="リセット (Ctrl+0)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
+            <button className={getThemeClass('button')} onClick={() => changeFontScale(0)} title="リセット (Ctrl+0)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
               <span style={{ fontSize: '14px', fontWeight: 600 }}>T</span>
             </button>
             
-            <button className={getThemeClass('fontButton')} onClick={() => changeFontScale(1)} title="文字を大きく (Ctrl++)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
+            <button className={getThemeClass('button')} onClick={() => changeFontScale(1)} title="文字を大きく (Ctrl++)" style={{width: 'var(--button-size)', height: 'var(--button-size)'}}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M9 4 L9 14 M4 9 L14 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
@@ -332,7 +340,7 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
           </div>
 
           {/* 閉じるボタン - Chromeタブスタイル、56pxマージン */}
-          <button className={getThemeClass('closeButton')} onClick={onClose} title="閉じる (Esc)" style={{ marginLeft: 'calc(var(--group-gap) - 8px)', width: 'var(--button-size)', height: 'var(--button-size)' }}>
+          <button className={getThemeClass('button')} onClick={onClose} title="閉じる (Esc)" style={{ marginLeft: 'calc(var(--group-gap) - var(--button-gap))', width: 'var(--button-size)', height: 'var(--button-size)' }}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <circle cx="9" cy="9" r="7" fill="currentColor" fillOpacity="0.1"/>
               <path d="M6 6l6 6M12 6l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
