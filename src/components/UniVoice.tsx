@@ -19,6 +19,7 @@ import { useUnifiedPipeline } from '../hooks/useUnifiedPipeline';
 import { useSessionMemory } from '../hooks/useSessionMemory';
 import { useBottomResize } from '../hooks/useBottomResize';
 import { useHeaderControls } from '../hooks/useHeaderControls';
+import { useModalManager } from '../hooks/useModalManager';
 import { HeaderControls } from './UniVoice/Header/HeaderControls/HeaderControls';
 // 段階的リファクタリング: useSessionControlフックを並行実装用にインポート
 // TODO: 段階的に既存のセッション管理コードと置き換え
@@ -243,12 +244,20 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   
   // expandedSectionの変化を監視（ログ削除）
   
-  // モーダル状態
-  const [showFullscreenModal, setShowFullscreenModal] = useState(false);
-  const [showMemoModal, setShowMemoModal] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState('');
-  const [modalContent, setModalContent] = useState('');
+  // モーダル管理（カスタムフックで管理）
+  const {
+    showFullscreenModal,
+    modalTitle,
+    modalContent,
+    showMemoModal,
+    showReportModal,
+    openFullscreenModal,
+    closeFullscreenModal,
+    openMemoModal,
+    closeMemoModal,
+    openReportModal,
+    closeReportModal,
+  } = useModalManager();
   
   // メモリスト
   const [memoList, setMemoList] = useState<Memo[]>([]);
@@ -772,7 +781,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       // 最終レポート生成
       const report = await generateFinalReport();
       if (report) {
-        setShowReportModal(true);
+        openReportModal();
         console.log('[UniVoice] Session ended successfully');
       } else {
         alert('レポート生成に失敗しました。録音データは保存されています。');
@@ -863,7 +872,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     // activeSessionをクリアしてSetup画面に戻る
     setActiveSession(null);
     setShowSetup(true);
-    setShowReportModal(false);
+    closeReportModal();
     setSelectedClass(null);
     sessionStorageService.clearActiveSession();
     
@@ -1697,7 +1706,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     // レポート生成ロジック（仮実装）
     console.log('[UniVoice] Generating report...');
     if (showModal) {
-      setShowReportModal(true);
+      openReportModal();
     }
   };
   
@@ -1935,9 +1944,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     // if ((event.target as HTMLElement).classList.contains('resize-handle')) return;
     
     // タイトルは renderHistoryToHTML 内で設定されるため不要
-    setModalTitle('');
-    setModalContent(getAlignedHistoryContent());
-    setShowFullscreenModal(true);
+    openFullscreenModal('', getAlignedHistoryContent());
   };
   
   const handleSummaryClick = (event: React.MouseEvent) => {
@@ -1945,9 +1952,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     // TODO: 旧リサイズシステム削除時にこの行も削除
     // if ((event.target as HTMLElement).classList.contains('resize-handle')) return;
     
-    setModalTitle('📊 要約（英日対比）');
-    setModalContent(getSummaryComparisonContent());
-    setShowFullscreenModal(true);
+    openFullscreenModal('📊 要約（英日対比）', getSummaryComparisonContent());
   };
   
   // 入力エリアの拡大
@@ -2798,7 +2803,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               }}>
                 <button 
                   className={classNames(styles.qBtnSecondary, currentTheme !== 'light' && styles[`theme${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`])}
-                  onClick={() => setShowMemoModal(true)}
+                  onClick={openMemoModal}
                   style={{
                     padding: '10px 18px',
                     borderRadius: '6px',
@@ -2860,21 +2865,21 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       {/* モーダル */}
       <FullscreenModal
         isOpen={showFullscreenModal}
-        onClose={() => setShowFullscreenModal(false)}
+        onClose={closeFullscreenModal}
         title={modalTitle}
         content={modalContent}
       />
       
       <MemoModal
         isOpen={showMemoModal}
-        onClose={() => setShowMemoModal(false)}
+        onClose={closeMemoModal}
         memoList={memoList}
         onSaveMemo={saveMemoEdit}
       />
       
       <ReportModal
         isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
+        onClose={closeReportModal}
         selectedClass={selectedClass || ''}
         recordingTime={recordingTime}
         summaryEnglish={_summaryOverride?.english || ''}
