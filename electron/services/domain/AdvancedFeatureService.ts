@@ -10,7 +10,6 @@ import { EventEmitter } from 'events';
 import OpenAI from 'openai';
 import { logger } from '../../utils/logger';
 import { 
-  createSummaryEvent,
   createProgressiveSummaryEvent,
   createErrorEvent,
   createVocabularyEvent,
@@ -36,16 +35,16 @@ interface AdvancedFeatureConfig {
 // Domain types for AdvancedFeatureService
 interface Translation {
   id: string;
-  original: string;
-  translated: string;  // 言語非依存の名前に変更
+  sourceText: string;
+  targetText: string;  // 言語非依存の名前に変更
   timestamp: number;
 }
 
 interface Summary {
   id: string;
   timestamp: number;
-  english: string;
-  japanese: string;
+  sourceText: string;    // 原文（音声認識された言語）
+  targetText: string;    // 翻訳文（翻訳後の言語）
   wordCount: number;
   startTime: number;
   endTime: number;
@@ -189,7 +188,7 @@ export class AdvancedFeatureService extends EventEmitter {
     
     // Count words in SOURCE language for summary thresholds
     // This ensures consistent counting regardless of translation target
-    const wordCount = this.countWords(translation.original, this.sourceLanguage);
+    const wordCount = this.countWords(translation.sourceText, this.sourceLanguage);
     this.totalWordCount += wordCount;
     
     this.componentLogger.info('Translation added', {
@@ -307,7 +306,7 @@ export class AdvancedFeatureService extends EventEmitter {
     
     const startTime = Date.now();
     const wordCount = this.translations.reduce(
-      (sum, t) => sum + this.countWords(t.original, this.sourceLanguage), 
+      (sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 
       0
     );
     
@@ -321,7 +320,7 @@ export class AdvancedFeatureService extends EventEmitter {
     
     try {
       const content = this.translations
-        .map(t => t.original)
+        .map(t => t.sourceText)
         .join(' ');
       
       const prompt = isFinal
@@ -351,8 +350,8 @@ export class AdvancedFeatureService extends EventEmitter {
         const summary: Summary = {
           id: `summary-${Date.now()}`,
           timestamp: Date.now(),
-          english: this.sourceLanguage === 'en' ? summaryTextInSourceLang : summaryTextInTargetLang,
-          japanese: this.targetLanguage === 'ja' ? summaryTextInTargetLang : summaryTextInSourceLang,
+          sourceText: summaryTextInSourceLang,
+          targetText: summaryTextInTargetLang,
           wordCount,
           startTime: this.translations[0].timestamp,
           endTime: this.translations[this.translations.length - 1].timestamp
@@ -360,20 +359,8 @@ export class AdvancedFeatureService extends EventEmitter {
         
         this.summaries.push(summary);
         
-        if (this.currentCorrelationId) {
-          const summaryEvent = createSummaryEvent(
-            {
-              english: summary.english,
-              japanese: summary.japanese,
-              wordCount,
-              startTime: summary.startTime,
-              endTime: summary.endTime
-            },
-            this.currentCorrelationId
-          );
-          
-          this.emit('summaryGenerated', summaryEvent);
-        }
+        // Note: Regular summary events are deprecated
+        // Only progressive summaries are used now
         
         if (!isFinal) {
           this.translations = [];
@@ -419,12 +406,12 @@ export class AdvancedFeatureService extends EventEmitter {
       
       if (this.lastProgressiveSummary) {
         translationsToInclude = this.translations.slice(this.lastProgressiveThresholdIndex + 1);
-        newContent = translationsToInclude.map(t => t.original).join(' ');
-        actualWordCount = translationsToInclude.reduce((sum, t) => sum + this.countWords(t.original, this.sourceLanguage), 0);
+        newContent = translationsToInclude.map(t => t.sourceText).join(' ');
+        actualWordCount = translationsToInclude.reduce((sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 0);
       } else {
         for (let i = 0; i < this.translations.length; i++) {
           const translation = this.translations[i];
-          const words = this.countWords(translation.original, this.sourceLanguage);
+          const words = this.countWords(translation.sourceText, this.sourceLanguage);
           if (actualWordCount + words <= actualThreshold) {
             translationsToInclude.push(translation);
             actualWordCount += words;
@@ -437,7 +424,7 @@ export class AdvancedFeatureService extends EventEmitter {
       
       const prompt = this.lastProgressiveSummary 
         ? this.getCumulativeProgressiveSummaryPrompt(this.lastProgressiveSummary, newContent, baseThreshold)
-        : this.getProgressiveSummaryPrompt(translationsToInclude.map(t => t.original).join(' '), baseThreshold);
+        : this.getProgressiveSummaryPrompt(translationsToInclude.map(t => t.sourceText).join(' '), baseThreshold);
       
       // Debug logging
       const systemPrompt = this.getSummarySystemPrompt();
@@ -480,8 +467,8 @@ export class AdvancedFeatureService extends EventEmitter {
         const summary: Summary = {
           id: `summary-progressive-${baseThreshold}-${Date.now()}`,
           timestamp: Date.now(),
-          english: this.sourceLanguage === 'en' ? summaryTextInSourceLang : summaryTextInTargetLang,
-          japanese: this.targetLanguage === 'ja' ? summaryTextInTargetLang : summaryTextInSourceLang,
+          sourceText: summaryTextInSourceLang,
+          targetText: summaryTextInTargetLang,
           wordCount: actualThreshold,
           startTime: translationsToInclude[0].timestamp,
           endTime: translationsToInclude[translationsToInclude.length - 1].timestamp
@@ -494,8 +481,10 @@ export class AdvancedFeatureService extends EventEmitter {
         if (this.currentCorrelationId) {
           const progressiveSummaryEvent = createProgressiveSummaryEvent(
             {
-              english: summary.english,
-              japanese: summary.japanese,
+              sourceText: summary.sourceText,
+              targetText: summary.targetText,
+              sourceLanguage: this.sourceLanguage,
+              targetLanguage: this.targetLanguage,
               wordCount: actualWordCount,
               threshold: baseThreshold,
               startTime: summary.startTime,
@@ -530,7 +519,7 @@ export class AdvancedFeatureService extends EventEmitter {
     
     try {
       const content = this.translations
-        .map(t => t.original)
+        .map(t => t.sourceText)
         .join(' ');
       
       const prompt = this.getVocabularyPrompt(content);
@@ -596,16 +585,16 @@ export class AdvancedFeatureService extends EventEmitter {
     
     try {
       const totalWordCount = this.translations.reduce(
-        (sum, t) => sum + this.countWords(t.original, this.sourceLanguage), 
+        (sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 
         0
       );
       
       const content = this.translations
-        .map(t => t.original)
+        .map(t => t.sourceText)
         .join(' ');
       
       const summariesContent = this.summaries
-        .map(s => this.targetLanguage === 'ja' ? s.japanese : s.english)
+        .map(s => s.targetText)
         .join('\n\n');
       
       const vocabulary = await this.generateVocabulary();

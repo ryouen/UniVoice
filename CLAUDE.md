@@ -3,53 +3,84 @@
 ## 🔴 最初に必ず実行すること
 
 ```bash
-# 1. 重要事実集を確認（新セッション必須）- 2025-09-17大幅更新
-cat CRITICAL-FACTS-FOR-NEW-SESSION.md
+# 1. 現在の状態を確認
+cat docs/ACTIVE/STATE.json | head -20
 
-# 2. 現在の状況を確認 - 2025-09-17更新
-cat START-HERE.md
+# 2. タスクリストで優先作業を確認
+cat docs/ACTIVE/TASKS.json | grep -A 5 '"priority": "high"'
 
-# 3. 実装状況の詳細を確認 - 2025-09-17深層分析済み
-cat IMPLEMENTATION-STATUS-20250910.md
+# 3. ウィンドウ管理実装の進捗確認
+ls -la electron/main/WindowRegistry.ts 2>/dev/null && echo "✅ M1: WindowRegistry実装済" || echo "❌ M1: WindowRegistry未実装"
+ls -la src/services/WindowClient.ts 2>/dev/null && echo "✅ M1: WindowClient実装済" || echo "❌ M1: WindowClient未実装"
 
-# 4. ウィンドウ管理実装の進捗確認（2025-09-14追加）
-# 実装ガイドを確認
-cat docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md | head -50
-
-# 実装状況をチェック（以下のファイルの存在で進捗を判断）
-ls -la electron/main/WindowRegistry.ts 2>/dev/null || echo "❌ M1: WindowRegistry未実装"
-ls -la src/services/WindowClient.ts 2>/dev/null || echo "❌ M1: WindowClient未実装"
-grep -q "windowManager" electron/preload.ts 2>/dev/null && echo "✅ M1: Preload API実装済" || echo "❌ M1: Preload API未実装"
-
-# ⚠️ Setup画面374px問題の原因と解決（2025-09-14判明）
-# BoundsStoreが前回の374pxを保存しているのが原因
-# 解決方法：window-bounds.jsonを削除するか、setup画面は保存値を無視する修正が必要
-
-# タスクリストで現在のマイルストーンを確認
-grep "M1" docs/ACTIVE/TASKS.json | grep "pending" | head -5
+# 4. deep-thinkプロトコルの確認（重要）
+cat .claude/commands/deep-think.md | head -30
 ```
-
-📌 **必須ファイル**: [`CRITICAL-FACTS-FOR-NEW-SESSION.md`](CRITICAL-FACTS-FOR-NEW-SESSION.md) - 新セッションで最初に読む（2025-09-17大幅更新済み）
 
 **重要**: このプロジェクトは UniVoice 2.0 として、
 Clean Architecture + CQRS + Event-Driven パターンで構築されています。
 
-**🔴 2025-09-17 重要な発見**:
-- SentenceCombinerは既に統合済み・正常動作中（多くのドキュメントの誤情報を修正）
-- SessionStorageServiceは実装済みだが完全に未使用（データ永続化の欠如）
-- 実装進捗は約50%（リアルタイム100%、高度機能70%、永続化0%）
+## 🕐 実行パターンの最適化（2025-09-27 追加）
 
-**🔴 2025-09-23 リファクタリング進捗と技術的発見**:
-- UniVoice.tsx Phase 1-2完了（2891行→2771行、モーダル分離・質問セクション分離）
-- 透過ウィンドウのフォーカス問題を1%不透明度（`#01000000`）で解決
-- CSS Modulesクラス名生成バグ修正（themeThemeLight問題）
-- Windows環境では完全透明（`#00000000`）のピクセルはクリック不可という重要な知見
+### ファイル読み取りの判断基準
 
-**⚠️ 重要な訂正 (あなたが疑ったり、改悪しては絶対にならないもの)**: 
+| 状況 | 行動 |
+|------|------|
+| ファイルが5000行以下 | 全文を読む |
+| ファイルが5000行以上 | grep/sedで必要箇所のみ |
+| エラーメッセージあり | スタックトレース全体を読む |
+| 型エラー | 型定義ファイルを先に確認 |
+
+### 実装前の必須確認コマンド
+
+```bash
+# 1. 既存実装の確認（重複防止）
+grep -r "実装しようとしている関数名" --include="*.ts" --include="*.tsx"
+
+# 2. 命名規則の確認
+grep -r "handle\|on[A-Z]" <対象ファイル> | head -20
+
+# 3. 型定義の確認
+grep -r "interface.*{" <対象ファイル> | sort | uniq -c
+
+# 4. importの確認（依存関係）
+grep "^import" <対象ファイル> | sort
+```
+
+### 事実確認の徹底
+
+- **実行結果**: 実際のコマンド出力を含める
+- **推測**: 「推測:」と明記する
+- **未確認**: 「未確認:」と明記する
+- **わからない場合**: 「わかりません。調査します。」と正直に書く
+
+## 🚨 既知の技術的負債（2025-09-27 時点）
+
+### 命名規則の不統一
+- **問題**: original/translation vs source/target が混在
+- **影響**: UnifiedPipelineService.ts、useUnifiedPipeline.ts、contracts.ts
+- **推奨**: source/target に統一（LanguageConfig.tsと一致）
+
+### 言語固定の問題
+- **問題**: english/japanese がハードコード
+- **影響**: Summary型、translationCompleteイベント
+- **推奨**: sourceText/targetText に変更
+
+### 型定義の重複
+- **問題**: TranscriptSegmentが4箇所で定義
+- **確認**: `grep -n "interface TranscriptSegment" --include="*.ts" -r .`
+- **推奨**: src/domain/models/Transcript.ts を唯一の定義源とする
+
+### リファクタリング失敗の教訓（2025-09-27）
+1. **onPipelineEvent問題**: 関数名に`on`プレフィックスを使用 → ASR未到達
+2. **重複実装見逃し**: sendAudioChunkが2箇所に実装
+3. **段階的実行の重要性**: 一度に3つのフックに分離 → useEffect不実行
+
+**⚠️ 重要な訂正 (動作実績のあるコードを改悪するな)**: 
 - Responses API は2025年3月にリリースされた実在のAPIです
 - GPT-5シリーズ（gpt-5、gpt-5-mini、gpt-5-nano）は実在のモデルです
 - temperature パラメータは GPT-5 では1.0固定（変更不可）
-- 詳細は [PARAMETER-INCONSISTENCIES-REPORT.md](PARAMETER-INCONSISTENCIES-REPORT.md) を参照してください
+- Nova-3 は Deepgram の最新モデルです
 
 ## 🔴 絶対命令（CRITICAL DIRECTIVES）
 
@@ -90,13 +121,9 @@ Clean Architecture + CQRS + Event-Driven パターンで構築されています
 ## 📁 プロジェクト構造とリンク
 
 ### コアドキュメント（必読）
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - Clean Architecture設計 🆕
-- [`docs/MIGRATION-GUIDE.md`](docs/MIGRATION-GUIDE.md) - 1.0からの移行ガイド
-- [`docs/API-CONTRACTS.md`](docs/API-CONTRACTS.md) - IPC契約定義
-
-### 仕様書（.kiro/specs）
-- [1-streaming-ui-optimization](docs/specs/streaming-ui-optimization.md) - ✅ 実装済み
-- [2-univoice-advanced-features](docs/specs/advanced-features.md) - 🚧 実装中
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - Clean Architecture設計
+- [`docs/START-HERE.md`](docs/START-HERE.md) - クイックスタートガイド
+- [`docs/BUILD-GUIDE.md`](docs/BUILD-GUIDE.md) - ビルド手順
 
 ### 引き継ぎシステム
 - [`docs/ACTIVE/`](docs/ACTIVE/) - アクティブな作業状態
@@ -350,20 +377,13 @@ npm run clean
 - [アーキテクチャ設計書](docs/ARCHITECTURE.md)
 - [API契約仕様](docs/API-CONTRACTS.md)
 
-### 開発支援ドキュメント
-- [透過ウィンドウ実装ガイド](docs/TRANSPARENT-WINDOW-FOCUS-FIX.md) 🔴 NEW (2025-09-23) - Windows環境でのフォーカス問題解決方法
-- [リファクタリング進捗レポート](docs/REFACTORING-PROGRESS-20250923.md) 🔴 NEW (2025-09-23) - UniVoice.tsxのClean Architecture移行状況
-- [GitHubバックアップ差分詳細分析](docs/GITHUB-DIFF-FACTUAL-ANALYSIS-20250919.md) (2025-09-19) - 現在の変更とGitHubの差分を詳細分析（透過設定復元を含む）
-- [Windows透過設定復元ログ](docs/TRANSPARENCY-RESTORATION-LOG-20250919.md) (2025-09-19) - グラスモーフィズム効果の復元作業記録
-- [自動テスト・ログ収集システム](docs/development/AUTO-TEST-LOGGING-SYSTEM.md) 🔴 NEW
-- [型定義同期に関する調査結果](docs/TYPE-SYNCHRONIZATION-FINDINGS.md) 🔴 NEW - ビルドエラーの原因と解決策
-- [LocalStorage廃止・移行計画](docs/LOCALSTORAGE-MIGRATION-PLAN.md) 🔴 NEW (2025-09-16) - Setup画面スキップ問題の根本解決
-- [ウィンドウ管理実装ガイド](docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md) 🔴 NEW (2025-09-14) - 実装者向けの具体的な手順書
-- [ウィンドウ管理アーキテクチャ](docs/WINDOW-MANAGEMENT-ARCHITECTURE.md) - 設計思想と詳細仕様
-- [解決済み問題レポート](docs/RESOLVED-ISSUES-20250914.md) 🆕 - プロセス暴走・IPC重複問題の解決
-- テスト戦略ガイド（準備中）
-- デバッグ手順書（準備中）
-
+### 重要な技術ドキュメント
+- [命名規則不統一問題](docs/NAMING-CONSISTENCY-ISSUES-20250926.md) - source/target統一の必要性
+- [コードベース深層分析](docs/CODEBASE-DEEP-ANALYSIS-20250926.md) - アーキテクチャの現状
+- [リファクタリング分析](docs/REFACTORING-ANALYSIS-20250925.md) - フック分離の評価
+- [透過ウィンドウ対策](docs/TRANSPARENT-WINDOW-FOCUS-FIX.md) - #01000000による解決
+- [ウィンドウ管理実装](docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md) - M1完了、M2準備中
+- [多言語テストガイド](docs/MULTILINGUAL-TESTING-GUIDE.md) - 36言語サポートのテスト
 
 ---
 
@@ -397,14 +417,6 @@ Deepgramのセグメント（0.8秒区切り）を2-3文の意味単位に結合
 - SentenceCombiner統合済みの発見（多くのドキュメントの誤情報を修正）
 - SessionStorageService完全未使用の発見（データ永続化の欠如）
 - プロジェクト実装率の正確な把握（約50%）
-
-### 🔨 開発ガイド
-- [`docs/BUILD-GUIDE.md`](docs/BUILD-GUIDE.md) - ビルド手順
-- [`docs/MULTILINGUAL-TESTING-GUIDE.md`](docs/MULTILINGUAL-TESTING-GUIDE.md) - 多言語テスト
-- [`docs/development/AUTO-TEST-LOGGING-SYSTEM.md`](docs/development/AUTO-TEST-LOGGING-SYSTEM.md) - 自動テストシステム
-- [`docs/LOGGING-AND-DEBUG-GUIDE.md`](docs/LOGGING-AND-DEBUG-GUIDE.md) - 🆕 ログ出力とデバッグガイド
-- [`docs/UNIVOICE-TSX-STRUCTURE-ANALYSIS.md`](docs/UNIVOICE-TSX-STRUCTURE-ANALYSIS.md) 🔴 NEW (2025-09-19) - 2890行のUniVoice.tsx構造分析とClean Architectureリファクタリング戦略
-- [`docs/CLEAR-SESSION-DEBUG-GUIDE.md`](docs/CLEAR-SESSION-DEBUG-GUIDE.md) - Setup画面が表示されない問題のデバッグ
 
 ---
 
@@ -466,6 +478,6 @@ diff <(cat docs/WINDOW-MANAGEMENT-IMPLEMENTATION-GUIDE.md | grep -E "^(electron|
 
 ---
 
-最終更新: 2025-09-19（Clean Architectureリファクタリング開始）
+最終更新: 2025-09-27（ea900b8リバート後の再構築）
 作成者: Claude Code
 バージョン: 2.0.0-alpha

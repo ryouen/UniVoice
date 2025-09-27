@@ -50,8 +50,8 @@ export class ClaudeIntegration extends EventEmitter {
         );
         
         this.emit('translation', {
-          original: text,
-          translated: translation,
+          sourceText: text,
+          targetText: translation,
           provider: 'claude'
         });
 

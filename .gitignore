@@ -135,3 +135,8 @@ dist-electron
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Build outputs
+.vite/
+dist-electron/
+dist/

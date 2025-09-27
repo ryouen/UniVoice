@@ -27,7 +27,7 @@ export interface TranscriptSegment {
 export interface CombinedSentence {
   id: string;
   segmentIds: string[];        // 元のセグメントID群
-  originalText: string;        // 結合された原文
+  sourceText: string;          // 結合された原文（original → source に統一）
   timestamp: number;           // 最初のセグメントのタイムスタンプ
   endTimestamp: number;        // 最後のセグメントのタイムスタンプ
   segmentCount: number;        // 結合されたセグメント数
@@ -177,7 +177,7 @@ export class SentenceCombiner {
     const combinedSentence: CombinedSentence = {
       id: `combined_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       segmentIds: this.segments.map(s => s.id),
-      originalText: combinedText,
+      sourceText: combinedText,
       timestamp: this.segments[0].timestamp,
       endTimestamp: this.segments[this.segments.length - 1].timestamp,
       segmentCount: this.segments.length
@@ -188,7 +188,7 @@ export class SentenceCombiner {
     console.log('[DataFlow-4] Combined sentence created:', {
       combinedId: combinedSentence.id,
       segmentIds: combinedSentence.segmentIds,
-      textLength: combinedSentence.originalText.length,
+      textLength: combinedSentence.sourceText.length,
       timestamp: Date.now()
     });
     

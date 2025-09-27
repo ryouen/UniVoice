@@ -282,6 +282,12 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const [progressiveSummaryHeight, setProgressiveSummaryHeight] = useState(200);
   const [showQuestionSection, setShowQuestionSection] = useState(false);
   
+  // ウィンドウの開閉状態管理
+  const [isHistoryWindowOpen, setIsHistoryWindowOpen] = useState(false);
+  const [isSummaryWindowOpen, setIsSummaryWindowOpen] = useState(false);
+  
+  // フローティングパネルのトグル関数は1655行目で定義
+  
   // ヘッダー表示/非表示とウィンドウ最前面設定
   const [showHeader, setShowHeader] = useState(true);
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
@@ -422,16 +428,16 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // リアルタイムセグメントデータ（propsまたはpipelineから）
   const realtimeSegments = realtimeSegmentsOverride || pipeline.realtimeSegments || [];
   
-  // 現在の原文と翻訳（後方互換性）
-  const currentOriginal = pipeline.currentOriginal;
-  const currentTranslation = pipeline.currentTranslation;
+  // 現在の原文と翻訳
+  const currentSourceText = pipeline.currentSourceText;
+  const currentTargetText = pipeline.currentTargetText;
   
   // デバッグ用：データ更新を監視
   useEffect(() => {
     if (activeSession) {
-      console.log('[UniVoicePerfect] currentOriginal updated:', currentOriginal);
+      console.log('[UniVoicePerfect] currentSourceText updated:', currentSourceText);
     }
-  }, [currentOriginal, activeSession]);
+  }, [currentSourceText, activeSession]);
 
   // beforeunloadイベントハンドラー：異常終了時の対策
   useEffect(() => {
@@ -890,13 +896,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     console.log('[UniVoice] Ready for next class setup');
   }, [pipeline]);
   
-  
-  useEffect(() => {
-    if (activeSession) {
-      console.log('[UniVoicePerfect] currentTranslation updated:', currentTranslation);
-    }
-  }, [currentTranslation, activeSession]);
-  
   // 3段階表示用のdisplayContentを構築
   const displayContent = React.useMemo(() => {
     console.log('[UniVoice] Building displayContent - input threeLineDisplay:', {
@@ -1004,8 +1003,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       console.log('[UniVoicePerfect] Updating history entries from pipeline:', pipeline.history.length);
       const entries: HistoryEntry[] = pipeline.history.map(item => ({
         id: item.id,
-        sourceText: item.original,
-        targetText: item.japanese,
+        sourceText: item.sourceText,
+        targetText: item.targetText,
         timestamp: new Date(item.timestamp || Date.now()),
         isHighQuality: true // パイプラインから来る履歴は高品質
       }));
@@ -1016,8 +1015,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // 履歴データ（propsまたはpipelineから）- HistoryEntry型に統一
   const historyData: HistoryEntry[] = _historyOverride || pipeline.history.map(h => ({
     id: h.id,
-    sourceText: h.original,
-    targetText: h.japanese,
+    sourceText: h.sourceText,
+    targetText: h.targetText,
     timestamp: new Date(h.timestamp || Date.now()),
     isHighQuality: true
   })) || [];
@@ -1496,8 +1495,8 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       const regularSummaries = summaries.filter(s => !s.threshold);
       if (regularSummaries.length > 0) {
         const latestSummary = regularSummaries[regularSummaries.length - 1];
-        setSummaryJapanese(latestSummary.japanese || '');
-        setSummaryEnglish(latestSummary.english || '');
+        setSummaryJapanese(latestSummary.targetText);
+        setSummaryEnglish(latestSummary.sourceText);
       }
       console.log('[UniVoice] Summaries:', { total: summaries.length, progressive: summaries.filter(s => s.threshold).length });
     }
@@ -2313,11 +2312,16 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             alignItems: 'center',
             gap: 'var(--button-gap)'
           }}>
-            {/* 履歴ボタン（フローティングパネル用） */}
+            {/* 履歴ボタン（履歴ウィンドウ用） */}
             <button 
               data-testid="history-button"
-              className={classNames(getThemeClass('button'), showHistoryPanel && styles.buttonActive)}
-              onClick={() => togglePanel('history')}
+              className={classNames(getThemeClass('button'), isHistoryWindowOpen && styles.buttonActive)}
+              onClick={async () => {
+                console.log('[UniVoice] History button clicked');
+                const result = await windowClient.toggleHistory();
+                console.log('[UniVoice] toggleHistory result:', result);
+                setIsHistoryWindowOpen(result);
+              }}
               style={{WebkitAppRegion: 'no-drag', width: 'var(--center-button-width)', height: 'var(--button-size)'}}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -2328,24 +2332,21 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
               <span className={styles.tooltip}>履歴</span>
             </button>
             
-            {/* 要約ボタン（プログレッシブ要約機能統合） */}
+            {/* 要約ボタン（要約ウィンドウ用） */}
             <button
               data-testid="summary-button"
-              className={classNames(getThemeClass('button'), showProgressiveSummary && styles.buttonActive)}
-              onClick={() => {
+              className={classNames(getThemeClass('button'), isSummaryWindowOpen && styles.buttonActive)}
+              onClick={async () => {
                 console.log('[UniVoice] Summary button clicked');
-                console.log('[UniVoice] Summaries:', summaries);
-                console.log('[UniVoice] window.electron:', window.electron);
-                console.log('[UniVoice] window.electron.send:', window.electron?.send);
+                const result = await windowClient.toggleSummary();
+                console.log('[UniVoice] toggleSummary result:', result);
+                setIsSummaryWindowOpen(result);
                 
-                // 要約ウィンドウを開く
-                if (window.electron?.send) {
+                // ウィンドウが開かれた場合、要約データを送信
+                if (result && window.electron?.send) {
                   const progressiveSummaries = summaries.filter(s => s.threshold);
-                  console.log('[UniVoice] Progressive summaries:', progressiveSummaries);
-                  
-                  // 要約データがなくてもウィンドウを開く
-                  console.log('[UniVoice] Sending open-summary-window event');
-                  window.electron.send('open-summary-window', {
+                  console.log('[UniVoice] Sending summary data to window:', progressiveSummaries);
+                  window.electron.send('summary-data-update', {
                     summaries: progressiveSummaries,
                     settings: {
                       theme: currentTheme,
@@ -2353,8 +2354,6 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                       displayMode: displayMode
                     }
                   });
-                } else {
-                  console.error('[UniVoice] window.electron.send not available');
                 }
               }}
               style={{WebkitAppRegion: 'no-drag', width: 'var(--center-button-width)', height: 'var(--button-size)'}}
@@ -2655,7 +2654,7 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
             <RealtimeSection
               {...(displayContent.original.recent || displayContent.original.older || displayContent.original.oldest 
                 ? {} 
-                : { currentOriginal, currentTranslation }
+                : { currentOriginal: currentSourceText, currentTranslation: currentTargetText }
               )}
               displayContent={{
                 original: displayContent.original,

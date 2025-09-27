@@ -94,7 +94,7 @@ export const MemoModal: React.FC<MemoModalProps> = ({
                 <div style={{ fontSize: '12px', color: '#999' }}>{memo.timestamp}</div>
                 <textarea
                   id={`${memo.id}-ja`}
-                  defaultValue={memo.japanese}
+                  defaultValue={memo.targetText}
                   style={{
                     padding: '8px',
                     border: '1px solid #e0e0e0',
@@ -106,7 +106,7 @@ export const MemoModal: React.FC<MemoModalProps> = ({
                 />
                 <textarea
                   id={`${memo.id}-en`}
-                  defaultValue={memo.english}
+                  defaultValue={memo.sourceText}
                   style={{
                     padding: '8px',
                     border: '1px solid #e0e0e0',

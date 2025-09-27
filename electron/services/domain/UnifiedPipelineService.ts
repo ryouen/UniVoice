@@ -92,8 +92,8 @@ interface TranscriptSegment {
 
 interface Translation {
   id: string;
-  original: string;
-  translated: string;
+  sourceText: string;     // original → sourceText
+  targetText: string;     // translated → targetText
   sourceLanguage: string;
   targetLanguage: string;
   timestamp: number;
@@ -103,8 +103,8 @@ interface Translation {
 
 interface Summary {
   id: string;
-  english: string;
-  japanese: string;
+  sourceText: string;
+  targetText: string;
   wordCount: number;
   timestamp: number;
   timeRange: {
@@ -711,7 +711,7 @@ export class UnifiedPipelineService extends EventEmitter {
     const startTime = Date.now();
     let firstPaintTime = 0;
     const segmentId = queuedTranslation.segmentId;
-    const text = queuedTranslation.originalText;
+    const text = queuedTranslation.sourceText;
     
     // Check if translation is needed (skip if source and target languages are the same)
     if (this.sourceLanguage === this.targetLanguage) {
@@ -730,8 +730,8 @@ export class UnifiedPipelineService extends EventEmitter {
       
       // Emit translation event with original text
       const translationEvent = createTranslationEvent({
-        originalText: text,
-        translatedText: text,
+        sourceText: text,
+        targetText: text,
         sourceLanguage: this.sourceLanguage,
         targetLanguage: this.targetLanguage,
         confidence: 1.0,
@@ -854,8 +854,8 @@ export class UnifiedPipelineService extends EventEmitter {
       // 翻訳完了
       const result: Translation = {
         id: `translation-${segmentId}`,
-        original: text,
-        translated: cleanedTranslation,
+        sourceText: text,
+        targetText: cleanedTranslation,
         sourceLanguage: this.sourceLanguage,
         targetLanguage: this.targetLanguage,
         timestamp: Date.now(),
@@ -873,8 +873,8 @@ export class UnifiedPipelineService extends EventEmitter {
       
       // Emit translation event
       this.emitEvent(createTranslationEvent({
-        originalText: result.original,
-        translatedText: result.translated,
+        sourceText: result.sourceText,
+        targetText: result.targetText,
         sourceLanguage: result.sourceLanguage,
         targetLanguage: result.targetLanguage,
         confidence: result.confidence,
@@ -882,13 +882,14 @@ export class UnifiedPipelineService extends EventEmitter {
         segmentId: segmentId,
       }, this.currentCorrelationId || 'unknown'));
       
-      // 🔴 CRITICAL: 親フォルダ互換のtranslationCompleteイベントを発火
-      // このイベントがないと履歴に追加されない
+      // translationCompleteイベントを発火（履歴記録用）
       if (result.isFinal) {
         this.emit('translationComplete', {
           id: segmentId,
-          original: result.original,
-          japanese: result.translated,
+          sourceText: result.sourceText,
+          targetText: result.targetText,
+          sourceLanguage: result.sourceLanguage,
+          targetLanguage: result.targetLanguage,
           timestamp: Date.now(),
           firstPaintMs: firstPaintTime,
           completeMs: completeTime
@@ -896,11 +897,11 @@ export class UnifiedPipelineService extends EventEmitter {
       }
       
       // 成功メトリクス
-      console.log(`[翻訳完了] "${result.translated.substring(0, 30)}..." (${completeTime}ms)`);
+      console.log(`[翻訳完了] "${result.targetText.substring(0, 30)}..." (${completeTime}ms)`);
       
       this.componentLogger.performance('info', 'Translation completed', startTime, {
         textLength: text.length,
-        translationLength: result.translated.length,
+        translationLength: result.targetText.length,
         segmentId,
         firstPaintMs: firstPaintTime,
         completeMs: completeTime,
@@ -910,7 +911,7 @@ export class UnifiedPipelineService extends EventEmitter {
       // Shadow Mode not implemented - commented out
       /*
       if (this.enableShadowMode && this.llmGateway) {
-        this.executeShadowModeTranslation(text, segmentId, result.translated, firstPaintTime, completeTime);
+        this.executeShadowModeTranslation(text, segmentId, result.targetText, firstPaintTime, completeTime);
       }
       */
       
@@ -936,7 +937,7 @@ export class UnifiedPipelineService extends EventEmitter {
       */
       
       // Return the translated text for the queue
-      return result.translated;
+      return result.targetText;
       
     } catch (error: any) {
       console.error('[UnifiedPipeline] Translation error:', error);
@@ -1046,7 +1047,7 @@ export class UnifiedPipelineService extends EventEmitter {
     console.log('[DataFlow-5] handleCombinedSentence called:', {
       combinedId: combinedSentence.id,
       segmentCount: combinedSentence.segmentCount,
-      textLength: combinedSentence.originalText.length,
+      textLength: combinedSentence.sourceText.length,
       timestamp: Date.now()
     });
     
@@ -1055,7 +1056,7 @@ export class UnifiedPipelineService extends EventEmitter {
       this.emitEvent(createCombinedSentenceEvent({
         combinedId: combinedSentence.id,
         segmentIds: combinedSentence.segmentIds,
-        originalText: combinedSentence.originalText,
+        sourceText: combinedSentence.sourceText,
         timestamp: combinedSentence.timestamp,
         endTimestamp: combinedSentence.endTimestamp,
         segmentCount: combinedSentence.segmentCount,
@@ -1069,7 +1070,7 @@ export class UnifiedPipelineService extends EventEmitter {
       // 履歴用翻訳リクエストを低優先度でキューに追加
       await this.translationQueue.enqueue({
         segmentId: `history_${combinedSentence.id}`,
-        originalText: combinedSentence.originalText,
+        sourceText: combinedSentence.sourceText,
         sourceLanguage: this.sourceLanguage,
         targetLanguage: this.targetLanguage,
         timestamp: combinedSentence.timestamp,
@@ -1211,7 +1212,7 @@ export class UnifiedPipelineService extends EventEmitter {
       if (result.isFinal && result.text.trim()) {
         await this.translationQueue.enqueue({
           segmentId: result.id,
-          originalText: result.text,
+          sourceText: result.text,
           sourceLanguage: this.sourceLanguage,
           targetLanguage: this.targetLanguage,
           timestamp: result.timestamp,
@@ -1236,7 +1237,7 @@ export class UnifiedPipelineService extends EventEmitter {
     // history_またはparagraph_プレフィックスを削除
     const isParagraph = queuedTranslation.segmentId.startsWith('paragraph_');
     const baseId = queuedTranslation.segmentId.replace(/^(history_|paragraph_)/, '');
-    const text = queuedTranslation.originalText;
+    const text = queuedTranslation.sourceText;
     
     try {
       // Check if translation is needed (skip if source and target languages are the same)
@@ -1249,8 +1250,8 @@ export class UnifiedPipelineService extends EventEmitter {
         
         // Emit translation event with original text for history
         const historyEvent = createTranslationEvent({
-          originalText: text,
-          translatedText: text,
+          sourceText: text,
+          targetText: text,
           sourceLanguage: this.sourceLanguage,
           targetLanguage: this.targetLanguage,
           confidence: 1.0,
@@ -1324,8 +1325,8 @@ Output only the ${targetName} translation.`;
       
       // 履歴翻訳完了イベントを発行（pipelineEventとして）
       this.emitEvent(createTranslationEvent({
-        originalText: text,
-        translatedText: cleanedTranslation,
+        sourceText: text,
+        targetText: cleanedTranslation,
         sourceLanguage: this.sourceLanguage,
         targetLanguage: this.targetLanguage,
         confidence: 0.95,  // 高品質翻訳なので高信頼度

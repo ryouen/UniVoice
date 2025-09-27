@@ -3,7 +3,7 @@
 // DO NOT EDIT MANUALLY - Run npm run sync-contracts instead
 
 export interface PipelineEvent {
-  type: 'asr' | 'translation' | 'segment' | 'summary' | 'progressiveSummary' | 'error' | 'status' | 'vocabulary' | 'finalReport' | 'combinedSentence' | 'paragraphComplete';
+  type: 'asr' | 'translation' | 'segment' | 'progressiveSummary' | 'error' | 'status' | 'vocabulary' | 'finalReport' | 'combinedSentence' | 'paragraphComplete';
   timestamp: number;
   correlationId: string;
   data: any; // Simplified for now

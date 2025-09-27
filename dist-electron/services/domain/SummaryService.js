@@ -96,7 +96,7 @@ class SummaryService extends events_1.EventEmitter {
             return;
         this.translations.push(translation);
         // 単語数をカウント（ソース言語で）
-        const wordCount = this.countWords(translation.original, this.sourceLanguage);
+        const wordCount = this.countWords(translation.sourceText, this.sourceLanguage);
         this.totalWordCount += wordCount;
         this.componentLogger.debug('Translation added for summary', {
             translationCount: this.translations.length,
@@ -178,7 +178,7 @@ class SummaryService extends events_1.EventEmitter {
             // 要約対象のコンテンツを収集
             const content = this.translations
                 .slice(0, this.lastProgressiveThresholdIndex + 1)
-                .map(t => t.original)
+                .map(t => t.sourceText)
                 .join(' ');
             const prompt = this.getProgressiveSummaryPrompt(content, baseThreshold);
             // GPT-5による要約生成
@@ -203,8 +203,8 @@ class SummaryService extends events_1.EventEmitter {
                 const summary = {
                     id: `summary-progressive-${baseThreshold}-${Date.now()}`,
                     timestamp: Date.now(),
-                    english: this.sourceLanguage === 'en' ? summaryTextInSourceLang : summaryTextInTargetLang,
-                    japanese: this.targetLanguage === 'ja' ? summaryTextInTargetLang : summaryTextInSourceLang,
+                    sourceText: summaryTextInSourceLang,
+                    targetText: summaryTextInTargetLang,
                     wordCount: actualThreshold,
                     startTime: this.translations[0].timestamp,
                     endTime: this.translations[this.translations.length - 1].timestamp
@@ -213,8 +213,10 @@ class SummaryService extends events_1.EventEmitter {
                 // イベントを発火
                 if (this.currentCorrelationId) {
                     const progressiveSummaryEvent = (0, contracts_1.createProgressiveSummaryEvent)({
-                        english: summary.english,
-                        japanese: summary.japanese,
+                        sourceText: summary.sourceText,
+                        targetText: summary.targetText,
+                        sourceLanguage: this.sourceLanguage,
+                        targetLanguage: this.targetLanguage,
                         wordCount: this.totalWordCount,
                         threshold: baseThreshold,
                         startTime: summary.startTime,

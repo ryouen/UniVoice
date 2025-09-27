@@ -54,8 +54,8 @@ export function convertToProgressiveSummaryData(summaries: Summary[]): Progressi
       stage: thresholdToStage[s.threshold!] || 0,
       wordCount: s.wordCount,
       // テキストをパラグラフ配列に変換（現在は1段落として扱う）
-      sourceText: [s.english],
-      targetText: [s.japanese],
+      sourceText: [s.sourceText],
+      targetText: [s.targetText],
       timestamp: s.timestamp,
       isProcessing: false
     }))

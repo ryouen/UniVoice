@@ -56,8 +56,8 @@ export declare const TranslationEventSchema: z.ZodObject<{
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
     data: z.ZodObject<{
-        originalText: z.ZodString;
-        translatedText: z.ZodString;
+        sourceText: z.ZodString;
+        targetText: z.ZodString;
         sourceLanguage: z.ZodString;
         targetLanguage: z.ZodString;
         confidence: z.ZodNumber;
@@ -68,16 +68,16 @@ export declare const TranslationEventSchema: z.ZodObject<{
         targetLanguage: string;
         confidence: number;
         isFinal: boolean;
-        originalText: string;
-        translatedText: string;
+        sourceText: string;
+        targetText: string;
         segmentId?: string | undefined;
     }, {
         sourceLanguage: string;
         targetLanguage: string;
         confidence: number;
         isFinal: boolean;
-        originalText: string;
-        translatedText: string;
+        sourceText: string;
+        targetText: string;
         segmentId?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
@@ -88,8 +88,8 @@ export declare const TranslationEventSchema: z.ZodObject<{
         targetLanguage: string;
         confidence: number;
         isFinal: boolean;
-        originalText: string;
-        translatedText: string;
+        sourceText: string;
+        targetText: string;
         segmentId?: string | undefined;
     };
     timestamp: number;
@@ -101,8 +101,8 @@ export declare const TranslationEventSchema: z.ZodObject<{
         targetLanguage: string;
         confidence: number;
         isFinal: boolean;
-        originalText: string;
-        translatedText: string;
+        sourceText: string;
+        targetText: string;
         segmentId?: string | undefined;
     };
     timestamp: number;
@@ -201,55 +201,6 @@ export declare const ErrorEventSchema: z.ZodObject<{
     timestamp: number;
 }>;
 /**
- * Summary Events
- */
-export declare const SummaryEventSchema: z.ZodObject<{
-    type: z.ZodLiteral<"summary">;
-    timestamp: z.ZodNumber;
-    correlationId: z.ZodString;
-    data: z.ZodObject<{
-        english: z.ZodString;
-        japanese: z.ZodString;
-        wordCount: z.ZodOptional<z.ZodNumber>;
-        startTime: z.ZodOptional<z.ZodNumber>;
-        endTime: z.ZodOptional<z.ZodNumber>;
-    }, "strip", z.ZodTypeAny, {
-        english: string;
-        japanese: string;
-        wordCount?: number | undefined;
-        startTime?: number | undefined;
-        endTime?: number | undefined;
-    }, {
-        english: string;
-        japanese: string;
-        wordCount?: number | undefined;
-        startTime?: number | undefined;
-        endTime?: number | undefined;
-    }>;
-}, "strip", z.ZodTypeAny, {
-    type: "summary";
-    correlationId: string;
-    data: {
-        english: string;
-        japanese: string;
-        wordCount?: number | undefined;
-        startTime?: number | undefined;
-        endTime?: number | undefined;
-    };
-    timestamp: number;
-}, {
-    type: "summary";
-    correlationId: string;
-    data: {
-        english: string;
-        japanese: string;
-        wordCount?: number | undefined;
-        startTime?: number | undefined;
-        endTime?: number | undefined;
-    };
-    timestamp: number;
-}>;
-/**
  * Progressive Summary Events (word count based)
  */
 export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
@@ -257,24 +208,30 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
     data: z.ZodObject<{
-        english: z.ZodString;
-        japanese: z.ZodString;
+        sourceText: z.ZodString;
+        targetText: z.ZodString;
+        sourceLanguage: z.ZodString;
+        targetLanguage: z.ZodString;
         wordCount: z.ZodNumber;
         threshold: z.ZodNumber;
         startTime: z.ZodOptional<z.ZodNumber>;
         endTime: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
+        sourceLanguage: string;
+        targetLanguage: string;
         threshold: number;
         wordCount: number;
-        english: string;
-        japanese: string;
+        sourceText: string;
+        targetText: string;
         startTime?: number | undefined;
         endTime?: number | undefined;
     }, {
+        sourceLanguage: string;
+        targetLanguage: string;
         threshold: number;
         wordCount: number;
-        english: string;
-        japanese: string;
+        sourceText: string;
+        targetText: string;
         startTime?: number | undefined;
         endTime?: number | undefined;
     }>;
@@ -282,10 +239,12 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
     type: "progressiveSummary";
     correlationId: string;
     data: {
+        sourceLanguage: string;
+        targetLanguage: string;
         threshold: number;
         wordCount: number;
-        english: string;
-        japanese: string;
+        sourceText: string;
+        targetText: string;
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
@@ -294,10 +253,12 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
     type: "progressiveSummary";
     correlationId: string;
     data: {
+        sourceLanguage: string;
+        targetLanguage: string;
         threshold: number;
         wordCount: number;
-        english: string;
-        japanese: string;
+        sourceText: string;
+        targetText: string;
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
@@ -455,20 +416,20 @@ export declare const CombinedSentenceEventSchema: z.ZodObject<{
     data: z.ZodObject<{
         combinedId: z.ZodString;
         segmentIds: z.ZodArray<z.ZodString, "many">;
-        originalText: z.ZodString;
+        sourceText: z.ZodString;
         timestamp: z.ZodNumber;
         endTimestamp: z.ZodNumber;
         segmentCount: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         timestamp: number;
-        originalText: string;
+        sourceText: string;
         combinedId: string;
         segmentIds: string[];
         endTimestamp: number;
         segmentCount: number;
     }, {
         timestamp: number;
-        originalText: string;
+        sourceText: string;
         combinedId: string;
         segmentIds: string[];
         endTimestamp: number;
@@ -479,7 +440,7 @@ export declare const CombinedSentenceEventSchema: z.ZodObject<{
     correlationId: string;
     data: {
         timestamp: number;
-        originalText: string;
+        sourceText: string;
         combinedId: string;
         segmentIds: string[];
         endTimestamp: number;
@@ -491,7 +452,7 @@ export declare const CombinedSentenceEventSchema: z.ZodObject<{
     correlationId: string;
     data: {
         timestamp: number;
-        originalText: string;
+        sourceText: string;
         combinedId: string;
         segmentIds: string[];
         endTimestamp: number;
@@ -719,8 +680,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
     data: z.ZodObject<{
-        originalText: z.ZodString;
-        translatedText: z.ZodString;
+        sourceText: z.ZodString;
+        targetText: z.ZodString;
         sourceLanguage: z.ZodString;
         targetLanguage: z.ZodString;
         confidence: z.ZodNumber;
@@ -731,16 +692,16 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         targetLanguage: string;
         confidence: number;
         isFinal: boolean;
-        originalText: string;
-        translatedText: string;
+        sourceText: string;
+        targetText: string;
         segmentId?: string | undefined;
     }, {
         sourceLanguage: string;
         targetLanguage: string;
         confidence: number;
         isFinal: boolean;
-        originalText: string;
-        translatedText: string;
+        sourceText: string;
+        targetText: string;
         segmentId?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
@@ -751,8 +712,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         targetLanguage: string;
         confidence: number;
         isFinal: boolean;
-        originalText: string;
-        translatedText: string;
+        sourceText: string;
+        targetText: string;
         segmentId?: string | undefined;
     };
     timestamp: number;
@@ -764,8 +725,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         targetLanguage: string;
         confidence: number;
         isFinal: boolean;
-        originalText: string;
-        translatedText: string;
+        sourceText: string;
+        targetText: string;
         segmentId?: string | undefined;
     };
     timestamp: number;
@@ -815,73 +776,34 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     };
     timestamp: number;
 }>, z.ZodObject<{
-    type: z.ZodLiteral<"summary">;
-    timestamp: z.ZodNumber;
-    correlationId: z.ZodString;
-    data: z.ZodObject<{
-        english: z.ZodString;
-        japanese: z.ZodString;
-        wordCount: z.ZodOptional<z.ZodNumber>;
-        startTime: z.ZodOptional<z.ZodNumber>;
-        endTime: z.ZodOptional<z.ZodNumber>;
-    }, "strip", z.ZodTypeAny, {
-        english: string;
-        japanese: string;
-        wordCount?: number | undefined;
-        startTime?: number | undefined;
-        endTime?: number | undefined;
-    }, {
-        english: string;
-        japanese: string;
-        wordCount?: number | undefined;
-        startTime?: number | undefined;
-        endTime?: number | undefined;
-    }>;
-}, "strip", z.ZodTypeAny, {
-    type: "summary";
-    correlationId: string;
-    data: {
-        english: string;
-        japanese: string;
-        wordCount?: number | undefined;
-        startTime?: number | undefined;
-        endTime?: number | undefined;
-    };
-    timestamp: number;
-}, {
-    type: "summary";
-    correlationId: string;
-    data: {
-        english: string;
-        japanese: string;
-        wordCount?: number | undefined;
-        startTime?: number | undefined;
-        endTime?: number | undefined;
-    };
-    timestamp: number;
-}>, z.ZodObject<{
     type: z.ZodLiteral<"progressiveSummary">;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
     data: z.ZodObject<{
-        english: z.ZodString;
-        japanese: z.ZodString;
+        sourceText: z.ZodString;
+        targetText: z.ZodString;
+        sourceLanguage: z.ZodString;
+        targetLanguage: z.ZodString;
         wordCount: z.ZodNumber;
         threshold: z.ZodNumber;
         startTime: z.ZodOptional<z.ZodNumber>;
         endTime: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
+        sourceLanguage: string;
+        targetLanguage: string;
         threshold: number;
         wordCount: number;
-        english: string;
-        japanese: string;
+        sourceText: string;
+        targetText: string;
         startTime?: number | undefined;
         endTime?: number | undefined;
     }, {
+        sourceLanguage: string;
+        targetLanguage: string;
         threshold: number;
         wordCount: number;
-        english: string;
-        japanese: string;
+        sourceText: string;
+        targetText: string;
         startTime?: number | undefined;
         endTime?: number | undefined;
     }>;
@@ -889,10 +811,12 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     type: "progressiveSummary";
     correlationId: string;
     data: {
+        sourceLanguage: string;
+        targetLanguage: string;
         threshold: number;
         wordCount: number;
-        english: string;
-        japanese: string;
+        sourceText: string;
+        targetText: string;
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
@@ -901,10 +825,12 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     type: "progressiveSummary";
     correlationId: string;
     data: {
+        sourceLanguage: string;
+        targetLanguage: string;
         threshold: number;
         wordCount: number;
-        english: string;
-        japanese: string;
+        sourceText: string;
+        targetText: string;
         startTime?: number | undefined;
         endTime?: number | undefined;
     };
@@ -1084,20 +1010,20 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     data: z.ZodObject<{
         combinedId: z.ZodString;
         segmentIds: z.ZodArray<z.ZodString, "many">;
-        originalText: z.ZodString;
+        sourceText: z.ZodString;
         timestamp: z.ZodNumber;
         endTimestamp: z.ZodNumber;
         segmentCount: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         timestamp: number;
-        originalText: string;
+        sourceText: string;
         combinedId: string;
         segmentIds: string[];
         endTimestamp: number;
         segmentCount: number;
     }, {
         timestamp: number;
-        originalText: string;
+        sourceText: string;
         combinedId: string;
         segmentIds: string[];
         endTimestamp: number;
@@ -1108,7 +1034,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     correlationId: string;
     data: {
         timestamp: number;
-        originalText: string;
+        sourceText: string;
         combinedId: string;
         segmentIds: string[];
         endTimestamp: number;
@@ -1120,7 +1046,7 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     correlationId: string;
     data: {
         timestamp: number;
-        originalText: string;
+        sourceText: string;
         combinedId: string;
         segmentIds: string[];
         endTimestamp: number;
@@ -1667,7 +1593,6 @@ export declare const IPCCommandSchema: z.ZodDiscriminatedUnion<"command", [z.Zod
 export type ASREvent = z.infer<typeof ASREventSchema>;
 export type TranslationEvent = z.infer<typeof TranslationEventSchema>;
 export type SegmentEvent = z.infer<typeof SegmentEventSchema>;
-export type SummaryEvent = z.infer<typeof SummaryEventSchema>;
 export type ProgressiveSummaryEvent = z.infer<typeof ProgressiveSummaryEventSchema>;
 export type ErrorEvent = z.infer<typeof ErrorEventSchema>;
 export type StatusEvent = z.infer<typeof StatusEventSchema>;
@@ -1692,7 +1617,6 @@ export declare const createASREvent: (data: ASREvent["data"], correlationId: str
 export declare const createTranslationEvent: (data: TranslationEvent["data"], correlationId: string) => TranslationEvent;
 export declare const createSegmentEvent: (data: SegmentEvent["data"], correlationId: string) => SegmentEvent;
 export declare const createErrorEvent: (data: ErrorEvent["data"], correlationId: string) => ErrorEvent;
-export declare const createSummaryEvent: (data: SummaryEvent["data"], correlationId: string) => SummaryEvent;
 export declare const createStatusEvent: (data: StatusEvent["data"], correlationId: string) => StatusEvent;
 export declare const createVocabularyEvent: (data: VocabularyEvent["data"], correlationId: string) => VocabularyEvent;
 export declare const createFinalReportEvent: (data: FinalReportEvent["data"], correlationId: string) => FinalReportEvent;

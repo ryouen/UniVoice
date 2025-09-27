@@ -10,8 +10,8 @@
 
 export interface HistorySentence {
   id: string;
-  original: string;
-  translation: string;
+  sourceText: string;
+  targetText: string;
   timestamp: number;
 }
 
@@ -68,8 +68,8 @@ export class FlexibleHistoryGrouper {
     
     for (const item of this.currentBlock) {
       // 日本語の句点（。）と英語のピリオド（.）をカウント
-      const japaneseSentences = (item.translation.match(/。/g) || []).length;
-      const englishSentences = (item.original.match(/\./g) || []).length;
+      const japaneseSentences = (item.targetText.match(/。/g) || []).length;
+      const englishSentences = (item.sourceText.match(/\./g) || []).length;
       
       // より多い方を採用（翻訳で文が分割される場合があるため）
       count += Math.max(japaneseSentences || 1, englishSentences || 1);
@@ -97,7 +97,7 @@ export class FlexibleHistoryGrouper {
     
     // 原文か翻訳のいずれかが段落終了パターンに一致
     const isEndOfParagraph = paragraphEndPatterns.some(pattern => 
-      pattern.test(lastItem.original) || pattern.test(lastItem.translation)
+      pattern.test(lastItem.sourceText) || pattern.test(lastItem.targetText)
     );
     
     // 時間的な区切り（前の文から3秒以上経過）
@@ -142,8 +142,8 @@ export class FlexibleHistoryGrouper {
     
     for (const sentence of sentences) {
       // 原文と翻訳の両方の行数を計算
-      const originalLines = Math.ceil(sentence.original.length / 40);
-      const translationLines = Math.ceil(sentence.translation.length / 40);
+      const originalLines = Math.ceil(sentence.sourceText.length / 40);
+      const translationLines = Math.ceil(sentence.targetText.length / 40);
       
       // より高い方を採用（左右で高さを揃えるため）
       const maxLines = Math.max(originalLines, translationLines);
@@ -166,13 +166,13 @@ export class FlexibleHistoryGrouper {
    * 既存の文の翻訳を更新
    * Phase 1修正: 高品質翻訳が到着した時に履歴を更新するため
    */
-  updateSentenceTranslation(sentenceId: string, translation: string): void {
+  updateSentenceTranslation(sentenceId: string, targetText: string): void {
     // 現在のブロック内の文を更新
     const currentIndex = this.currentBlock.findIndex(s => s.id === sentenceId);
     if (currentIndex !== -1) {
       this.currentBlock[currentIndex] = {
         ...this.currentBlock[currentIndex],
-        translation
+        targetText
       };
       return;
     }
@@ -186,7 +186,7 @@ export class FlexibleHistoryGrouper {
         const updatedSentences = [...block.sentences];
         updatedSentences[sentenceIndex] = {
           ...updatedSentences[sentenceIndex],
-          translation
+          targetText
         };
         
         // ブロック全体を更新
@@ -247,8 +247,8 @@ export class FlexibleHistoryGrouper {
    */
   addParagraph(paragraph: {
     id: string;
-    originalText: string;
-    translation: string;
+    sourceText: string;
+    targetText: string;
     timestamp: number;
   }): void {
     // 現在のブロックがあれば先に完成させる
@@ -259,8 +259,8 @@ export class FlexibleHistoryGrouper {
     // パラグラフを1つの文として扱い、即座にブロック化
     const paragraphSentence: HistorySentence = {
       id: paragraph.id,
-      original: paragraph.originalText,
-      translation: paragraph.translation,
+      sourceText: paragraph.sourceText,
+      targetText: paragraph.targetText,
       timestamp: paragraph.timestamp
     };
     
@@ -279,7 +279,7 @@ export class FlexibleHistoryGrouper {
   /**
    * パラグラフの翻訳を更新（Phase 2-ParagraphBuilder対応）
    */
-  updateParagraphTranslation(paragraphId: string, translation: string): void {
+  updateParagraphTranslation(paragraphId: string, targetText: string): void {
     // 完成済みブロック内のパラグラフを探して更新
     for (let i = 0; i < this.completedBlocks.length; i++) {
       const block = this.completedBlocks[i];
@@ -287,7 +287,7 @@ export class FlexibleHistoryGrouper {
       if (block.sentences.length === 1 && block.sentences[0].id === paragraphId) {
         const updatedSentence = {
           ...block.sentences[0],
-          translation
+          targetText
         };
         
         this.completedBlocks[i] = {

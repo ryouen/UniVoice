@@ -14,7 +14,7 @@
  */
 export interface QueuedTranslation {
     segmentId: string;
-    originalText: string;
+    sourceText: string;
     sourceLanguage: string;
     targetLanguage: string;
     timestamp: number;

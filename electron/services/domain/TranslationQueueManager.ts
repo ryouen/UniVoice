@@ -15,7 +15,7 @@
 
 export interface QueuedTranslation {
   segmentId: string;
-  originalText: string;
+  sourceText: string;      // original → source に統一
   sourceLanguage: string;
   targetLanguage: string;
   timestamp: number;

@@ -6,7 +6,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
-import { useNavigate } from 'react-router-dom';
 import classNames from 'classnames';
 import type { HistoryWindowProps, HistoryEntry, HistoryData } from '../types/history-window.types';
 import {
@@ -33,7 +32,6 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
   onDisplayModeChange = () => {},
   onClose = () => {}
 }) => {
-  const navigate = useNavigate();
   // 内部状態（プロップスと同期）
   const [internalTheme, setInternalTheme] = useState(currentTheme);
   const [internalFontScale, setInternalFontScale] = useState(fontScale);
@@ -185,9 +183,12 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
   const handleClose = useCallback(() => {
     // コールバックを実行
     onClose();
-    // メイン画面に戻る
-    navigate('/');
-  }, [onClose, navigate]);
+    
+    // 実際にウィンドウを閉じる
+    if (window.univoice?.window?.close) {
+      window.univoice.window.close();
+    }
+  }, [onClose]);
 
   // キーボードショートカット
   useEffect(() => {

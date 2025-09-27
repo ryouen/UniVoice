@@ -234,12 +234,12 @@ export const UnifiedHistoryRendererFlow: React.FC<FlowHistoryRendererProps> = ({
 
             {/* 原文 */}
             <div style={styles.original}>
-              {block.sentences.map(s => s.original).join(' ')}
+              {block.sentences.map(s => s.sourceText).join(' ')}
             </div>
 
             {/* 翻訳 */}
             <div style={styles.translation}>
-              {block.sentences.map(s => s.translation).join(' ')}
+              {block.sentences.map(s => s.targetText).join(' ')}
             </div>
           </div>
         </React.Fragment>
@@ -323,7 +323,7 @@ export const renderFlowHistoryToHTML = (
           color: #333;
           font-size: 15px;
         ">
-          ${block.sentences.map(s => s.original).join(' ')}
+          ${block.sentences.map(s => s.sourceText).join(' ')}
         </div>
         <div style="
           padding-left: 20px;
@@ -332,7 +332,7 @@ export const renderFlowHistoryToHTML = (
           font-size: 15px;
           border-left: 1px solid rgba(0, 102, 204, 0.15);
         ">
-          ${block.sentences.map(s => s.translation).join(' ')}
+          ${block.sentences.map(s => s.targetText).join(' ')}
         </div>
       </div>
     `;

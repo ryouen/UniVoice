@@ -25,7 +25,7 @@ export interface TranscriptSegment {
 export interface CombinedSentence {
     id: string;
     segmentIds: string[];
-    originalText: string;
+    sourceText: string;
     timestamp: number;
     endTimestamp: number;
     segmentCount: number;

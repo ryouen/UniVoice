@@ -8,8 +8,8 @@ import React from 'react';
 interface Memo {
   id: string;
   timestamp: string;
-  japanese: string;
-  english: string;
+  sourceText: string;
+  targetText: string;
 }
 
 interface UniVoiceModalsProps {
@@ -29,7 +29,7 @@ interface UniVoiceModalsProps {
   showReportModal: boolean;
   selectedClass: string | null;
   recordingTime: number;
-  summaryOverride?: { japanese: string; english: string };
+  summaryOverride?: { sourceText: string; targetText: string };
   onCloseReport: () => void;
   onWordExport: () => void;
   onPDFExport: () => void;
@@ -169,7 +169,7 @@ export const UniVoiceModals: React.FC<UniVoiceModalsProps> = ({
                     <div style={{ fontSize: '12px', color: '#999' }}>{memo.timestamp}</div>
                     <textarea
                       id={`${memo.id}-ja`}
-                      defaultValue={memo.japanese}
+                      defaultValue={memo.sourceText}
                       style={{
                         padding: '8px',
                         border: '1px solid #e0e0e0',
@@ -181,7 +181,7 @@ export const UniVoiceModals: React.FC<UniVoiceModalsProps> = ({
                     />
                     <textarea
                       id={`${memo.id}-en`}
-                      defaultValue={memo.english}
+                      defaultValue={memo.targetText}
                       style={{
                         padding: '8px',
                         border: '1px solid #e0e0e0',
@@ -261,15 +261,15 @@ export const UniVoiceModals: React.FC<UniVoiceModalsProps> = ({
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
               <div>
-                <h3>English Summary</h3>
+                <h3>Source Text Summary</h3>
                 <p style={{ lineHeight: '1.8' }}>
-                  {summaryOverride?.english || 'No summary available yet. Recording will generate a summary after 10 minutes.'}
+                  {summaryOverride?.sourceText || 'No summary available yet. Recording will generate a summary after 10 minutes.'}
                 </p>
               </div>
               <div>
-                <h3>日本語要約</h3>
+                <h3>Target Text Summary</h3>
                 <p style={{ lineHeight: '1.8' }}>
-                  {summaryOverride?.japanese || '要約はまだありません。録音開始10分後に要約が生成されます。'}
+                  {summaryOverride?.targetText || '要約はまだありません。録音開始10分後に要約が生成されます。'}
                 </p>
               </div>
             </div>
@@ -278,7 +278,7 @@ export const UniVoiceModals: React.FC<UniVoiceModalsProps> = ({
               {memoList.slice(0, 3).map(memo => (
                 <div key={memo.id} style={{ marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '6px' }}>
                   <span style={{ fontSize: '12px', color: '#999' }}>{memo.timestamp}</span>
-                  <div>{memo.japanese}</div>
+                  <div>{memo.sourceText}</div>
                 </div>
               ))}
             </div>

@@ -127,22 +127,22 @@ export interface EventPayloads {
   [PIPELINE_EVENTS.CURRENT_TRANSLATION_UPDATE]: string;
   [PIPELINE_EVENTS.TRANSLATION_COMPLETE]: {
     id: string;
-    original: string;
-    japanese: string;
+    sourceText: string;
+    targetText: string;
     timestamp: number;
     firstPaintMs?: number;
     completeMs?: number;
   };
   [PIPELINE_EVENTS.SUMMARY_GENERATED]: {
     id: string;
-    english: string;
-    japanese: string;
+    sourceText: string;
+    targetText: string;
     wordCount: number;
     timestamp: number;
   };
   [PIPELINE_EVENTS.USER_TRANSLATION]: {
-    original: string;
-    translated: string;
+    sourceText: string;
+    targetText: string;
   };
   [PIPELINE_EVENTS.VOCABULARY_GENERATED]: {
     items: Array<{ term: string; definition: string; context?: string }>;
@@ -177,8 +177,8 @@ export interface EventPayloads {
   };
   [DOMAIN_EVENTS.TRANSLATION_COMPLETED]: {
     id: string;
-    original: string;
-    translated: string;
+    sourceText: string;
+    targetText: string;
   };
   [DOMAIN_EVENTS.SUMMARY_COMPLETED]: {
     id: string;

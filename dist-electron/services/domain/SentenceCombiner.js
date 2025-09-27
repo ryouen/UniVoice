@@ -133,7 +133,7 @@ class SentenceCombiner {
         const combinedSentence = {
             id: `combined_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             segmentIds: this.segments.map(s => s.id),
-            originalText: combinedText,
+            sourceText: combinedText,
             timestamp: this.segments[0].timestamp,
             endTimestamp: this.segments[this.segments.length - 1].timestamp,
             segmentCount: this.segments.length
@@ -143,7 +143,7 @@ class SentenceCombiner {
         console.log('[DataFlow-4] Combined sentence created:', {
             combinedId: combinedSentence.id,
             segmentIds: combinedSentence.segmentIds,
-            textLength: combinedSentence.originalText.length,
+            textLength: combinedSentence.sourceText.length,
             timestamp: Date.now()
         });
         // コールバックを呼び出し

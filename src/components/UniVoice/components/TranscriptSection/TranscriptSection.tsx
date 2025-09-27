@@ -24,12 +24,12 @@ export interface TranscriptSectionProps {
   // Display State
   isRunning: boolean;
   displayContent: {
-    original: DisplayContent;
-    translation: DisplayContent;
+    sourceText: DisplayContent;
+    targetText: DisplayContent;
   };
   displayOpacity: {
-    original: DisplayOpacity;
-    translation: DisplayOpacity;
+    sourceText: DisplayOpacity;
+    targetText: DisplayOpacity;
   };
 
   // Display Options
@@ -84,8 +84,8 @@ export const TranscriptSection: React.FC<TranscriptSectionProps> = ({
       console.log('[TranscriptSection] Props received:', {
         hasDisplayContent: !!displayContent,
         displayContentKeys: displayContent ? Object.keys(displayContent) : [],
-        originalKeys: displayContent?.original ? Object.keys(displayContent.original) : [],
-        translationKeys: displayContent?.translation ? Object.keys(displayContent.translation) : [],
+        originalKeys: displayContent?.sourceText ? Object.keys(displayContent.sourceText) : [],
+        translationKeys: displayContent?.targetText ? Object.keys(displayContent.targetText) : [],
         theme,
         displayMode,
         fontScale
@@ -95,8 +95,8 @@ export const TranscriptSection: React.FC<TranscriptSectionProps> = ({
 
   // 3段階表示があるかチェック
   const hasThreeLineContent = displayContent &&
-    (displayContent.original.oldest || displayContent.original.older || displayContent.original.recent ||
-     displayContent.translation.oldest || displayContent.translation.older || displayContent.translation.recent);
+    (displayContent.sourceText.oldest || displayContent.sourceText.older || displayContent.sourceText.recent ||
+     displayContent.targetText.oldest || displayContent.targetText.older || displayContent.targetText.recent);
 
   // グリッドカラム設定
   const gridTemplateColumns = displayMode === 'both' ? '1fr 1px 1fr' : '1fr';
@@ -125,13 +125,13 @@ export const TranscriptSection: React.FC<TranscriptSectionProps> = ({
             <div
               className={classNames(styles.gridCell, styles.oldest)}
               style={{
-                opacity: displayOpacity?.original?.oldest || 0.3,
+                opacity: displayOpacity?.sourceText?.oldest || 0.3,
                 fontSize: `${20 * fontScale}px`,
                 color: colors.source,
-                minHeight: displayContent?.original?.oldest ? 'auto' : '32px'
+                minHeight: displayContent?.sourceText?.oldest ? 'auto' : '32px'
               }}
             >
-              {displayContent?.original?.oldest || ''}
+              {displayContent?.sourceText?.oldest || ''}
             </div>
           )}
 
@@ -148,13 +148,13 @@ export const TranscriptSection: React.FC<TranscriptSectionProps> = ({
               className={classNames(styles.gridCell, styles.oldest)}
               style={{
                 gridColumn: displayMode === 'both' ? 3 : 1,
-                opacity: displayOpacity?.translation?.oldest || 0.3,
+                opacity: displayOpacity?.targetText?.oldest || 0.3,
                 fontSize: `${20 * fontScale}px`,
                 color: colors.target,
-                minHeight: displayContent?.translation?.oldest ? 'auto' : '32px'
+                minHeight: displayContent?.targetText?.oldest ? 'auto' : '32px'
               }}
             >
-              {displayContent?.translation?.oldest || ''}
+              {displayContent?.targetText?.oldest || ''}
             </div>
           )}
 
@@ -163,13 +163,13 @@ export const TranscriptSection: React.FC<TranscriptSectionProps> = ({
             <div
               className={classNames(styles.gridCell, styles.older)}
               style={{
-                opacity: displayOpacity?.original?.older || 0.6,
+                opacity: displayOpacity?.sourceText?.older || 0.6,
                 fontSize: `${20 * fontScale}px`,
                 color: colors.source,
-                minHeight: displayContent?.original?.older ? 'auto' : '32px'
+                minHeight: displayContent?.sourceText?.older ? 'auto' : '32px'
               }}
             >
-              {displayContent?.original?.older || ''}
+              {displayContent?.sourceText?.older || ''}
             </div>
           )}
 
@@ -178,13 +178,13 @@ export const TranscriptSection: React.FC<TranscriptSectionProps> = ({
               className={classNames(styles.gridCell, styles.older)}
               style={{
                 gridColumn: displayMode === 'both' ? 3 : 1,
-                opacity: displayOpacity?.translation?.older || 0.6,
+                opacity: displayOpacity?.targetText?.older || 0.6,
                 fontSize: `${20 * fontScale}px`,
                 color: colors.target,
-                minHeight: displayContent?.translation?.older ? 'auto' : '32px'
+                minHeight: displayContent?.targetText?.older ? 'auto' : '32px'
               }}
             >
-              {displayContent?.translation?.older || ''}
+              {displayContent?.targetText?.older || ''}
             </div>
           )}
 
@@ -193,13 +193,13 @@ export const TranscriptSection: React.FC<TranscriptSectionProps> = ({
             <div
               className={classNames(styles.gridCell, styles.recent)}
               style={{
-                opacity: displayOpacity?.original?.recent || 1,
+                opacity: displayOpacity?.sourceText?.recent || 1,
                 fontSize: `${20 * fontScale}px`,
                 color: colors.source,
-                minHeight: displayContent?.original?.recent ? 'auto' : '32px'
+                minHeight: displayContent?.sourceText?.recent ? 'auto' : '32px'
               }}
             >
-              {displayContent?.original?.recent || ''}
+              {displayContent?.sourceText?.recent || ''}
             </div>
           )}
 
@@ -208,13 +208,13 @@ export const TranscriptSection: React.FC<TranscriptSectionProps> = ({
               className={classNames(styles.gridCell, styles.recent)}
               style={{
                 gridColumn: displayMode === 'both' ? 3 : 1,
-                opacity: displayOpacity?.translation?.recent || 1,
+                opacity: displayOpacity?.targetText?.recent || 1,
                 fontSize: `${20 * fontScale}px`,
                 color: colors.target,
-                minHeight: displayContent?.translation?.recent ? 'auto' : '32px'
+                minHeight: displayContent?.targetText?.recent ? 'auto' : '32px'
               }}
             >
-              {displayContent?.translation?.recent || ''}
+              {displayContent?.targetText?.recent || ''}
             </div>
           )}
         </div>

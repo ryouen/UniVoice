@@ -124,7 +124,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               borderRadius: '6px' 
             }}>
               <span style={{ fontSize: '12px', color: '#999' }}>{memo.timestamp}</span>
-              <div>{memo.japanese}</div>
+              <div>{memo.targetText}</div>
             </div>
           ))}
           {memoList.length > 3 && (

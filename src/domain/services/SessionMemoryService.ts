@@ -45,8 +45,8 @@ export interface SessionData {
 export interface SessionMemo {
   id: string;
   timestamp: string;
-  japanese: string;
-  english: string;
+  sourceText: string;
+  targetText: string;
 }
 
 interface SessionMemoryServiceOptions {
@@ -204,7 +204,7 @@ export class SessionMemoryService {
     };
     
     // Trigger async save for important updates
-    if (updates.japanese) {
+    if (updates.targetText) {
       this.triggerAsyncSave();
     }
     

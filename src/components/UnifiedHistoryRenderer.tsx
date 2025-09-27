@@ -304,12 +304,12 @@ export const UnifiedHistoryRenderer: React.FC<UnifiedHistoryRendererProps> = ({
             <div className="block-content" style={styles.content}>
               {/* 原文（英語） */}
               <div className="original-text" style={styles.original}>
-                {block.sentences.map(sentence => sentence.original).join(' ')}
+                {block.sentences.map(sentence => sentence.sourceText).join(' ')}
               </div>
               
               {/* 翻訳（日本語） */}
               <div className="translation-text" style={styles.translation}>
-                {block.sentences.map(sentence => sentence.translation).join(' ')}
+                {block.sentences.map(sentence => sentence.targetText).join(' ')}
               </div>
             </div>
           </div>
@@ -394,14 +394,14 @@ export const renderHistoryToHTML = (
           line-height: 1.8;
           color: ${THEME_COLORS[theme].sourceText};
         ">
-          ${block.sentences.map(s => s.original).join(' ')}
+          ${block.sentences.map(s => s.sourceText).join(' ')}
         </div>
         <div style="
           padding-left: 20px;
           line-height: 1.8;
           color: ${THEME_COLORS[theme].targetText};
         ">
-          ${block.sentences.map(s => s.translation).join(' ')}
+          ${block.sentences.map(s => s.targetText).join(' ')}
         </div>
       </div>
     `;

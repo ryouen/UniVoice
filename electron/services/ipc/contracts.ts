@@ -28,13 +28,13 @@ export const TranslationEventSchema = z.object({
   timestamp: z.number(),
   correlationId: z.string(),
   data: z.object({
-    originalText: z.string(),
-    translatedText: z.string(),
+    sourceText: z.string(),
+    targetText: z.string(),
     sourceLanguage: z.string(),
     targetLanguage: z.string(),
     confidence: z.number().min(0).max(1),
     isFinal: z.boolean(),
-    segmentId: z.string().optional(), // Added for RealtimeDisplayManager
+    segmentId: z.string().optional(),
   }),
 });
 
@@ -70,22 +70,6 @@ export const ErrorEventSchema = z.object({
 });
 
 /**
- * Summary Events
- */
-export const SummaryEventSchema = z.object({
-  type: z.literal('summary'),
-  timestamp: z.number(),
-  correlationId: z.string(),
-  data: z.object({
-    english: z.string(),
-    japanese: z.string(),
-    wordCount: z.number().optional(),
-    startTime: z.number().optional(),
-    endTime: z.number().optional(),
-  }),
-});
-
-/**
  * Progressive Summary Events (word count based)
  */
 export const ProgressiveSummaryEventSchema = z.object({
@@ -93,8 +77,10 @@ export const ProgressiveSummaryEventSchema = z.object({
   timestamp: z.number(),
   correlationId: z.string(),
   data: z.object({
-    english: z.string(),
-    japanese: z.string(),
+    sourceText: z.string(),
+    targetText: z.string(),
+    sourceLanguage: z.string(),
+    targetLanguage: z.string(),
     wordCount: z.number(),
     threshold: z.number(),
     startTime: z.number().optional(),
@@ -159,7 +145,7 @@ export const CombinedSentenceEventSchema = z.object({
   data: z.object({
     combinedId: z.string(),           // 結合された文のID（combined_xxx）
     segmentIds: z.array(z.string()),  // 元のセグメントIDの配列
-    originalText: z.string(),         // 結合された原文
+    sourceText: z.string(),           // 結合された原文
     timestamp: z.number(),            // 最初のセグメントのタイムスタンプ
     endTimestamp: z.number(),         // 最後のセグメントのタイムスタンプ
     segmentCount: z.number(),         // 結合されたセグメント数
@@ -210,8 +196,7 @@ export const PipelineEventSchema = z.discriminatedUnion('type', [
   ASREventSchema,
   TranslationEventSchema,
   SegmentEventSchema,
-  SummaryEventSchema,
-  ProgressiveSummaryEventSchema,  // 段階的要約イベント追加
+  ProgressiveSummaryEventSchema,  // 段階的要約イベント
   ErrorEventSchema,
   StatusEventSchema,
   VocabularyEventSchema,
@@ -308,7 +293,6 @@ export const IPCCommandSchema = z.discriminatedUnion('command', [
 export type ASREvent = z.infer<typeof ASREventSchema>;
 export type TranslationEvent = z.infer<typeof TranslationEventSchema>;
 export type SegmentEvent = z.infer<typeof SegmentEventSchema>;
-export type SummaryEvent = z.infer<typeof SummaryEventSchema>;
 export type ProgressiveSummaryEvent = z.infer<typeof ProgressiveSummaryEventSchema>;
 export type ErrorEvent = z.infer<typeof ErrorEventSchema>;
 export type StatusEvent = z.infer<typeof StatusEventSchema>;
@@ -382,15 +366,6 @@ export const createErrorEvent = (
   data,
 });
 
-export const createSummaryEvent = (
-  data: SummaryEvent['data'],
-  correlationId: string
-): SummaryEvent => ({
-  type: 'summary',
-  timestamp: Date.now(),
-  correlationId,
-  data,
-});
 
 export const createStatusEvent = (
   data: StatusEvent['data'],

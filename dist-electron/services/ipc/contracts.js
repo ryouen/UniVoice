@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createParagraphCompleteEvent = exports.createCombinedSentenceEvent = exports.createProgressiveSummaryEvent = exports.createFinalReportEvent = exports.createVocabularyEvent = exports.createStatusEvent = exports.createSummaryEvent = exports.createErrorEvent = exports.createSegmentEvent = exports.createTranslationEvent = exports.createASREvent = exports.validateIPCCommand = exports.validatePipelineEvent = exports.IPCCommandSchema = exports.LoadSessionCommandSchema = exports.GetAvailableSessionsCommandSchema = exports.GenerateFinalReportCommandSchema = exports.GenerateVocabularyCommandSchema = exports.ClearHistoryCommandSchema = exports.GetFullHistoryCommandSchema = exports.GetHistoryCommandSchema = exports.StopListeningCommandSchema = exports.StartListeningCommandSchema = exports.PipelineEventSchema = exports.ParagraphCompleteEventSchema = exports.CombinedSentenceEventSchema = exports.FinalReportEventSchema = exports.VocabularyEventSchema = exports.StatusEventSchema = exports.ProgressiveSummaryEventSchema = exports.SummaryEventSchema = exports.ErrorEventSchema = exports.SegmentEventSchema = exports.TranslationEventSchema = exports.ASREventSchema = void 0;
+exports.createParagraphCompleteEvent = exports.createCombinedSentenceEvent = exports.createProgressiveSummaryEvent = exports.createFinalReportEvent = exports.createVocabularyEvent = exports.createStatusEvent = exports.createErrorEvent = exports.createSegmentEvent = exports.createTranslationEvent = exports.createASREvent = exports.validateIPCCommand = exports.validatePipelineEvent = exports.IPCCommandSchema = exports.LoadSessionCommandSchema = exports.GetAvailableSessionsCommandSchema = exports.GenerateFinalReportCommandSchema = exports.GenerateVocabularyCommandSchema = exports.ClearHistoryCommandSchema = exports.GetFullHistoryCommandSchema = exports.GetHistoryCommandSchema = exports.StopListeningCommandSchema = exports.StartListeningCommandSchema = exports.PipelineEventSchema = exports.ParagraphCompleteEventSchema = exports.CombinedSentenceEventSchema = exports.FinalReportEventSchema = exports.VocabularyEventSchema = exports.StatusEventSchema = exports.ProgressiveSummaryEventSchema = exports.ErrorEventSchema = exports.SegmentEventSchema = exports.TranslationEventSchema = exports.ASREventSchema = void 0;
 const zod_1 = require("zod");
 // ========================================
 // Core Domain Types
@@ -28,13 +28,13 @@ exports.TranslationEventSchema = zod_1.z.object({
     timestamp: zod_1.z.number(),
     correlationId: zod_1.z.string(),
     data: zod_1.z.object({
-        originalText: zod_1.z.string(),
-        translatedText: zod_1.z.string(),
+        sourceText: zod_1.z.string(),
+        targetText: zod_1.z.string(),
         sourceLanguage: zod_1.z.string(),
         targetLanguage: zod_1.z.string(),
         confidence: zod_1.z.number().min(0).max(1),
         isFinal: zod_1.z.boolean(),
-        segmentId: zod_1.z.string().optional(), // Added for RealtimeDisplayManager
+        segmentId: zod_1.z.string().optional(),
     }),
 });
 /**
@@ -67,21 +67,6 @@ exports.ErrorEventSchema = zod_1.z.object({
     }),
 });
 /**
- * Summary Events
- */
-exports.SummaryEventSchema = zod_1.z.object({
-    type: zod_1.z.literal('summary'),
-    timestamp: zod_1.z.number(),
-    correlationId: zod_1.z.string(),
-    data: zod_1.z.object({
-        english: zod_1.z.string(),
-        japanese: zod_1.z.string(),
-        wordCount: zod_1.z.number().optional(),
-        startTime: zod_1.z.number().optional(),
-        endTime: zod_1.z.number().optional(),
-    }),
-});
-/**
  * Progressive Summary Events (word count based)
  */
 exports.ProgressiveSummaryEventSchema = zod_1.z.object({
@@ -89,8 +74,10 @@ exports.ProgressiveSummaryEventSchema = zod_1.z.object({
     timestamp: zod_1.z.number(),
     correlationId: zod_1.z.string(),
     data: zod_1.z.object({
-        english: zod_1.z.string(),
-        japanese: zod_1.z.string(),
+        sourceText: zod_1.z.string(),
+        targetText: zod_1.z.string(),
+        sourceLanguage: zod_1.z.string(),
+        targetLanguage: zod_1.z.string(),
         wordCount: zod_1.z.number(),
         threshold: zod_1.z.number(),
         startTime: zod_1.z.number().optional(),
@@ -151,7 +138,7 @@ exports.CombinedSentenceEventSchema = zod_1.z.object({
     data: zod_1.z.object({
         combinedId: zod_1.z.string(), // 結合された文のID（combined_xxx）
         segmentIds: zod_1.z.array(zod_1.z.string()), // 元のセグメントIDの配列
-        originalText: zod_1.z.string(), // 結合された原文
+        sourceText: zod_1.z.string(), // 結合された原文
         timestamp: zod_1.z.number(), // 最初のセグメントのタイムスタンプ
         endTimestamp: zod_1.z.number(), // 最後のセグメントのタイムスタンプ
         segmentCount: zod_1.z.number(), // 結合されたセグメント数
@@ -199,8 +186,7 @@ exports.PipelineEventSchema = zod_1.z.discriminatedUnion('type', [
     exports.ASREventSchema,
     exports.TranslationEventSchema,
     exports.SegmentEventSchema,
-    exports.SummaryEventSchema,
-    exports.ProgressiveSummaryEventSchema, // 段階的要約イベント追加
+    exports.ProgressiveSummaryEventSchema, // 段階的要約イベント
     exports.ErrorEventSchema,
     exports.StatusEventSchema,
     exports.VocabularyEventSchema,
@@ -320,13 +306,6 @@ const createErrorEvent = (data, correlationId) => ({
     data,
 });
 exports.createErrorEvent = createErrorEvent;
-const createSummaryEvent = (data, correlationId) => ({
-    type: 'summary',
-    timestamp: Date.now(),
-    correlationId,
-    data,
-});
-exports.createSummaryEvent = createSummaryEvent;
 const createStatusEvent = (data, correlationId) => ({
     type: 'status',
     timestamp: Date.now(),

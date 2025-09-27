@@ -113,7 +113,8 @@
       "Bash(claude code /doctor)",
       "mcp__github__create_or_update_file",
       "Bash(start test-css-unification.html)",
-      "Bash(explorer test-css-unification.html)"
+      "Bash(explorer test-css-unification.html)",
+      "Bash(ls -la CRITICAL-FACTS-FOR-NEW-SESSION.md START-HERE.md IMPLEMENTATION-STATUS-20250910.md PARAMETER-INCONSISTENCIES-REPORT.md)"
     ],
     "deny": []
   },

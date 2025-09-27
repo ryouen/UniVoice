@@ -1,26 +1,32 @@
+/** @type {import('jest').Config} */
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  testEnvironmentOptions: { console: 'console' },
-  roots: ['<rootDir>/tests'],
-  testMatch: ['**/__tests__/**/*.ts?(x)', '**/?(*.)+(spec|test).ts?(x)'],
-  transform: {
-    '^.+\.tsx?$': 'ts-jest',
-  },
-  testPathIgnorePatterns: ['/node_modules/', '/tests/e2e/'],
-  collectCoverageFrom: [
-    'electron/**/*.ts',
-    'src/**/*.ts',
-    'src/**/*.tsx',
-    '!**/*.d.ts',
-    '!**/node_modules/**'
+  rootDir: '.',
+  testMatch: [
+    '<rootDir>/tests/**/*.test.ts',
+    '<rootDir>/tests/**/*.test.tsx'
   ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/dist-electron/',
+    '/docs/',  // docsディレクトリ内のテストを除外
+    '/archive/',
+    '/backup/'
+  ],
   moduleNameMapper: {
-    '\.css$': 'identity-obj-proxy',
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^electron/(.*)$': '<rootDir>/electron/$1'
   },
-  testTimeout: 10000,
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react'
+      }
+    }]
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node']
 };

@@ -23,15 +23,15 @@ interface AdvancedFeatureConfig {
 }
 interface Translation {
     id: string;
-    original: string;
-    translated: string;
+    sourceText: string;
+    targetText: string;
     timestamp: number;
 }
 interface Summary {
     id: string;
     timestamp: number;
-    english: string;
-    japanese: string;
+    sourceText: string;
+    targetText: string;
     wordCount: number;
     startTime: number;
     endTime: number;

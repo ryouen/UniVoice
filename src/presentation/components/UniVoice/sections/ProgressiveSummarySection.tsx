@@ -6,8 +6,8 @@
 import React, { useState } from 'react';
 
 interface Summary {
-  english: string;
-  japanese: string;
+  sourceText: string;
+  targetText: string;
   threshold?: number;
   wordCount?: number;
   timestamp?: number;
@@ -48,7 +48,7 @@ export const ProgressiveSummarySection: React.FC<ProgressiveSummarySectionProps>
     };
   };
 
-  const currentSummary = summaries[selectedIndex] || { english: '', japanese: '' };
+  const currentSummary = summaries[selectedIndex] || { sourceText: '', targetText: '' };
 
   return (
     <div 
@@ -123,7 +123,7 @@ export const ProgressiveSummarySection: React.FC<ProgressiveSummarySectionProps>
       
       {/* 要約内容の表示 */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* 英語要約カラム */}
+        {/* Source Text Summary Column */}
         <div className="summary-column" style={{
           flex: 1,
           padding: '15px 20px',
@@ -140,11 +140,11 @@ export const ProgressiveSummarySection: React.FC<ProgressiveSummarySectionProps>
             maxHeight: '100%',
             paddingRight: '10px'
           }}>
-            {currentSummary.english || 'Waiting for summary...'}
+            {currentSummary.sourceText || 'Waiting for summary...'}
           </div>
         </div>
         
-        {/* 日本語要約カラム */}
+        {/* Target Text Summary Column */}
         <div className="summary-column" style={{
           flex: 1,
           padding: '15px 20px',
@@ -160,7 +160,7 @@ export const ProgressiveSummarySection: React.FC<ProgressiveSummarySectionProps>
             maxHeight: '100%',
             paddingRight: '10px'
           }}>
-            {currentSummary.japanese || '要約を待っています...'}
+            {currentSummary.targetText || '要約を待っています...'}
             
             {/* エラー表示 */}
             {pipelineError && (

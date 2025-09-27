@@ -11,6 +11,6 @@ export interface BaseModalProps {
 export interface Memo {
   id: string;
   timestamp: string;
-  japanese: string;
-  english: string;
+  sourceText: string;
+  targetText: string;
 }

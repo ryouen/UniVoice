@@ -49,6 +49,10 @@ export const useMemoManager = ({
   /**
    * ユーザー質問の翻訳生成
    * targetLanguage（通常は日本語）からsourceLanguage（通常は英語）へ翻訳
+   * 
+   * 注意: メモ機能では通常の音声認識とは逆方向の翻訳を行う
+   * - 音声認識: source(英語講義) → target(日本語字幕)
+   * - メモ機能: target(日本語質問) → source(英語翻訳)
    */
   const generateQuestionTranslation = useCallback(async (text: string): Promise<string> => {
     if (!onUserTranslate) {
@@ -83,11 +87,12 @@ export const useMemoManager = ({
       const translatedText = await generateQuestionTranslation(text);
       
       // メモとして保存
+      // ユーザー入力言語がtargetLanguageの場合、入力をtargetTextに、翻訳をsourceTextに保存
       const newMemo: Memo = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
-        japanese: targetLanguage === 'ja' ? text : translatedText,
-        english: targetLanguage === 'en' ? text : translatedText
+        targetText: text,           // ユーザー入力（通常は日本語）
+        sourceText: translatedText  // 翻訳結果（通常は英語）
       };
       
       setMemoList(prev => [...prev, newMemo]);
@@ -106,8 +111,8 @@ export const useMemoManager = ({
       const newMemo: Memo = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
-        japanese: targetLanguage === 'ja' ? text : '[Translation failed]',
-        english: targetLanguage === 'en' ? text : '[Translation failed]'
+        targetText: text,                    // ユーザー入力
+        sourceText: '[Translation failed]'   // 翻訳失敗
       };
       
       setMemoList(prev => [...prev, newMemo]);

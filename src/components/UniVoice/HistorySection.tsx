@@ -85,7 +85,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                   lineHeight: '1.7',
                   fontSize: '13px'
                 }}>
-                  {sentence.original}
+                  {sentence.sourceText}
                 </div>
               ))}
             </div>
@@ -126,7 +126,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                   fontSize: '13px',
                   color: '#0066cc'
                 }}>
-                  {sentence.translation}
+                  {sentence.targetText}
                 </div>
               ))}
             </div>

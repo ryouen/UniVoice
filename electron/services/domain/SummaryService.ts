@@ -29,16 +29,16 @@ export interface SummaryServiceConfig {
 
 export interface SummaryTranslation {
   id: string;
-  original: string;
-  translated: string;
+  sourceText: string;
+  targetText: string;
   timestamp: number;
 }
 
 interface Summary {
   id: string;
   timestamp: number;
-  english: string;  // TODO: sourceText に変更
-  japanese: string;  // TODO: targetText に変更
+  sourceText: string;    // 原文（音声認識された言語）
+  targetText: string;    // 翻訳文（翻訳後の言語）
   wordCount: number;
   startTime: number;
   endTime: number;
@@ -143,7 +143,7 @@ export class SummaryService extends EventEmitter {
     this.translations.push(translation);
     
     // 単語数をカウント（ソース言語で）
-    const wordCount = this.countWords(translation.original, this.sourceLanguage);
+    const wordCount = this.countWords(translation.sourceText, this.sourceLanguage);
     this.totalWordCount += wordCount;
     
     this.componentLogger.debug('Translation added for summary', {
@@ -241,7 +241,7 @@ export class SummaryService extends EventEmitter {
       // 要約対象のコンテンツを収集
       const content = this.translations
         .slice(0, this.lastProgressiveThresholdIndex + 1)
-        .map(t => t.original)
+        .map(t => t.sourceText)
         .join(' ');
       
       const prompt = this.getProgressiveSummaryPrompt(content, baseThreshold);
@@ -271,8 +271,8 @@ export class SummaryService extends EventEmitter {
         const summary: Summary = {
           id: `summary-progressive-${baseThreshold}-${Date.now()}`,
           timestamp: Date.now(),
-          english: this.sourceLanguage === 'en' ? summaryTextInSourceLang : summaryTextInTargetLang,
-          japanese: this.targetLanguage === 'ja' ? summaryTextInTargetLang : summaryTextInSourceLang,
+          sourceText: summaryTextInSourceLang,
+          targetText: summaryTextInTargetLang,
           wordCount: actualThreshold,
           startTime: this.translations[0].timestamp,
           endTime: this.translations[this.translations.length - 1].timestamp
@@ -284,8 +284,10 @@ export class SummaryService extends EventEmitter {
         if (this.currentCorrelationId) {
           const progressiveSummaryEvent = createProgressiveSummaryEvent(
             {
-              english: summary.english,
-              japanese: summary.japanese,
+              sourceText: summary.sourceText,
+              targetText: summary.targetText,
+              sourceLanguage: this.sourceLanguage,
+              targetLanguage: this.targetLanguage,
               wordCount: this.totalWordCount,
               threshold: baseThreshold,
               startTime: summary.startTime,

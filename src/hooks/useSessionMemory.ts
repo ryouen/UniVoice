@@ -193,17 +193,17 @@ export function useSessionMemory(): UseSessionMemoryReturn {
         streamingBufferRef.current.addSegment({
           id: translation.id,
           timestamp: translation.timestamp,
-          original: translation.original,
-          translation: translation.japanese,
+          original: translation.sourceText,
+          translation: translation.targetText,
           metadata: {
-            wordCount: translation.original.split(' ').length
+            wordCount: translation.sourceText.split(' ').length
           }
         });
       }
       
       // Update word count
       if (sessionState) {
-        const newWordCount = sessionState.wordCount + translation.original.split(' ').length;
+        const newWordCount = sessionState.wordCount + translation.sourceText.split(' ').length;
         sessionServiceRef.current.updateSessionState({ wordCount: newWordCount });
         setSessionState({ ...sessionState, wordCount: newWordCount });
       }

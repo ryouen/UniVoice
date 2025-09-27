@@ -980,7 +980,7 @@ function setupPipelineService(): void {
   advancedFeatureService.on('progressiveSummary', (summary) => {
     mainLogger.info('Progressive summary generated', { 
       threshold: summary.threshold,
-      summaryLength: summary.english?.length 
+      summaryLength: summary.data?.sourceText?.length 
     });
     const mainWindow = getMainWindow();
 
@@ -1001,7 +1001,7 @@ function setupPipelineService(): void {
   advancedFeatureService.on('summaryGenerated', (summary) => {
     mainLogger.info('Summary generated', { 
       wordCount: summary.data?.wordCount,
-      summaryLength: summary.data?.english?.length 
+      summaryLength: summary.data?.sourceText?.length 
     });
     const mainWindow = getMainWindow();
 
@@ -1100,17 +1100,18 @@ function setupPipelineService(): void {
     });
     
     // Forward to AdvancedFeatureService
-    // Note: The event uses 'japanese' field name for compatibility
-    if (advancedFeatureService && data.original && data.japanese) {
+    if (advancedFeatureService && data.sourceText && data.targetText) {
       advancedFeatureService.addTranslation({
         id: `trans-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        original: data.original,
-        translated: data.japanese,
+        sourceText: data.sourceText,
+        targetText: data.targetText,
         timestamp: Date.now()
       });
       mainLogger.debug('Translation forwarded to AdvancedFeatureService', {
-        originalLength: data.original.length,
-        translatedLength: data.japanese.length
+        sourceTextLength: data.sourceText.length,
+        targetTextLength: data.targetText.length,
+        sourceLanguage: data.sourceLanguage,
+        targetLanguage: data.targetLanguage
       });
     } else {
       mainLogger.warn('Translation not forwarded to AdvancedFeatureService', {
