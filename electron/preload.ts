@@ -380,7 +380,8 @@ const allowedChannels = [
   'window:dragStarted',       // Drag started notification
   'open-summary-window',      // Open progressive summary window
   'summary-window-data',      // Send data to summary window
-  'settings-updated'          // Send settings updates between windows
+  'settings-updated',         // Send settings updates between windows
+  'window-state-changed'      // Window state change notifications
 ];
 
 // Legacy Electron API for backward compatibility

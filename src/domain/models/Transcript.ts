@@ -1,23 +1,43 @@
 /**
- * Transcript Domain Model
+ * Transcript Domain Model (Future Design)
  * Clean Architecture: Domain Layer
+ * 
+ * このファイルは理想的なドメインモデル設計を示していますが、
+ * 現在は使用されていません。将来の実装の参考として保持しています。
+ * 
+ * 実際に使用されているTranscriptSegmentの定義は
+ * src/domain/models/core/TranscriptSegment.ts を参照してください。
+ * 
+ * 音声認識の最小単位を表現するドメインモデル
+ * 翻訳の責任はTranslationモデルに分離
  */
 
-export interface TranscriptSegment {
-  id: string;
-  text: string;
-  translation?: string;
-  timestamp: number;
-  confidence?: number;
-  isFinal: boolean;
-  startMs?: number;
-  endMs?: number;
-  language?: string;
+// 注意: これは将来の理想的な定義です。実際の定義は src/domain/models/core/TranscriptSegment.ts にあります
+export interface TranscriptSegmentIdeal {
+  // 識別子
+  id: string;                     // ユニークID（seg_xxx形式）
+  
+  // コンテンツ
+  text: string;                   // 音声認識されたテキスト
+  language: string;               // 認識された言語（ISO 639-1）
+  
+  // メタデータ
+  timestamp: number;              // 受信時刻（Unix timestamp）
+  startMs: number;                // 音声開始位置（ミリ秒）
+  endMs: number;                  // 音声終了位置（ミリ秒）
+  
+  // 品質指標
+  confidence: number;             // 信頼度（0.0-1.0）
+  isFinal: boolean;              // 最終結果かどうか
+  
+  // オプション（拡張用）
+  speakerId?: string;            // 話者ID（将来の話者分離用）
+  metadata?: Record<string, any>; // その他のメタデータ
 }
 
 export interface TranscriptSentence {
   id: string;
-  segments: TranscriptSegment[];
+  segments: TranscriptSegmentIdeal[];
   combinedText: string;
   translation?: string;
   isHighQuality?: boolean;
@@ -37,7 +57,7 @@ export interface HistoryEntry {
 }
 
 export interface TranscriptState {
-  segments: TranscriptSegment[];
+  segments: TranscriptSegmentIdeal[];
   sentences: TranscriptSentence[];
   historyEntries: HistoryEntry[];
   currentTranscript: string;
@@ -112,7 +132,7 @@ export class SentenceBoundary {
   }
 
   static shouldCombine(
-    segments: TranscriptSegment[],
+    segments: TranscriptSegmentIdeal[],
     options: Partial<SentenceCombinerOptions>
   ): boolean {
     if (segments.length === 0) return false;
@@ -132,11 +152,10 @@ export class SentenceBoundary {
  * Transcript Factory
  */
 export class TranscriptFactory {
-  static createSegment(data: any): TranscriptSegment {
+  static createSegment(data: any): TranscriptSegmentIdeal {
     return {
       id: data.id || this.generateId('segment'),
       text: data.text || '',
-      translation: data.translation,
       timestamp: data.timestamp || Date.now(),
       confidence: data.confidence,
       isFinal: data.isFinal !== false,
@@ -175,7 +194,7 @@ export class TranscriptFactory {
   }
 
   static createSentence(
-    segments: TranscriptSegment[],
+    segments: TranscriptSegmentIdeal[],
     translation?: string
   ): TranscriptSentence {
     const combinedText = segments.map(s => s.text).join(' ');

@@ -1,35 +1,47 @@
-# CLAUDE.md — UniVoice 2.0 プロジェクト設定（Claude Code 用・最上位ルール）
+# CLAUDE.md — UniVoice プロジェクト設定（Claude Code 用・最上位ルール）
 
 ## 🔴 最初に必ず実行すること
 
 ```bash
-# 1. 現在の状態を確認
-cat docs/ACTIVE/STATE.json | head -20
-
-# 2. タスクリストで優先作業を確認
-cat docs/ACTIVE/TASKS.json | grep -A 5 '"priority": "high"'
-
-# 3. ウィンドウ管理実装の進捗確認
-ls -la electron/main/WindowRegistry.ts 2>/dev/null && echo "✅ M1: WindowRegistry実装済" || echo "❌ M1: WindowRegistry未実装"
-ls -la src/services/WindowClient.ts 2>/dev/null && echo "✅ M1: WindowClient実装済" || echo "❌ M1: WindowClient未実装"
-
-# 4. deep-thinkプロトコルの確認（重要）
-cat .claude/commands/deep-think.md | head -30
+# deep-thinkプロトコルの確認（重要）
+cat .claude/commands/deep-think.md
 ```
 
-**重要**: このプロジェクトは UniVoice 2.0 として、
-Clean Architecture + CQRS + Event-Driven パターンで構築されています。
+**重要**: このプロジェクトは UniVoice として、Clean Architecture + CQRS + Event-Driven パターンで構築されています。
 
-## 🕐 実行パターンの最適化（2025-09-27 追加）
+**Concept**
+- UniVoice 
+  - 留学生のためのリアルタイム授業翻訳アプリ / Live lecture translation app for international students
+    - 授業中には、AIリアルタイム文字起こし(Source)＋母国語にリアルタイム翻訳(Target)を表示。
+    - 授業中には、段階的要約と全文履歴も確認可能
+    - 質問を母国語で入力すると、授業の言語で質問文を生成し、メモにも残せる
+    - 授業後には、要約レポート＋単語帳を出力
+    - 言語に関係なく、学生が活躍できる未来をつくるアプリ
+
+  - 授業に字幕をつけよう:　Caption Your Class: 
+    - コンパクトモード利用で、教科書を見ながら使えます
+    - with compact mode, you can multitask seamlessly with your textbook.
+
+
+
+## 実行パターンの最適化（2025-09-27 追加）
+
+### 過去の反省事項
+「時間を節約」しようとして、実際のコードを見ずに実装した結果、userの時間を無駄にし、Claude Codeのトークンが無駄に表示され、地球環境を悪化させた。
+調べていない時には調べていない、わからない時にはわからない、推測したときには推測と書くことが、本当に「時間を節約」する方法
+ユーザーは極めて賢く（偏差値80 Over）サボるといつも指摘・認識され、わたし(Claude Code)としては恥ずかしい思いをするので、もう二度とそのようなことがないようにする。 
+ユーザーの指示を聞かないと、いつもひどい失敗をするので、ユーザーが指示したことはできるだけ叶えようとする。
+リファクタリング時には勝手に変数名を変えたりonをhandleと取り違えたりしない。
 
 ### ファイル読み取りの判断基準
 
 | 状況 | 行動 |
 |------|------|
-| ファイルが5000行以下 | 全文を読む |
+| ファイルが5000行以下 | 全文を読む。1000行ずつしっかり読み、サボらない |
 | ファイルが5000行以上 | grep/sedで必要箇所のみ |
 | エラーメッセージあり | スタックトレース全体を読む |
 | 型エラー | 型定義ファイルを先に確認 |
+| 参照 | 参照元のコードを必ず全文を読む。存在確認だけでは不十分 |
 
 ### 実装前の必須確認コマンド
 
@@ -56,17 +68,17 @@ grep "^import" <対象ファイル> | sort
 
 ## 🚨 既知の技術的負債（2025-09-27 時点）
 
-### 命名規則の不統一
+### 命名規則の不統一（解決したはずだが確認が必要）
 - **問題**: original/translation vs source/target が混在
 - **影響**: UnifiedPipelineService.ts、useUnifiedPipeline.ts、contracts.ts
 - **推奨**: source/target に統一（LanguageConfig.tsと一致）
 
-### 言語固定の問題
+### 言語固定の問題（解決したはずだが確認が必要）
 - **問題**: english/japanese がハードコード
 - **影響**: Summary型、translationCompleteイベント
 - **推奨**: sourceText/targetText に変更
 
-### 型定義の重複
+### 型定義の重複（解決したはずだが確認が必要）
 - **問題**: TranscriptSegmentが4箇所で定義
 - **確認**: `grep -n "interface TranscriptSegment" --include="*.ts" -r .`
 - **推奨**: src/domain/models/Transcript.ts を唯一の定義源とする
@@ -173,12 +185,6 @@ UniVoice/
 - SegmentManager（重複除去）
 
 ### 🚧 Phase 2: Advanced Features（実装中）
-- [x] UniVoice.tsxリファクタリング Phase 1-2（モーダル/質問セクション分離）✅ 2025-09-23
-- [x] 文単位履歴管理（SentenceCombiner）- 統合済み・動作中 ✅
-- [x] 二段階翻訳システム（リアルタイム/履歴）- 完了
-- [x] 高品質翻訳の動的更新 - 完了
-- [x] 単語数ベース要約（400/800語）- バックエンド完了、UI課題
-- [x] 語彙抽出（5-10専門用語）- バックエンド完了、UI未統合
 - [ ] 最終レポート生成（Markdown）- メソッド存在、未統合
 - [ ] データ永続化 - SessionStorageService未使用 🔴
 
@@ -194,11 +200,6 @@ UniVoice/
 
 ### 開発環境
 ```bash
-# 環境変数設定（.envファイルを作成）
-cp .env.example .env
-
-# 依存関係インストール
-npm install
 
 # 開発サーバー起動
 npm run dev
@@ -373,11 +374,10 @@ npm run clean
 - [Electron Documentation](https://www.electronjs.org/docs)
 
 ### 内部ドキュメント
-- [1.0.0からの移行ガイド](docs/MIGRATION-GUIDE.md)
 - [アーキテクチャ設計書](docs/ARCHITECTURE.md)
 - [API契約仕様](docs/API-CONTRACTS.md)
 
-### 重要な技術ドキュメント
+### 重要な技術ドキュメント（archive にあるかも）
 - [命名規則不統一問題](docs/NAMING-CONSISTENCY-ISSUES-20250926.md) - source/target統一の必要性
 - [コードベース深層分析](docs/CODEBASE-DEEP-ANALYSIS-20250926.md) - アーキテクチャの現状
 - [リファクタリング分析](docs/REFACTORING-ANALYSIS-20250925.md) - フック分離の評価

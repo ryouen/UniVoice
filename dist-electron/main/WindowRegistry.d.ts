@@ -55,12 +55,14 @@ export declare class WindowRegistry {
     openSummary(): Promise<BrowserWindow>;
     /**
      * 履歴ウィンドウのトグル
+     * @returns ウィンドウが表示されているかどうか
      */
-    toggleHistory(): void;
+    toggleHistory(): boolean;
     /**
      * 要約ウィンドウのトグル
+     * @returns ウィンドウが表示されているかどうか
      */
-    toggleSummary(): void;
+    toggleSummary(): boolean;
     /**
      * すべてのウィンドウを閉じる
      */

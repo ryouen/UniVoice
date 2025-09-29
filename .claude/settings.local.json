@@ -114,7 +114,13 @@
       "mcp__github__create_or_update_file",
       "Bash(start test-css-unification.html)",
       "Bash(explorer test-css-unification.html)",
-      "Bash(ls -la CRITICAL-FACTS-FOR-NEW-SESSION.md START-HERE.md IMPLEMENTATION-STATUS-20250910.md PARAMETER-INCONSISTENCIES-REPORT.md)"
+      "Bash(ls -la CRITICAL-FACTS-FOR-NEW-SESSION.md START-HERE.md IMPLEMENTATION-STATUS-20250910.md PARAMETER-INCONSISTENCIES-REPORT.md)",
+      "WebFetch(domain:docs.claude.com)",
+      "Bash(/mcp)",
+      "mcp__serena__activate_project",
+      "mcp__serena__read_file",
+      "mcp__serena__execute_shell_command",
+      "Bash(set NODE_OPTIONS=--max-old-space-size=4096)"
     ],
     "deny": []
   },

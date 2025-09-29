@@ -380,16 +380,41 @@ function setupWindowControls(): void {
 
   // Window close
   ipcMain.handle('window:close', async (event) => {
+    const mainWindow = getMainWindow();
+    
     // Check if the request is from summary window
     const summaryWindow = windowRegistry.get('summary');
     if (summaryWindow && !summaryWindow.isDestroyed() && event.sender.id === summaryWindow.webContents.id) {
       // Hide summary window instead of closing
       summaryWindow.hide();
+      
+      // Notify main window about state change
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('window-state-changed', {
+          type: 'summary',
+          isVisible: false
+        });
+      }
+      return;
+    }
+
+    // Check if the request is from history window
+    const historyWindow = windowRegistry.get('history');
+    if (historyWindow && !historyWindow.isDestroyed() && event.sender.id === historyWindow.webContents.id) {
+      // Hide history window instead of closing
+      historyWindow.hide();
+      
+      // Notify main window about state change
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('window-state-changed', {
+          type: 'history',
+          isVisible: false
+        });
+      }
       return;
     }
 
     // Otherwise, close the main window
-    const mainWindow = getMainWindow();
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.close();
     }
@@ -522,14 +547,14 @@ function setupWindowControls(): void {
 
   // Toggle history window
   ipcMain.handle('window:toggleHistory', async () => {
-    windowRegistry.toggleHistory();
-    return true;
+    const isVisible = windowRegistry.toggleHistory();
+    return isVisible;
   });
 
   // Toggle summary window
   ipcMain.handle('window:toggleSummary', async () => {
-    windowRegistry.toggleSummary();
-    return true;
+    const isVisible = windowRegistry.toggleSummary();
+    return isVisible;
   });
   
   // Global settings update handler - forwards settings to all windows
@@ -626,11 +651,31 @@ function setupIPCGateway(): void {
       
       // Special handling for getFullHistory command
       if (command?.command === 'getFullHistory') {
-        if (dataPersistenceService) {
-          const data = await dataPersistenceService.getFullHistory();
+        if (advancedFeatureService) {
+          const translations = advancedFeatureService.getAllTranslations();
+          const data = {
+            entries: translations.map((t: any) => ({
+              id: t.id,
+              original: t.sourceText,
+              translation: t.targetText,
+              timestamp: t.timestamp
+            })),
+            metadata: {
+              totalSegments: translations.length,
+              totalSentences: translations.length,
+              totalWords: translations.reduce((sum: number, t: any) => 
+                sum + t.sourceText.split(' ').length, 0
+              ),
+              duration: translations.length > 0 
+                ? Date.now() - translations[0].timestamp 
+                : 0,
+              startTime: translations.length > 0 ? translations[0].timestamp : Date.now(),
+              endTime: Date.now()
+            }
+          };
           return { success: true, data };
         }
-        return { success: false, error: 'DataPersistenceService not initialized' };
+        return { success: false, error: 'AdvancedFeatureService not initialized' };
       }
       
       await ipcGateway.handleCommand(command);
@@ -671,21 +716,55 @@ function setupIPCGateway(): void {
   // Handle getFullHistory directly
   ipcMain.handle('univoice:getFullHistory', async () => {
     try {
+      // Get persisted history data
+      let historyData: any = {
+        blocks: [],
+        entries: [],
+        metadata: {
+          totalSegments: 0,
+          totalSentences: 0,
+          totalWords: 0,
+          duration: 0,
+          startTime: undefined,
+          endTime: undefined
+        }
+      };
+      
       if (dataPersistenceService) {
-        const historyData = await dataPersistenceService.getFullHistory();
-        return historyData;
-      } else {
-        // Return empty data if no persistence service
+        historyData = await dataPersistenceService.getFullHistory();
+      }
+      
+      // Get current session translations from AdvancedFeatureService
+      if (advancedFeatureService) {
+        const currentTranslations = advancedFeatureService.getAllTranslations();
+        
+        // Convert translations to history entries format
+        const currentEntries = currentTranslations.map(translation => ({
+          id: translation.id,
+          original: translation.sourceText,
+          translation: translation.targetText,
+          timestamp: translation.timestamp
+        }));
+        
+        // Merge current session data with persisted data
+        const allEntries = [...historyData.entries, ...currentEntries];
+        
         return {
-          entries: [],
+          blocks: historyData.blocks,
+          entries: allEntries,
           metadata: {
-            totalSegments: 0,
-            totalSentences: 0,
-            totalWords: 0,
-            duration: 0
+            totalSegments: historyData.metadata.totalSegments + currentTranslations.length,
+            totalSentences: historyData.metadata.totalSentences + currentTranslations.length,
+            totalWords: historyData.metadata.totalWords + 
+              currentTranslations.reduce((sum, t) => sum + t.sourceText.split(' ').length, 0),
+            duration: historyData.metadata.duration,
+            startTime: historyData.metadata.startTime,
+            endTime: Date.now()
           }
         };
       }
+      
+      return historyData;
     } catch (error) {
       mainLogger.error('Failed to get full history', { error: error instanceof Error ? error.message : String(error) });
       throw error;
@@ -1090,6 +1169,12 @@ function setupPipelineService(): void {
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('translation-complete', data);
+    }
+    
+    // Also send to history window if it's open
+    const historyWindow = windowRegistry.get('history');
+    if (historyWindow && !historyWindow.isDestroyed() && historyWindow.isVisible()) {
+      historyWindow.webContents.send('translation-complete', data);
     }
     
     // Stage 0: Shadow unified event

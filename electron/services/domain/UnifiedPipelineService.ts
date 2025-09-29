@@ -35,6 +35,7 @@ import { isDeepgramSupported } from './DeepgramLanguageSupport';
 import { logger } from '../../utils/logger';
 import { TranslationQueueManager, QueuedTranslation } from './TranslationQueueManager';
 import { SentenceCombiner, CombinedSentence } from './SentenceCombiner';
+import type { TranscriptSegment } from '../../shared/types/TranscriptSegment';
 // 🔴 ParagraphBuilderを一時的に無効化 - フロントエンドでのグループ化を優先
 // import { ParagraphBuilder, Paragraph } from './ParagraphBuilder';  // 【Phase 2-ParagraphBuilder】追加
 // Shadow Mode統合用のインポート（🔴 既存実装は変更しない）
@@ -79,16 +80,7 @@ interface OpenAIConfig {
   };
 }
 
-// ===== Domain Models =====
-interface TranscriptSegment {
-  id: string;
-  text: string;
-  timestamp: number;
-  confidence: number;
-  isFinal: boolean;
-  startMs?: number | undefined;
-  endMs?: number | undefined;
-}
+// ===== Domain Models ====
 
 interface Translation {
   id: string;

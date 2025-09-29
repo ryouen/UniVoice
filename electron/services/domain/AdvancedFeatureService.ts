@@ -761,6 +761,13 @@ export class AdvancedFeatureService extends EventEmitter {
     }
   }
 
+  /**
+   * Get all translations for history window
+   */
+  getAllTranslations(): Translation[] {
+    return [...this.translations];
+  }
+
   destroy(): void {
     this.stop();
     this.removeAllListeners();

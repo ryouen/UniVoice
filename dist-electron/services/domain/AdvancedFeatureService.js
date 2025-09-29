@@ -613,6 +613,12 @@ class AdvancedFeatureService extends events_1.EventEmitter {
             return text.trim().split(/\s+/).filter(word => word.length > 0).length;
         }
     }
+    /**
+     * Get all translations for history window
+     */
+    getAllTranslations() {
+        return [...this.translations];
+    }
     destroy() {
         this.stop();
         this.removeAllListeners();

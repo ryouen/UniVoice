@@ -38,7 +38,7 @@ import { FullscreenModal, FloatingPanel, MemoModal, ReportModal } from '../prese
 import { renderHistoryToHTML } from './UnifiedHistoryRenderer';
 import { renderFlowHistoryToHTML } from './UnifiedHistoryRenderer-Flow';
 import { sessionStorageService } from '../services/SessionStorageService';
-import { WindowClient } from '../services/WindowClient';
+import { WindowClient, windowClient } from '../services/WindowClient';
 import styles from './UniVoice.module.css';
 import classNames from 'classnames';
 
@@ -1527,6 +1527,31 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
     return undefined;
   }, [showSetup, showBlockGuides]);
+
+  // ウィンドウ状態変更イベントのリスナー
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    
+    const handleWindowStateChange = (_event: any, data: {
+      type: 'history' | 'summary';
+      isVisible: boolean;
+    }) => {
+      console.log('[UniVoice] Window state changed:', data);
+      if (data.type === 'history') {
+        setIsHistoryWindowOpen(data.isVisible);
+      } else if (data.type === 'summary') {
+        setIsSummaryWindowOpen(data.isVisible);
+      }
+    };
+    
+    const cleanup = window.electronAPI.on('window-state-changed', handleWindowStateChange);
+    
+    return () => {
+      if (cleanup && typeof cleanup === 'function') {
+        cleanup();
+      }
+    };
+  }, []);
   
   // 録音時間の自動更新
   useEffect(() => {

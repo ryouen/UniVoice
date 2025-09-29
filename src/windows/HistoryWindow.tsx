@@ -105,6 +105,61 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
     
     loadHistoryData();
   }, []);
+
+  // リアルタイムで新しい翻訳を受信
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    
+    const handleTranslationComplete = (_event: any, data: {
+      sourceText: string;
+      targetText: string;
+      sourceLanguage: string;
+      targetLanguage: string;
+      correlationId: string;
+    }) => {
+      console.log('[HistoryWindow] Received translation-complete:', data);
+      
+      // 新しいエントリーを追加
+      const newEntry: HistoryEntry = {
+        id: `trans-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        original: data.sourceText,
+        translation: data.targetText,
+        timestamp: Date.now()
+      };
+      
+      setHistoryData(prev => {
+        if (!prev) return prev;
+        
+        // デフォルトのメタデータを確保
+        const currentMetadata = prev.metadata || {
+          totalSegments: 0,
+          totalSentences: 0,
+          totalWords: 0,
+          duration: 0
+        };
+        
+        return {
+          ...prev,
+          entries: [...prev.entries, newEntry],
+          metadata: {
+            ...currentMetadata,
+            totalSegments: currentMetadata.totalSegments + 1,
+            totalSentences: currentMetadata.totalSentences + 1,
+            totalWords: currentMetadata.totalWords + data.sourceText.split(' ').length,
+            endTime: Date.now()
+          }
+        };
+      });
+    };
+    
+    const cleanup = window.electronAPI.on('translation-complete', handleTranslationComplete);
+    
+    return () => {
+      if (cleanup && typeof cleanup === 'function') {
+        cleanup();
+      }
+    };
+  }, []);
   
   // 検索クエリの遅延値（パフォーマンス向上）
   const deferredSearchQuery = useDeferredValue(searchQuery);

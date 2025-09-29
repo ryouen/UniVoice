@@ -125,6 +125,10 @@ export declare class AdvancedFeatureService extends EventEmitter {
     getSummaries(): Summary[];
     private isCharacterBasedLanguage;
     private countWords;
+    /**
+     * Get all translations for history window
+     */
+    getAllTranslations(): Translation[];
     destroy(): void;
 }
 export {};

@@ -390,35 +390,43 @@ export class WindowRegistry {
 
   /**
    * 履歴ウィンドウのトグル
+   * @returns ウィンドウが表示されているかどうか
    */
-  toggleHistory(): void {
+  toggleHistory(): boolean {
     const window = this.get('history');
     if (window && !window.isDestroyed()) {
       if (window.isVisible()) {
         window.hide();
+        return false;
       } else {
         window.show();
         window.focus();
+        return true;
       }
     } else {
       this.openHistory();
+      return true;
     }
   }
 
   /**
    * 要約ウィンドウのトグル
+   * @returns ウィンドウが表示されているかどうか
    */
-  toggleSummary(): void {
+  toggleSummary(): boolean {
     const window = this.get('summary');
     if (window && !window.isDestroyed()) {
       if (window.isVisible()) {
         window.hide();
+        return false;
       } else {
         window.show();
         window.focus();
+        return true;
       }
     } else {
       this.openSummary();
+      return true;
     }
   }
 

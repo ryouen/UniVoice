@@ -14,14 +14,7 @@
  * @author Claude Code
  * @date 2025-08-24
  */
-export interface TranscriptSegment {
-    id: string;
-    text: string;
-    timestamp: number;
-    isFinal: boolean;
-    startMs?: number;
-    endMs?: number;
-}
+import type { TranscriptSegment } from '../../shared/types/TranscriptSegment';
 export interface CombinedSentence {
     id: string;
     segmentIds: string[];

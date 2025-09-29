@@ -1,13 +1,14 @@
 {
   "mcpServers": {
     "serena": {
-      "command": "C:\\Users\\ryosu\\.local\\bin\\serena-mcp-server.exe",
+      "type": "stdio",
+      "command": "uvx",
       "args": [
-        "--context",
-        "ide-assistant",
-        "--project",
-        "."
-      ]
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena-mcp-server"
+      ],
+      "env": {}
     }
   }
 }
