@@ -1067,8 +1067,8 @@ ${sourceText}`;
                     text: result.text,
                     timestamp: result.timestamp,
                     isFinal: result.isFinal,
-                    startMs: result.startMs,
-                    endMs: result.endMs
+                    startMs: result.startMs ?? 0,
+                    endMs: result.endMs ?? 0
                 });
             }
             // 翻訳をキューに追加（finalセグメントのみ）
