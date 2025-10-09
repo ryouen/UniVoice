@@ -13,6 +13,7 @@ const logger_1 = require("../../utils/logger");
 class PipelineStateManager {
     constructor() {
         this.state = 'idle';
+        this.previousState = null;
         this.currentCorrelationId = null;
         this.startTime = 0;
         this.lastActivityTime = 0;
@@ -62,12 +63,15 @@ class PipelineStateManager {
             this.currentCorrelationId = correlationId;
         }
         // 履歴に記録
-        this.stateHistory.push({
+        const transition = {
             from: oldState,
             to: newState,
             timestamp: Date.now(),
-            reason
-        });
+        };
+        if (reason) {
+            transition.reason = reason;
+        }
+        this.stateHistory.push(transition);
         // 状態変更時の処理
         this.onStateChange(oldState, newState);
         // ログ出力（既存のUnifiedPipelineServiceと同じ形式）
@@ -103,7 +107,7 @@ class PipelineStateManager {
             const targetState = this.previousState || 'listening';
             if (this.canTransitionTo(targetState)) {
                 this.setState(targetState, undefined, 'User requested resume');
-                this.previousState = undefined;
+                this.previousState = null;
                 return true;
             }
         }
@@ -157,7 +161,7 @@ class PipelineStateManager {
      */
     reset() {
         this.state = 'idle';
-        this.previousState = undefined;
+        this.previousState = null;
         this.currentCorrelationId = null;
         this.startTime = 0;
         this.lastActivityTime = 0;

@@ -31,8 +31,6 @@ const DeepgramLanguageSupport_1 = require("./DeepgramLanguageSupport");
 const logger_1 = require("../../utils/logger");
 const TranslationQueueManager_1 = require("./TranslationQueueManager");
 const SentenceCombiner_1 = require("./SentenceCombiner");
-// 🔴 ParagraphBuilderを一時的に無効化 - フロントエンドでのグループ化を優先
-// import { ParagraphBuilder, Paragraph } from './ParagraphBuilder';  // 【Phase 2-ParagraphBuilder】追加
 // Shadow Mode統合用のインポート（🔴 既存実装は変更しない）
 // Shadow Mode not implemented - imports commented out
 // import { LLMGateway, LLMPurpose, LLMConfig } from '../../infrastructure/llm/types';
@@ -86,6 +84,9 @@ class UnifiedPipelineService extends events_1.EventEmitter {
             else {
                 return this.executeTranslation(queuedTranslation);
             }
+        });
+        this.translationQueue.setErrorHandler((translation, error) => {
+            this.handleTranslationQueueFailure(translation, error);
         });
         // Initialize SentenceCombiner
         this.sentenceCombiner = new SentenceCombiner_1.SentenceCombiner((combinedSentence) => this.handleCombinedSentence(combinedSentence), {
@@ -183,7 +184,10 @@ class UnifiedPipelineService extends events_1.EventEmitter {
         }
         catch (error) {
             this.setState('error');
-            this.emitError('DEEPGRAM_CONNECTION_FAILED', error instanceof Error ? error.message : 'Failed to connect to Deepgram', correlationId);
+            this.emitError('DEEPGRAM_CONNECTION_FAILED', error instanceof Error ? error.message : 'Failed to connect to Deepgram', correlationId, {
+                recoverable: false,
+                details: { reason: error instanceof Error ? error.message : String(error) },
+            });
             throw error;
         }
     }
@@ -222,7 +226,10 @@ class UnifiedPipelineService extends events_1.EventEmitter {
         }
         catch (error) {
             this.setState('error');
-            this.emitError('STOP_FAILED', error instanceof Error ? error.message : 'Failed to stop listening', correlationId);
+            this.emitError('STOP_FAILED', error instanceof Error ? error.message : 'Failed to stop listening', correlationId, {
+                recoverable: false,
+                details: { reason: error instanceof Error ? error.message : String(error) },
+            });
             throw error;
         }
     }
@@ -469,7 +476,10 @@ class UnifiedPipelineService extends events_1.EventEmitter {
         // Error イベント
         this.deepgramAdapter.on(DeepgramStreamAdapter_1.DeepgramStreamAdapter.EVENTS.ERROR, (error) => {
             this.componentLogger.error('Deepgram adapter error', { ...error });
-            this.emitError('DEEPGRAM_ERROR', error.message, this.currentCorrelationId || 'unknown');
+            this.emitError('DEEPGRAM_ERROR', error.message, this.currentCorrelationId || 'unknown', {
+                recoverable: error.recoverable ?? false,
+                details: { code: error.code, closeCode: error.closeCode },
+            });
         });
         // Connected イベント
         this.deepgramAdapter.on(DeepgramStreamAdapter_1.DeepgramStreamAdapter.EVENTS.CONNECTED, () => {
@@ -723,13 +733,17 @@ class UnifiedPipelineService extends events_1.EventEmitter {
                 text: text.substring(0, 100),
                 segmentId,
             });
-            this.emitEvent((0, contracts_1.createErrorEvent)({
-                code: 'TRANSLATION_FAILED',
-                message: `Failed to translate segment: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                recoverable: false
-            }, this.currentCorrelationId || 'unknown'));
-            // Re-throw to let the queue handle the error
-            throw error;
+            this.emitError('TRANSLATION_FAILED', `Failed to translate segment: ${error instanceof Error ? error.message : 'Unknown error'}`, this.currentCorrelationId || 'unknown', {
+                recoverable: true,
+                details: {
+                    segmentId,
+                    sourceLanguage: this.sourceLanguage,
+                    targetLanguage: this.targetLanguage,
+                    textPreview: text.substring(0, 50),
+                },
+            });
+            const fallbackTranslation = this.handleRealtimeTranslationFailure(segmentId, text, error);
+            return fallbackTranslation;
         }
     }
     /**
@@ -763,14 +777,116 @@ class UnifiedPipelineService extends events_1.EventEmitter {
     /**
      * Emit error event
      */
-    emitError(code, message, correlationId) {
+    handleTranslationQueueFailure(translation, error) {
+        const kind = translation.kind ?? 'realtime';
+        if (kind === 'history' || kind === 'paragraph') {
+            this.handleHistoryTranslationFailure(translation, error);
+            return;
+        }
+        this.handleRealtimeTranslationFailure(translation.segmentId, translation.sourceText, error);
+    }
+    handleRealtimeTranslationFailure(segmentId, sourceText, error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        const fallbackText = this.createFallbackTranslationText(sourceText, reason);
+        const correlationId = this.currentCorrelationId || 'unknown';
+        const timestamp = Date.now();
+        const result = {
+            id: `translation-${segmentId}`,
+            sourceText,
+            targetText: fallbackText,
+            sourceLanguage: this.sourceLanguage,
+            targetLanguage: this.targetLanguage,
+            timestamp,
+            confidence: 0,
+            isFinal: true,
+        };
+        this.translations.push(result);
+        this.emitEvent((0, contracts_1.createTranslationEvent)({
+            sourceText: result.sourceText,
+            targetText: result.targetText,
+            sourceLanguage: result.sourceLanguage,
+            targetLanguage: result.targetLanguage,
+            confidence: result.confidence,
+            isFinal: result.isFinal,
+            segmentId,
+        }, correlationId));
+        this.emit('translationComplete', {
+            id: segmentId,
+            sourceText: result.sourceText,
+            targetText: result.targetText,
+            sourceLanguage: result.sourceLanguage,
+            targetLanguage: result.targetLanguage,
+            timestamp,
+            firstPaintMs: 0,
+            completeMs: 0
+        });
+        this.emit('currentTranslationUpdate', fallbackText);
+        this.componentLogger.warn('Fallback translation emitted after failure', {
+            segmentId,
+            reason: reason ? reason.slice(0, 200) : undefined,
+        });
+        return fallbackText;
+    }
+    handleHistoryTranslationFailure(translation, error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        const fallbackText = this.createFallbackTranslationText(translation.sourceText, reason);
+        const correlationId = this.currentCorrelationId || 'unknown';
+        const timestamp = Date.now();
+        const result = {
+            id: translation.segmentId,
+            sourceText: translation.sourceText,
+            targetText: fallbackText,
+            sourceLanguage: this.sourceLanguage,
+            targetLanguage: this.targetLanguage,
+            timestamp,
+            confidence: 0,
+            isFinal: true,
+        };
+        this.translations.push(result);
+        this.emitEvent((0, contracts_1.createTranslationEvent)({
+            sourceText: result.sourceText,
+            targetText: result.targetText,
+            sourceLanguage: result.sourceLanguage,
+            targetLanguage: result.targetLanguage,
+            confidence: result.confidence,
+            isFinal: result.isFinal,
+            segmentId: translation.segmentId,
+        }, correlationId));
+        this.emit('translationComplete', {
+            id: translation.segmentId,
+            sourceText: result.sourceText,
+            targetText: result.targetText,
+            sourceLanguage: result.sourceLanguage,
+            targetLanguage: result.targetLanguage,
+            timestamp,
+            firstPaintMs: 0,
+            completeMs: 0
+        });
+        this.componentLogger.warn('History translation fallback emitted after failure', {
+            segmentId: translation.segmentId,
+            reason: reason ? reason.slice(0, 200) : undefined,
+        });
+        return fallbackText;
+    }
+    createFallbackTranslationText(sourceText, reason) {
+        const sanitizedReason = reason.replace(/\s+/g, ' ').slice(0, 120) || 'unknown error';
+        if (this.targetLanguage === 'ja') {
+            return `※翻訳に失敗しました（${sanitizedReason}）。原文を表示します。
+${sourceText}`;
+        }
+        return `Translation unavailable (${sanitizedReason}). Showing original text:
+${sourceText}`;
+    }
+    emitError(code, message, correlationId, options) {
+        const { recoverable = true, details } = options ?? {};
         this.emitEvent((0, contracts_1.createErrorEvent)({
             code,
             message,
-            recoverable: true,
+            recoverable,
             details: {
                 state: this.stateManager.getState(),
                 timestamp: Date.now(),
+                ...(details ?? {}),
             },
         }, correlationId));
     }
@@ -826,7 +942,8 @@ class UnifiedPipelineService extends events_1.EventEmitter {
                 sourceLanguage: this.sourceLanguage,
                 targetLanguage: this.targetLanguage,
                 timestamp: combinedSentence.timestamp,
-                priority: 'low' // 低優先度でリアルタイム翻訳を妨げない
+                priority: 'low', // 低優先度でリアルタイム翻訳を妨げない
+                kind: 'history',
             });
             console.log(`[UnifiedPipelineService] History translation queued for combined sentence: ${combinedSentence.id}`);
             // 【Phase 1-1】データフロー可視化ログ追加
@@ -962,7 +1079,8 @@ class UnifiedPipelineService extends events_1.EventEmitter {
                     sourceLanguage: this.sourceLanguage,
                     targetLanguage: this.targetLanguage,
                     timestamp: result.timestamp,
-                    priority: 'normal'
+                    priority: 'normal',
+                    kind: 'realtime'
                 });
             }
         }
@@ -1091,7 +1209,7 @@ Output only the ${targetName} translation.`;
                 textLength: text.length
             });
             // 空の翻訳を返す（元のセグメント翻訳が使用される）
-            return '';
+            return this.handleHistoryTranslationFailure(queuedTranslation, error);
         }
     }
     /**

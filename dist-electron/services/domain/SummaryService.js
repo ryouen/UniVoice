@@ -16,6 +16,7 @@ const events_1 = require("events");
 const openai_1 = require("openai");
 const contracts_1 = require("../ipc/contracts");
 const logger_1 = require("../../utils/logger");
+const textMetrics_1 = require("../../utils/textMetrics");
 class SummaryService extends events_1.EventEmitter {
     constructor(config) {
         super();
@@ -96,7 +97,7 @@ class SummaryService extends events_1.EventEmitter {
             return;
         this.translations.push(translation);
         // 単語数をカウント（ソース言語で）
-        const wordCount = this.countWords(translation.sourceText, this.sourceLanguage);
+        const wordCount = (0, textMetrics_1.countWords)(translation.sourceText, this.sourceLanguage);
         this.totalWordCount += wordCount;
         this.componentLogger.debug('Translation added for summary', {
             translationCount: this.translations.length,
@@ -115,7 +116,7 @@ class SummaryService extends events_1.EventEmitter {
      * 進捗的要約の閾値をチェック
      */
     async checkProgressiveSummaryThresholds() {
-        const isCharacterBased = this.isCharacterBasedLanguage(this.sourceLanguage);
+        const isCharacterBased = (0, textMetrics_1.isCharacterBasedLanguage)(this.sourceLanguage);
         const multiplier = isCharacterBased ? 4 : 1;
         for (const baseThreshold of this.summaryThresholds) {
             const threshold = baseThreshold * multiplier;
@@ -279,22 +280,9 @@ class SummaryService extends events_1.EventEmitter {
     /**
      * 単語数をカウント
      */
-    countWords(text, language) {
-        if (this.isCharacterBasedLanguage(language)) {
-            // 日本語の場合は文字数をカウント
-            return text.replace(/[\s\n]+/g, '').length;
-        }
-        else {
-            // その他の言語は単語数をカウント
-            return text.split(/\s+/).filter(word => word.length > 0).length;
-        }
-    }
     /**
      * 文字ベースの言語かチェック
      */
-    isCharacterBasedLanguage(language) {
-        return language === 'ja'; // 現在は日本語のみ
-    }
     // ========== プロンプト生成メソッド ==========
     /**
      * 進捗的要約用のプロンプト

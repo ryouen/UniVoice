@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createParagraphCompleteEvent = exports.createCombinedSentenceEvent = exports.createProgressiveSummaryEvent = exports.createFinalReportEvent = exports.createVocabularyEvent = exports.createStatusEvent = exports.createErrorEvent = exports.createSegmentEvent = exports.createTranslationEvent = exports.createASREvent = exports.validateIPCCommand = exports.validatePipelineEvent = exports.IPCCommandSchema = exports.LoadSessionCommandSchema = exports.GetAvailableSessionsCommandSchema = exports.GenerateFinalReportCommandSchema = exports.GenerateVocabularyCommandSchema = exports.ClearHistoryCommandSchema = exports.GetFullHistoryCommandSchema = exports.GetHistoryCommandSchema = exports.StopListeningCommandSchema = exports.StartListeningCommandSchema = exports.PipelineEventSchema = exports.ParagraphCompleteEventSchema = exports.CombinedSentenceEventSchema = exports.FinalReportEventSchema = exports.VocabularyEventSchema = exports.StatusEventSchema = exports.ProgressiveSummaryEventSchema = exports.ErrorEventSchema = exports.SegmentEventSchema = exports.TranslationEventSchema = exports.ASREventSchema = void 0;
+exports.createParagraphCompleteEvent = exports.createCombinedSentenceEvent = exports.createProgressiveSummaryEvent = exports.createFinalReportEvent = exports.createVocabularyEvent = exports.createStatusEvent = exports.createErrorEvent = exports.createSegmentEvent = exports.createTranslationEvent = exports.createASREvent = exports.validateIPCCommand = exports.validatePipelineEvent = exports.IPCCommandSchema = exports.SaveSessionCommandSchema = exports.SaveSummaryCommandSchema = exports.SaveHistoryBlockCommandSchema = exports.StartSessionCommandSchema = exports.LoadSessionCommandSchema = exports.GetAvailableSessionsCommandSchema = exports.GenerateFinalReportCommandSchema = exports.GenerateVocabularyCommandSchema = exports.ClearHistoryCommandSchema = exports.GetFullHistoryCommandSchema = exports.GetHistoryCommandSchema = exports.StopListeningCommandSchema = exports.StartListeningCommandSchema = exports.PipelineEventSchema = exports.ParagraphCompleteEventSchema = exports.CombinedSentenceEventSchema = exports.FinalReportEventSchema = exports.VocabularyEventSchema = exports.StatusEventSchema = exports.ProgressiveSummaryEventSchema = exports.ErrorEventSchema = exports.SegmentEventSchema = exports.TranslationEventSchema = exports.ASREventSchema = void 0;
 const zod_1 = require("zod");
 // ========================================
 // Core Domain Types
@@ -253,6 +253,69 @@ exports.LoadSessionCommandSchema = zod_1.z.object({
         sessionNumber: zod_1.z.number(),
     }),
 });
+// ========================================
+// Persistence Command Schemas
+// ========================================
+exports.StartSessionCommandSchema = zod_1.z.object({
+    command: zod_1.z.literal('startSession'),
+    params: zod_1.z.object({
+        courseName: zod_1.z.string(),
+        sourceLanguage: zod_1.z.string(),
+        targetLanguage: zod_1.z.string(),
+        sessionNumber: zod_1.z.number().optional(),
+    }),
+});
+exports.SaveHistoryBlockCommandSchema = zod_1.z.object({
+    command: zod_1.z.literal('saveHistoryBlock'),
+    params: zod_1.z.object({
+        block: zod_1.z.object({
+            id: zod_1.z.string(),
+            sentences: zod_1.z.array(zod_1.z.object({
+                id: zod_1.z.string(),
+                sourceText: zod_1.z.string(),
+                targetText: zod_1.z.string(),
+                timestamp: zod_1.z.number(),
+            })),
+            createdAt: zod_1.z.number(),
+            totalHeight: zod_1.z.number(),
+            isParagraph: zod_1.z.boolean().optional(),
+            paragraphId: zod_1.z.string().optional(),
+            rawText: zod_1.z.string().optional(),
+            duration: zod_1.z.number().optional(),
+        }),
+    }),
+});
+exports.SaveSummaryCommandSchema = zod_1.z.object({
+    command: zod_1.z.literal('saveSummary'),
+    params: zod_1.z.object({
+        summary: zod_1.z.object({
+            id: zod_1.z.string(),
+            sourceText: zod_1.z.string(),
+            targetText: zod_1.z.string(),
+            wordCount: zod_1.z.number(),
+            timestamp: zod_1.z.number(),
+            timeRange: zod_1.z.union([
+                zod_1.z.string(),
+                zod_1.z.object({
+                    start: zod_1.z.number(),
+                    end: zod_1.z.number(),
+                }),
+            ]).optional(),
+            threshold: zod_1.z.number().optional(),
+        }),
+    }),
+});
+exports.SaveSessionCommandSchema = zod_1.z.object({
+    command: zod_1.z.literal('saveSession'),
+    params: zod_1.z.object({
+        finalReport: zod_1.z.string().optional(),
+        vocabulary: zod_1.z.array(zod_1.z.object({
+            term: zod_1.z.string(),
+            definition: zod_1.z.string(),
+            context: zod_1.z.string().optional(),
+        })).optional(),
+    }),
+});
 exports.IPCCommandSchema = zod_1.z.discriminatedUnion('command', [
     exports.StartListeningCommandSchema,
     exports.StopListeningCommandSchema,
@@ -263,6 +326,10 @@ exports.IPCCommandSchema = zod_1.z.discriminatedUnion('command', [
     exports.GenerateFinalReportCommandSchema,
     exports.GetAvailableSessionsCommandSchema,
     exports.LoadSessionCommandSchema,
+    exports.StartSessionCommandSchema,
+    exports.SaveHistoryBlockCommandSchema,
+    exports.SaveSummaryCommandSchema,
+    exports.SaveSessionCommandSchema,
 ]);
 // ========================================
 // Validation Helpers

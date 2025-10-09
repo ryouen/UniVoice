@@ -23,7 +23,7 @@ export interface PipelineStateInfo {
 }
 export declare class PipelineStateManager {
     private state;
-    private previousState?;
+    private previousState;
     private currentCorrelationId;
     private startTime;
     private lastActivityTime;

@@ -19,11 +19,14 @@ export interface QueuedTranslation {
     targetLanguage: string;
     timestamp: number;
     priority?: 'high' | 'normal' | 'low';
+    kind?: 'realtime' | 'history' | 'paragraph';
+    attempts?: number;
 }
 export interface TranslationQueueOptions {
     maxConcurrency: number;
     maxQueueSize?: number;
     requestTimeoutMs?: number;
+    maxRetries?: number;
 }
 export interface QueueStatus {
     activeCount: number;
@@ -37,9 +40,11 @@ export declare class TranslationQueueManager {
     private readonly maxConcurrency;
     private readonly maxQueueSize;
     private readonly requestTimeoutMs;
+    private readonly maxRetries;
     private queue;
     private activeTranslations;
     private translationHandler;
+    private translationErrorHandler;
     private completedCount;
     private errorCount;
     private totalProcessingTime;
@@ -48,6 +53,7 @@ export declare class TranslationQueueManager {
      * 翻訳ハンドラーを設定
      */
     setTranslationHandler(handler: TranslationHandler): void;
+    setErrorHandler(handler: (translation: QueuedTranslation, error: unknown) => void): void;
     /**
      * 翻訳をキューに追加
      */

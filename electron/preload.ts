@@ -62,6 +62,22 @@ interface UniVoiceAPI {
   generateVocabulary: (params: GenerateVocabularyCommand['params']) => Promise<{ success: boolean; error?: string }>;
   generateFinalReport: (params: GenerateFinalReportCommand['params']) => Promise<{ success: boolean; error?: string }>;
   
+  // Data persistence methods
+  startSession: (params: { courseName: string; sourceLanguage: string; targetLanguage: string; sessionNumber?: number }) => Promise<{ success: boolean; error?: string }>;
+  saveHistoryBlock: (params: { block: any }) => Promise<{ success: boolean; error?: string }>;
+  saveSummary: (params: { 
+    summary: {
+      id: string;
+      sourceText: string;
+      targetText: string;
+      wordCount: number;
+      timestamp: number;
+      timeRange?: { start: number; end: number } | string;
+      threshold?: number;
+    }
+  }) => Promise<{ success: boolean; error?: string }>;
+  saveSession: () => Promise<{ success: boolean; error?: string }>;
+  
   // Event listeners
   onPipelineEvent: (callback: (event: PipelineEvent) => void) => () => void;
   onASREvent: (callback: (event: PipelineEvent & { type: 'asr' }) => void) => () => void;
@@ -148,7 +164,30 @@ function createCommandSender() {
       sendCommand({ command: 'generateVocabulary', params }),
     
     generateFinalReport: (params: GenerateFinalReportCommand['params']) => 
-      sendCommand({ command: 'generateFinalReport', params })
+      sendCommand({ command: 'generateFinalReport', params }),
+    
+    // Data persistence methods
+    startSession: (params: { courseName: string; sourceLanguage: string; targetLanguage: string; sessionNumber?: number }) => 
+      sendCommand({ command: 'startSession', params }),
+    
+    saveHistoryBlock: (params: { block: any }) => 
+      sendCommand({ command: 'saveHistoryBlock', params }),
+    
+    saveSummary: (params: { 
+      summary: {
+        id: string;
+        sourceText: string;
+        targetText: string;
+        wordCount: number;
+        timestamp: number;
+        timeRange?: { start: number; end: number } | string;
+        threshold?: number;
+      }
+    }) => 
+      sendCommand({ command: 'saveSummary', params }),
+    
+    saveSession: () => 
+      sendCommand({ command: 'saveSession', params: {} })
   };
 }
 
@@ -380,6 +419,7 @@ const allowedChannels = [
   'window:dragStarted',       // Drag started notification
   'open-summary-window',      // Open progressive summary window
   'summary-window-data',      // Send data to summary window
+  'summary-window-refresh-request', // Request latest summary data
   'settings-updated',         // Send settings updates between windows
   'window-state-changed'      // Window state change notifications
 ];

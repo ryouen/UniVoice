@@ -434,15 +434,15 @@ export class DeepgramStreamAdapter extends EventEmitter {
     const alternative = message.channel.alternatives[0];
     if (!alternative.transcript) return null;
     
-    const result = {
+    const result: TranscriptResult = {
       id: `transcript-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: alternative.transcript,
       confidence: alternative.confidence || 0,
       isFinal: message.is_final || false,
       timestamp: Date.now(),
-      startMs: message.start ? Math.round(message.start * 1000) : undefined,
-      endMs: message.end ? Math.round(message.end * 1000) : undefined,
-      language: this.config.sourceLanguage
+      language: this.config.sourceLanguage,
+      ...(message.start ? { startMs: Math.round(message.start * 1000) } : {}),
+      ...(message.end ? { endMs: Math.round(message.end * 1000) } : {})
     };
     
     
@@ -459,6 +459,15 @@ export class DeepgramStreamAdapter extends EventEmitter {
     });
     this.componentLogger?.error('Deepgram error message', { message });
     this.emitError('DEEPGRAM_MESSAGE_ERROR', errorMessage, true);
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.componentLogger?.warn('Deepgram error reported; closing socket to trigger recovery');
+      try {
+        this.ws.close(1011, 'Recovering from error message');
+      } catch (closeError) {
+        this.componentLogger?.error('Failed to close Deepgram socket after error', { closeError });
+      }
+    }
   }
 
   private handleWebSocketError(error: any): void {
@@ -631,3 +640,6 @@ export class DeepgramStreamAdapter extends EventEmitter {
     // which serves as activity indication to Deepgram
   }
 }
+
+
+

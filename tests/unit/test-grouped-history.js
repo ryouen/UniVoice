@@ -47,7 +47,7 @@ groupedHistory.forEach((group, groupIndex) => {
   
   console.log('【原文】');
   group.forEach((entry, entryIndex) => {
-    console.log(`  ${entry.original}`);
+    console.log(`  ${entry.sourceText}`);
     if (entryIndex < group.length - 1) {
       console.log(''); // 文間のスペース
     }

@@ -17,6 +17,7 @@ const UnifiedPipelineService_1 = require("./services/domain/UnifiedPipelineServi
 const DataPersistenceService_1 = require("./services/domain/DataPersistenceService");
 const AdvancedFeatureService_1 = require("./services/domain/AdvancedFeatureService");
 const logger_1 = require("./utils/logger");
+const textMetrics_1 = require("./utils/textMetrics");
 const startup_check_1 = require("./utils/startup-check");
 const WindowRegistry_1 = require("./main/WindowRegistry");
 // import { devTestService } from './services/DevTestService';
@@ -676,8 +677,8 @@ function setupIPCGateway() {
                 // Convert translations to history entries format
                 const currentEntries = currentTranslations.map(translation => ({
                     id: translation.id,
-                    original: translation.sourceText,
-                    translation: translation.targetText,
+                    sourceText: translation.sourceText,
+                    targetText: translation.targetText,
                     timestamp: translation.timestamp
                 }));
                 // Merge current session data with persisted data
@@ -689,7 +690,7 @@ function setupIPCGateway() {
                         totalSegments: historyData.metadata.totalSegments + currentTranslations.length,
                         totalSentences: historyData.metadata.totalSentences + currentTranslations.length,
                         totalWords: historyData.metadata.totalWords +
-                            currentTranslations.reduce((sum, t) => sum + t.sourceText.split(' ').length, 0),
+                            currentTranslations.reduce((sum, t) => sum + (0, textMetrics_1.countWords)(t.sourceText, 'multi'), 0),
                         duration: historyData.metadata.duration,
                         startTime: historyData.metadata.startTime,
                         endTime: Date.now()
@@ -836,6 +837,49 @@ function setupIPCGateway() {
                     }
                     else {
                         mainLogger.error('AdvancedFeatureService not initialized for report generation');
+                    }
+                    break;
+                case 'startSession':
+                    if (dataPersistenceService) {
+                        const sessionMetadata = {
+                            courseName: domainCommand.params.courseName,
+                            startTime: Date.now(),
+                            sourceLanguage: domainCommand.params.sourceLanguage,
+                            targetLanguage: domainCommand.params.targetLanguage,
+                            sessionNumber: domainCommand.params.sessionNumber || 1
+                        };
+                        await dataPersistenceService.startSession(sessionMetadata);
+                        mainLogger.info('New session started', { sessionMetadata });
+                    }
+                    else {
+                        mainLogger.error('DataPersistenceService not initialized');
+                    }
+                    break;
+                case 'saveHistoryBlock':
+                    if (dataPersistenceService) {
+                        await dataPersistenceService.addHistoryBlock(domainCommand.params.block);
+                        mainLogger.info('History block saved', { blockId: domainCommand.params.block.id });
+                    }
+                    else {
+                        mainLogger.error('DataPersistenceService not initialized');
+                    }
+                    break;
+                case 'saveSummary':
+                    if (dataPersistenceService) {
+                        await dataPersistenceService.addSummary(domainCommand.params.summary);
+                        mainLogger.info('Summary saved', { summaryId: domainCommand.params.summary.id });
+                    }
+                    else {
+                        mainLogger.error('DataPersistenceService not initialized');
+                    }
+                    break;
+                case 'saveSession':
+                    if (dataPersistenceService) {
+                        await dataPersistenceService.saveSession();
+                        mainLogger.info('Session saved to disk');
+                    }
+                    else {
+                        mainLogger.error('DataPersistenceService not initialized');
                     }
                     break;
                 default:

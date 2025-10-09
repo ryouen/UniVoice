@@ -136,7 +136,7 @@ describe('DeepgramStreamAdapter', () => {
       triggerDeepgramEvent('transcript', deepgramMessage);
 
       expect(mockTranscript).toHaveBeenCalledTimes(1);
-      expect(mockTranscript).toHaveBeenCalledWith(expect.objectContaining<TranscriptResult>({
+      expect(mockTranscript).toHaveBeenCalledWith(expect.objectContaining({
         text: 'Hello world',
       }));
     });
@@ -156,3 +156,4 @@ describe('DeepgramStreamAdapter', () => {
     });
   });
 });
+

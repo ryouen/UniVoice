@@ -91,15 +91,18 @@ export class SegmentManager extends EventEmitter {
     // Convert input to SegmentData
     const segmentData: SegmentData = {
       text: input.text,
-      translation: input.translation,
-      confidence: input.confidence,
-      isFinal: input.isFinal,
+      confidence: input.confidence ?? 1,
+      isFinal: input.isFinal ?? false,
       metadata: {
         ...input.metadata,
         startMs: input.startMs,
         endMs: input.endMs,
       },
     };
+
+    if (input.translation !== undefined) {
+      segmentData.translation = input.translation;
+    }
     
     // Add to coalescer
     coalescer.addSegment(segmentData);

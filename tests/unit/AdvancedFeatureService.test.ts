@@ -34,10 +34,10 @@ describe('AdvancedFeatureService', () => {
 
   afterEach(async () => {
     // Stop the service if it was started to avoid unhandled errors
-    if (service['intervalId']) { 
+    const internalService = service as unknown as { intervalId?: NodeJS.Timeout };`r`n    if (internalService.intervalId) { 
       service.stop();
     }
-    await jest.runOnlyPendingTimersAsync();
+    jest.runOnlyPendingTimers();
     jest.useRealTimers();
   });
 
@@ -45,9 +45,9 @@ describe('AdvancedFeatureService', () => {
     mockCreate.mockResolvedValue({ choices: [{ message: { content: 'Test summary' } }] });
 
     service.start('test-correlation-id', 'en', 'ja');
-    service.addTranslation({ id: '1', original: 'one two three four five six seven eight nine ten eleven', translated: '', timestamp: Date.now() });
+    service.addTranslation({ id: '1', sourceText: 'one two three four five six seven eight nine ten eleven', targetText: '', timestamp: Date.now() });
 
-    await jest.advanceTimersByTimeAsync(60000);
+    jest.advanceTimersByTime(60000);`r`n    await Promise.resolve();
     await new Promise(process.nextTick);
 
     expect(mockCreate).toHaveBeenCalledTimes(1);
@@ -58,7 +58,7 @@ describe('AdvancedFeatureService', () => {
     mockCreate.mockResolvedValue({ choices: [{ message: { content: JSON.stringify([{ term: 'test', definition: 'test def' }]) } }] });
 
     service.start('test-correlation-id', 'en', 'ja');
-    service.addTranslation({ id: '1', original: 'Some text for vocabulary.', translated: '', timestamp: Date.now() });
+    service.addTranslation({ id: '1', sourceText: 'Some text for vocabulary.', targetText: '', timestamp: Date.now() });
 
     const result = await service.generateVocabulary();
     await new Promise(process.nextTick);
@@ -72,7 +72,7 @@ describe('AdvancedFeatureService', () => {
     mockCreate.mockResolvedValue({ choices: [{ message: { content: 'Final report content' } }] });
 
     service.start('test-correlation-id', 'en', 'ja');
-    service.addTranslation({ id: '1', original: 'Text for the final report.', translated: '', timestamp: Date.now() });
+    service.addTranslation({ id: '1', sourceText: 'Text for the final report.', targetText: '', timestamp: Date.now() });
 
     const result = await service.generateFinalReport();
     await new Promise(process.nextTick);
@@ -82,3 +82,4 @@ describe('AdvancedFeatureService', () => {
     expect(result.data.report).toBe('Final report content');
   });
 });
+

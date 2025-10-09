@@ -79,33 +79,21 @@ declare global {
       // Full history data API
       getFullHistory?: () => Promise<FullHistoryData>;
       // Data persistence API
-      startSession?: (params: { courseName: string; sourceLanguage: string; targetLanguage: string; sessionNumber?: number }) => Promise<{ success: boolean; error?: string }>;
+      startSession?: (params: { courseName: string; sessionNumber: number }) => Promise<{ success: boolean; error?: string }>;
       saveHistoryBlock?: (params: { 
-        block: {
+        segments: Array<{
           id: string;
-          sentences: Array<{
-            id: string;
-            sourceText: string;
-            targetText: string;
-            timestamp: number;
-          }>;
-          createdAt: number;
-          totalHeight: number;
-          isParagraph?: boolean;
-          paragraphId?: string;
-          rawText?: string;
-          duration?: number;
-        }
+          text: string;
+          translation?: string;
+          timestamp: number;
+        }>
       }) => Promise<{ success: boolean; error?: string }>;
       saveSummary?: (params: { 
         summary: {
-          id: string;
           sourceText: string;
           targetText: string;
           wordCount: number;
           timestamp: number;
-          timeRange?: { start: number; end: number } | string;
-          threshold?: number;
         }
       }) => Promise<{ success: boolean; error?: string }>;
       saveSession?: (params?: {

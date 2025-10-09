@@ -420,6 +420,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   // 新アーキテクチャからのデータを統合
   const isRunning = pipeline.isRunning;
   const pipelineError = pipeline.error;
+  const pipelineStatus = pipeline.state.status;
+  const hasFatalPipelineError = pipelineStatus === 'error';
+
   const historyBlocks = pipeline.historyBlocks; // FlexibleHistoryGrouperからのデータ
   const summaries = pipeline.summaries; // 要約データ
   const displayPairs = pipeline.displayPairs; // 3段階表示用データ
@@ -1692,6 +1695,35 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
     }
   }, [windowClient]);
 
+  const sendSummaryWindowData = useCallback(() => {
+    if (!window.electron?.send) {
+      return;
+    }
+
+    const progressiveSummaries = summaries.filter(summary => summary.threshold);
+    window.electron.send('summary-window-data', {
+      summaries: progressiveSummaries,
+      settings: {
+        theme: currentTheme,
+        fontScale: currentFontScale,
+        displayMode,
+      }
+    });
+  }, [summaries, currentTheme, currentFontScale, displayMode]);
+
+  useEffect(() => {
+    if (!window.electron?.on) {
+      return;
+    }
+
+    const handleRefreshRequest = () => {
+      sendSummaryWindowData();
+    };
+
+    window.electron.on('summary-window-refresh-request', handleRefreshRequest);
+    return () => window.electron?.removeListener?.('summary-window-refresh-request', handleRefreshRequest);
+  }, [sendSummaryWindowData]);
+
   // Memo saving logic moved to useMemoManager hook
 
   // Memo edit logic moved to useMemoManager hook
@@ -2286,7 +2318,15 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
           }}>
             {/* 録音インジケーター */}
             <div className={getThemeClass('recordingIndicator')} style={{width: 'var(--recording-width)', flexShrink: 0}}>
-              <div className={classNames(styles.recordingDot, { [styles.recordingDotPaused]: isPaused })} />
+              <div
+                className={classNames(
+                  styles.recordingDot,
+                  {
+                    [styles.recordingDotPaused]: isPaused && !hasFatalPipelineError,
+                    [styles.recordingDotError]: hasFatalPipelineError,
+                  }
+                )}
+              />
               <span>{formatTime(recordingTime)}</span>
             </div>
             
@@ -2368,17 +2408,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
                 setIsSummaryWindowOpen(result);
                 
                 // ウィンドウが開かれた場合、要約データを送信
-                if (result && window.electron?.send) {
-                  const progressiveSummaries = summaries.filter(s => s.threshold);
-                  console.log('[UniVoice] Sending summary data to window:', progressiveSummaries);
-                  window.electron.send('summary-data-update', {
-                    summaries: progressiveSummaries,
-                    settings: {
-                      theme: currentTheme,
-                      fontScale: currentFontScale,
-                      displayMode: displayMode
-                    }
-                  });
+                if (result) {
+                  console.log('[UniVoice] Sending summary data to window:', summaries.filter(s => s.threshold));
+                  sendSummaryWindowData();
                 }
               }}
               style={{WebkitAppRegion: 'no-drag', width: 'var(--center-button-width)', height: 'var(--button-size)'}}

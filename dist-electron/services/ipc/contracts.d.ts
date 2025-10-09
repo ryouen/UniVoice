@@ -219,8 +219,8 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
     }, "strip", z.ZodTypeAny, {
         sourceLanguage: string;
         targetLanguage: string;
-        threshold: number;
         wordCount: number;
+        threshold: number;
         sourceText: string;
         targetText: string;
         startTime?: number | undefined;
@@ -228,8 +228,8 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
     }, {
         sourceLanguage: string;
         targetLanguage: string;
-        threshold: number;
         wordCount: number;
+        threshold: number;
         sourceText: string;
         targetText: string;
         startTime?: number | undefined;
@@ -241,8 +241,8 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
     data: {
         sourceLanguage: string;
         targetLanguage: string;
-        threshold: number;
         wordCount: number;
+        threshold: number;
         sourceText: string;
         targetText: string;
         startTime?: number | undefined;
@@ -255,8 +255,8 @@ export declare const ProgressiveSummaryEventSchema: z.ZodObject<{
     data: {
         sourceLanguage: string;
         targetLanguage: string;
-        threshold: number;
         wordCount: number;
+        threshold: number;
         sourceText: string;
         targetText: string;
         startTime?: number | undefined;
@@ -527,13 +527,13 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
             cleanedText?: string | undefined;
         }>>;
     }, "strip", z.ZodTypeAny, {
-        wordCount: number;
         startTime: number;
         endTime: number;
+        duration: number;
+        wordCount: number;
         segmentIds: string[];
         paragraphId: string;
         rawText: string;
-        duration: number;
         cleanedText?: string | undefined;
         paragraph?: {
             id: string;
@@ -550,13 +550,13 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
             cleanedText?: string | undefined;
         } | undefined;
     }, {
-        wordCount: number;
         startTime: number;
         endTime: number;
+        duration: number;
+        wordCount: number;
         segmentIds: string[];
         paragraphId: string;
         rawText: string;
-        duration: number;
         cleanedText?: string | undefined;
         paragraph?: {
             id: string;
@@ -577,13 +577,13 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
     type: "paragraphComplete";
     correlationId: string;
     data: {
-        wordCount: number;
         startTime: number;
         endTime: number;
+        duration: number;
+        wordCount: number;
         segmentIds: string[];
         paragraphId: string;
         rawText: string;
-        duration: number;
         cleanedText?: string | undefined;
         paragraph?: {
             id: string;
@@ -605,13 +605,13 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
     type: "paragraphComplete";
     correlationId: string;
     data: {
-        wordCount: number;
         startTime: number;
         endTime: number;
+        duration: number;
+        wordCount: number;
         segmentIds: string[];
         paragraphId: string;
         rawText: string;
-        duration: number;
         cleanedText?: string | undefined;
         paragraph?: {
             id: string;
@@ -791,8 +791,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     }, "strip", z.ZodTypeAny, {
         sourceLanguage: string;
         targetLanguage: string;
-        threshold: number;
         wordCount: number;
+        threshold: number;
         sourceText: string;
         targetText: string;
         startTime?: number | undefined;
@@ -800,8 +800,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     }, {
         sourceLanguage: string;
         targetLanguage: string;
-        threshold: number;
         wordCount: number;
+        threshold: number;
         sourceText: string;
         targetText: string;
         startTime?: number | undefined;
@@ -813,8 +813,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     data: {
         sourceLanguage: string;
         targetLanguage: string;
-        threshold: number;
         wordCount: number;
+        threshold: number;
         sourceText: string;
         targetText: string;
         startTime?: number | undefined;
@@ -827,8 +827,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     data: {
         sourceLanguage: string;
         targetLanguage: string;
-        threshold: number;
         wordCount: number;
+        threshold: number;
         sourceText: string;
         targetText: string;
         startTime?: number | undefined;
@@ -1115,13 +1115,13 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
             cleanedText?: string | undefined;
         }>>;
     }, "strip", z.ZodTypeAny, {
-        wordCount: number;
         startTime: number;
         endTime: number;
+        duration: number;
+        wordCount: number;
         segmentIds: string[];
         paragraphId: string;
         rawText: string;
-        duration: number;
         cleanedText?: string | undefined;
         paragraph?: {
             id: string;
@@ -1138,13 +1138,13 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
             cleanedText?: string | undefined;
         } | undefined;
     }, {
-        wordCount: number;
         startTime: number;
         endTime: number;
+        duration: number;
+        wordCount: number;
         segmentIds: string[];
         paragraphId: string;
         rawText: string;
-        duration: number;
         cleanedText?: string | undefined;
         paragraph?: {
             id: string;
@@ -1165,13 +1165,13 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     type: "paragraphComplete";
     correlationId: string;
     data: {
-        wordCount: number;
         startTime: number;
         endTime: number;
+        duration: number;
+        wordCount: number;
         segmentIds: string[];
         paragraphId: string;
         rawText: string;
-        duration: number;
         cleanedText?: string | undefined;
         paragraph?: {
             id: string;
@@ -1193,13 +1193,13 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
     type: "paragraphComplete";
     correlationId: string;
     data: {
-        wordCount: number;
         startTime: number;
         endTime: number;
+        duration: number;
+        wordCount: number;
         segmentIds: string[];
         paragraphId: string;
         rawText: string;
-        duration: number;
         cleanedText?: string | undefined;
         paragraph?: {
             id: string;
@@ -1385,27 +1385,346 @@ export declare const LoadSessionCommandSchema: z.ZodObject<{
         dateStr: z.ZodString;
         sessionNumber: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        courseName: string;
         sessionNumber: number;
+        courseName: string;
         dateStr: string;
     }, {
-        courseName: string;
         sessionNumber: number;
+        courseName: string;
         dateStr: string;
     }>;
 }, "strip", z.ZodTypeAny, {
     command: "loadSession";
     params: {
-        courseName: string;
         sessionNumber: number;
+        courseName: string;
         dateStr: string;
     };
 }, {
     command: "loadSession";
     params: {
-        courseName: string;
         sessionNumber: number;
+        courseName: string;
         dateStr: string;
+    };
+}>;
+export declare const StartSessionCommandSchema: z.ZodObject<{
+    command: z.ZodLiteral<"startSession">;
+    params: z.ZodObject<{
+        courseName: z.ZodString;
+        sourceLanguage: z.ZodString;
+        targetLanguage: z.ZodString;
+        sessionNumber: z.ZodOptional<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        sourceLanguage: string;
+        targetLanguage: string;
+        courseName: string;
+        sessionNumber?: number | undefined;
+    }, {
+        sourceLanguage: string;
+        targetLanguage: string;
+        courseName: string;
+        sessionNumber?: number | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "startSession";
+    params: {
+        sourceLanguage: string;
+        targetLanguage: string;
+        courseName: string;
+        sessionNumber?: number | undefined;
+    };
+}, {
+    command: "startSession";
+    params: {
+        sourceLanguage: string;
+        targetLanguage: string;
+        courseName: string;
+        sessionNumber?: number | undefined;
+    };
+}>;
+export declare const SaveHistoryBlockCommandSchema: z.ZodObject<{
+    command: z.ZodLiteral<"saveHistoryBlock">;
+    params: z.ZodObject<{
+        block: z.ZodObject<{
+            id: z.ZodString;
+            sentences: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                sourceText: z.ZodString;
+                targetText: z.ZodString;
+                timestamp: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }, {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }>, "many">;
+            createdAt: z.ZodNumber;
+            totalHeight: z.ZodNumber;
+            isParagraph: z.ZodOptional<z.ZodBoolean>;
+            paragraphId: z.ZodOptional<z.ZodString>;
+            rawText: z.ZodOptional<z.ZodString>;
+            duration: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        }, {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        }>;
+    }, "strip", z.ZodTypeAny, {
+        block: {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        };
+    }, {
+        block: {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        };
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "saveHistoryBlock";
+    params: {
+        block: {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        };
+    };
+}, {
+    command: "saveHistoryBlock";
+    params: {
+        block: {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        };
+    };
+}>;
+export declare const SaveSummaryCommandSchema: z.ZodObject<{
+    command: z.ZodLiteral<"saveSummary">;
+    params: z.ZodObject<{
+        summary: z.ZodObject<{
+            id: z.ZodString;
+            sourceText: z.ZodString;
+            targetText: z.ZodString;
+            wordCount: z.ZodNumber;
+            timestamp: z.ZodNumber;
+            timeRange: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
+                start: z.ZodNumber;
+                end: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                start: number;
+                end: number;
+            }, {
+                start: number;
+                end: number;
+            }>]>>;
+            threshold: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        }, {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        }>;
+    }, "strip", z.ZodTypeAny, {
+        summary: {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        };
+    }, {
+        summary: {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        };
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "saveSummary";
+    params: {
+        summary: {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        };
+    };
+}, {
+    command: "saveSummary";
+    params: {
+        summary: {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        };
+    };
+}>;
+export declare const SaveSessionCommandSchema: z.ZodObject<{
+    command: z.ZodLiteral<"saveSession">;
+    params: z.ZodObject<{
+        finalReport: z.ZodOptional<z.ZodString>;
+        vocabulary: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            term: z.ZodString;
+            definition: z.ZodString;
+            context: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }, {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }>, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        vocabulary?: {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }[] | undefined;
+        finalReport?: string | undefined;
+    }, {
+        vocabulary?: {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }[] | undefined;
+        finalReport?: string | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "saveSession";
+    params: {
+        vocabulary?: {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }[] | undefined;
+        finalReport?: string | undefined;
+    };
+}, {
+    command: "saveSession";
+    params: {
+        vocabulary?: {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }[] | undefined;
+        finalReport?: string | undefined;
     };
 }>;
 export declare const IPCCommandSchema: z.ZodDiscriminatedUnion<"command", [z.ZodObject<{
@@ -1567,27 +1886,342 @@ export declare const IPCCommandSchema: z.ZodDiscriminatedUnion<"command", [z.Zod
         dateStr: z.ZodString;
         sessionNumber: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        courseName: string;
         sessionNumber: number;
+        courseName: string;
         dateStr: string;
     }, {
-        courseName: string;
         sessionNumber: number;
+        courseName: string;
         dateStr: string;
     }>;
 }, "strip", z.ZodTypeAny, {
     command: "loadSession";
     params: {
-        courseName: string;
         sessionNumber: number;
+        courseName: string;
         dateStr: string;
     };
 }, {
     command: "loadSession";
     params: {
-        courseName: string;
         sessionNumber: number;
+        courseName: string;
         dateStr: string;
+    };
+}>, z.ZodObject<{
+    command: z.ZodLiteral<"startSession">;
+    params: z.ZodObject<{
+        courseName: z.ZodString;
+        sourceLanguage: z.ZodString;
+        targetLanguage: z.ZodString;
+        sessionNumber: z.ZodOptional<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        sourceLanguage: string;
+        targetLanguage: string;
+        courseName: string;
+        sessionNumber?: number | undefined;
+    }, {
+        sourceLanguage: string;
+        targetLanguage: string;
+        courseName: string;
+        sessionNumber?: number | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "startSession";
+    params: {
+        sourceLanguage: string;
+        targetLanguage: string;
+        courseName: string;
+        sessionNumber?: number | undefined;
+    };
+}, {
+    command: "startSession";
+    params: {
+        sourceLanguage: string;
+        targetLanguage: string;
+        courseName: string;
+        sessionNumber?: number | undefined;
+    };
+}>, z.ZodObject<{
+    command: z.ZodLiteral<"saveHistoryBlock">;
+    params: z.ZodObject<{
+        block: z.ZodObject<{
+            id: z.ZodString;
+            sentences: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                sourceText: z.ZodString;
+                targetText: z.ZodString;
+                timestamp: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }, {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }>, "many">;
+            createdAt: z.ZodNumber;
+            totalHeight: z.ZodNumber;
+            isParagraph: z.ZodOptional<z.ZodBoolean>;
+            paragraphId: z.ZodOptional<z.ZodString>;
+            rawText: z.ZodOptional<z.ZodString>;
+            duration: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        }, {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        }>;
+    }, "strip", z.ZodTypeAny, {
+        block: {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        };
+    }, {
+        block: {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        };
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "saveHistoryBlock";
+    params: {
+        block: {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        };
+    };
+}, {
+    command: "saveHistoryBlock";
+    params: {
+        block: {
+            id: string;
+            sentences: {
+                id: string;
+                timestamp: number;
+                sourceText: string;
+                targetText: string;
+            }[];
+            createdAt: number;
+            totalHeight: number;
+            duration?: number | undefined;
+            paragraphId?: string | undefined;
+            rawText?: string | undefined;
+            isParagraph?: boolean | undefined;
+        };
+    };
+}>, z.ZodObject<{
+    command: z.ZodLiteral<"saveSummary">;
+    params: z.ZodObject<{
+        summary: z.ZodObject<{
+            id: z.ZodString;
+            sourceText: z.ZodString;
+            targetText: z.ZodString;
+            wordCount: z.ZodNumber;
+            timestamp: z.ZodNumber;
+            timeRange: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
+                start: z.ZodNumber;
+                end: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                start: number;
+                end: number;
+            }, {
+                start: number;
+                end: number;
+            }>]>>;
+            threshold: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        }, {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        }>;
+    }, "strip", z.ZodTypeAny, {
+        summary: {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        };
+    }, {
+        summary: {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        };
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "saveSummary";
+    params: {
+        summary: {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        };
+    };
+}, {
+    command: "saveSummary";
+    params: {
+        summary: {
+            id: string;
+            wordCount: number;
+            timestamp: number;
+            sourceText: string;
+            targetText: string;
+            threshold?: number | undefined;
+            timeRange?: string | {
+                start: number;
+                end: number;
+            } | undefined;
+        };
+    };
+}>, z.ZodObject<{
+    command: z.ZodLiteral<"saveSession">;
+    params: z.ZodObject<{
+        finalReport: z.ZodOptional<z.ZodString>;
+        vocabulary: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            term: z.ZodString;
+            definition: z.ZodString;
+            context: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }, {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }>, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        vocabulary?: {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }[] | undefined;
+        finalReport?: string | undefined;
+    }, {
+        vocabulary?: {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }[] | undefined;
+        finalReport?: string | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "saveSession";
+    params: {
+        vocabulary?: {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }[] | undefined;
+        finalReport?: string | undefined;
+    };
+}, {
+    command: "saveSession";
+    params: {
+        vocabulary?: {
+            term: string;
+            definition: string;
+            context?: string | undefined;
+        }[] | undefined;
+        finalReport?: string | undefined;
     };
 }>]>;
 export type ASREvent = z.infer<typeof ASREventSchema>;
@@ -1610,6 +2244,10 @@ export type GenerateVocabularyCommand = z.infer<typeof GenerateVocabularyCommand
 export type GenerateFinalReportCommand = z.infer<typeof GenerateFinalReportCommandSchema>;
 export type GetAvailableSessionsCommand = z.infer<typeof GetAvailableSessionsCommandSchema>;
 export type LoadSessionCommand = z.infer<typeof LoadSessionCommandSchema>;
+export type StartSessionCommand = z.infer<typeof StartSessionCommandSchema>;
+export type SaveHistoryBlockCommand = z.infer<typeof SaveHistoryBlockCommandSchema>;
+export type SaveSummaryCommand = z.infer<typeof SaveSummaryCommandSchema>;
+export type SaveSessionCommand = z.infer<typeof SaveSessionCommandSchema>;
 export type IPCCommand = z.infer<typeof IPCCommandSchema>;
 export declare const validatePipelineEvent: (data: unknown) => PipelineEvent;
 export declare const validateIPCCommand: (data: unknown) => IPCCommand;

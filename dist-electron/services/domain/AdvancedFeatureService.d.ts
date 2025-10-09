@@ -123,8 +123,6 @@ export declare class AdvancedFeatureService extends EventEmitter {
     private getFinalReportPrompt;
     private translateToTargetLanguage;
     getSummaries(): Summary[];
-    private isCharacterBasedLanguage;
-    private countWords;
     /**
      * Get all translations for history window
      */

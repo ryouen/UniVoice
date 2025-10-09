@@ -17,17 +17,7 @@
  * │   └── course-metadata.json
  * └── システム設定.json
  */
-export interface HistoryBlock {
-    id: string;
-    sentences: Array<{
-        id: string;
-        original: string;
-        translation: string;
-        timestamp: number;
-    }>;
-    createdAt: number;
-    totalHeight: number;
-}
+import { PersistedHistoryBlock, PersistedSummary, RendererHistoryBlock, RendererSummary } from './persistenceSchema';
 export interface SessionMetadata {
     sessionId: string;
     courseName: string;
@@ -50,21 +40,14 @@ export interface CourseMetadata {
     description?: string;
 }
 export interface SessionHistory {
-    blocks: HistoryBlock[];
+    blocks: PersistedHistoryBlock[];
     totalSegments: number;
     totalWords: number;
-}
-export interface SessionSummary {
-    id: string;
-    timeRange: string;
-    english: string;
-    japanese: string;
-    timestamp: number;
 }
 export interface SessionData {
     metadata: SessionMetadata;
     history: SessionHistory;
-    summaries: SessionSummary[];
+    summaries: PersistedSummary[];
     vocabularies?: Array<{
         term: string;
         definition: string;
@@ -123,11 +106,11 @@ export declare class DataPersistenceService {
     /**
      * 履歴ブロックの追加
      */
-    addHistoryBlock(block: HistoryBlock): Promise<void>;
+    addHistoryBlock(block: RendererHistoryBlock): Promise<void>;
     /**
      * 要約の追加
      */
-    addSummary(summary: SessionSummary): Promise<void>;
+    addSummary(summary: RendererSummary): Promise<void>;
     /**
      * セッションデータの保存
      */
@@ -173,11 +156,11 @@ export declare class DataPersistenceService {
      * HistoryWindow用にフォーマットして返す
      */
     getFullHistory(): Promise<{
-        blocks: any[];
+        blocks: PersistedHistoryBlock[];
         entries: Array<{
             id: string;
-            original: string;
-            translation: string;
+            sourceText: string;
+            targetText: string;
             timestamp: number;
             segmentIds?: string[];
             speaker?: string;

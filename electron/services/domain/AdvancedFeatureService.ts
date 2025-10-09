@@ -9,6 +9,7 @@
 import { EventEmitter } from 'events';
 import OpenAI from 'openai';
 import { logger } from '../../utils/logger';
+import { countWords, isCharacterBasedLanguage } from '../../utils/textMetrics';
 import { 
   createProgressiveSummaryEvent,
   createErrorEvent,
@@ -188,7 +189,7 @@ export class AdvancedFeatureService extends EventEmitter {
     
     // Count words in SOURCE language for summary thresholds
     // This ensures consistent counting regardless of translation target
-    const wordCount = this.countWords(translation.sourceText, this.sourceLanguage);
+    const wordCount = countWords(translation.sourceText, this.sourceLanguage);
     this.totalWordCount += wordCount;
     
     this.componentLogger.info('Translation added', {
@@ -212,7 +213,7 @@ export class AdvancedFeatureService extends EventEmitter {
    */
   private async checkProgressiveSummaryThresholds(): Promise<void> {
     // Adjust thresholds for character-based languages
-    const isCharacterBased = this.isCharacterBasedLanguage(this.sourceLanguage);
+    const isCharacterBased = isCharacterBasedLanguage(this.sourceLanguage);
     const multiplier = isCharacterBased ? parseInt(process.env.CHARACTER_LANGUAGE_MULTIPLIER || '4') : 1;
     
     for (const baseThreshold of this.summaryThresholds) {
@@ -306,7 +307,7 @@ export class AdvancedFeatureService extends EventEmitter {
     
     const startTime = Date.now();
     const wordCount = this.translations.reduce(
-      (sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 
+      (sum, t) => sum + countWords(t.sourceText, this.sourceLanguage), 
       0
     );
     
@@ -407,11 +408,11 @@ export class AdvancedFeatureService extends EventEmitter {
       if (this.lastProgressiveSummary) {
         translationsToInclude = this.translations.slice(this.lastProgressiveThresholdIndex + 1);
         newContent = translationsToInclude.map(t => t.sourceText).join(' ');
-        actualWordCount = translationsToInclude.reduce((sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 0);
+        actualWordCount = translationsToInclude.reduce((sum, t) => sum + countWords(t.sourceText, this.sourceLanguage), 0);
       } else {
         for (let i = 0; i < this.translations.length; i++) {
           const translation = this.translations[i];
-          const words = this.countWords(translation.sourceText, this.sourceLanguage);
+          const words = countWords(translation.sourceText, this.sourceLanguage);
           if (actualWordCount + words <= actualThreshold) {
             translationsToInclude.push(translation);
             actualWordCount += words;
@@ -585,7 +586,7 @@ export class AdvancedFeatureService extends EventEmitter {
     
     try {
       const totalWordCount = this.translations.reduce(
-        (sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 
+        (sum, t) => sum + countWords(t.sourceText, this.sourceLanguage), 
         0
       );
       
@@ -748,19 +749,6 @@ export class AdvancedFeatureService extends EventEmitter {
     return [...this.summaries];
   }
 
-  private isCharacterBasedLanguage(language: string): boolean {
-    return language === 'ja';
-  }
-
-  private countWords(text: string, language: string): number {
-    if (this.isCharacterBasedLanguage(language)) {
-      const cleanedText = text.replace(/[。、！？,.!?\s]/g, '');
-      return cleanedText.length;
-    } else {
-      return text.trim().split(/\s+/).filter(word => word.length > 0).length;
-    }
-  }
-
   /**
    * Get all translations for history window
    */
@@ -773,3 +761,6 @@ export class AdvancedFeatureService extends EventEmitter {
     this.removeAllListeners();
   }
 }
+
+
+

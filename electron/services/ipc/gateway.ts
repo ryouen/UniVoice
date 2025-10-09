@@ -150,6 +150,38 @@ export class IPCGateway extends EventEmitter {
         });
         break;
 
+      case 'startSession':
+        this.emit('domain-command', {
+          type: 'startSession',
+          params: command.params,
+          correlationId,
+        });
+        break;
+
+      case 'saveHistoryBlock':
+        this.emit('domain-command', {
+          type: 'saveHistoryBlock',
+          params: command.params,
+          correlationId,
+        });
+        break;
+
+      case 'saveSummary':
+        this.emit('domain-command', {
+          type: 'saveSummary',
+          params: command.params,
+          correlationId,
+        });
+        break;
+
+      case 'saveSession':
+        this.emit('domain-command', {
+          type: 'saveSession',
+          params: command.params,
+          correlationId,
+        });
+        break;
+
       default:
         // TypeScript should prevent this, but handle gracefully
         this.componentLogger.error('Unknown command type', { command, correlationId });
@@ -237,6 +269,12 @@ export class IPCGateway extends EventEmitter {
         eventType: event?.type,
         correlationId: event?.correlationId,
       });
+      this.emit('pipelineEvent', createErrorEvent({
+        code: 'EVENT_VALIDATION_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown event validation error',
+        details: { rawEvent: event },
+        recoverable: true,
+      }, event?.correlationId));
     }
   }
 

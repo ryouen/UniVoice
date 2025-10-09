@@ -57,6 +57,7 @@ const electron_1 = require("electron");
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const logger_1 = require("../../utils/logger");
+const persistenceSchema_1 = require("./persistenceSchema");
 const mainLogger = logger_1.logger.child('DataPersistence');
 class DataPersistenceService {
     constructor(autoSaveIntervalMs = 180000) {
@@ -226,33 +227,50 @@ class DataPersistenceService {
         try {
             const files = await fs.readdir(sessionPath);
             const sessionData = {};
-            // メタデータの読み込み
             if (files.includes('metadata.json')) {
                 const metadataContent = await fs.readFile(path.join(sessionPath, 'metadata.json'), 'utf-8');
                 sessionData.metadata = JSON.parse(metadataContent);
             }
-            // 履歴の読み込み
+            const sourceLanguage = sessionData.metadata?.sourceLanguage;
             if (files.includes('history.json')) {
                 const historyContent = await fs.readFile(path.join(sessionPath, 'history.json'), 'utf-8');
-                sessionData.history = JSON.parse(historyContent);
+                const historyData = JSON.parse(historyContent);
+                const rawBlocks = Array.isArray(historyData?.blocks)
+                    ? historyData.blocks
+                    : Array.isArray(historyData)
+                        ? historyData
+                        : [];
+                const normalized = (0, persistenceSchema_1.normalizeHistoryBlocks)(rawBlocks, { sourceLanguage });
+                sessionData.history = {
+                    blocks: normalized.blocks,
+                    totalSegments: normalized.totalSegments,
+                    totalWords: normalized.totalWords
+                };
             }
             else {
                 sessionData.history = { blocks: [], totalSegments: 0, totalWords: 0 };
             }
-            // 要約の読み込み
+            if (sessionData.metadata && sessionData.history) {
+                sessionData.metadata.wordCount = sessionData.history.totalWords;
+            }
+            let summaries = [];
             if (files.includes('summaries.json')) {
                 const summariesContent = await fs.readFile(path.join(sessionPath, 'summaries.json'), 'utf-8');
-                sessionData.summaries = JSON.parse(summariesContent);
+                const parsed = JSON.parse(summariesContent);
+                const rawSummaries = Array.isArray(parsed) ? parsed : [];
+                summaries = rawSummaries.map(persistenceSchema_1.normalizeSummary);
             }
-            else {
-                sessionData.summaries = [];
+            else if (files.includes('summary.json')) {
+                const legacyContent = await fs.readFile(path.join(sessionPath, 'summary.json'), 'utf-8');
+                const parsed = JSON.parse(legacyContent);
+                const rawSummaries = Array.isArray(parsed?.summaries) ? parsed.summaries : [];
+                summaries = rawSummaries.map(persistenceSchema_1.normalizeSummary);
             }
-            // 語彙の読み込み
+            sessionData.summaries = summaries;
             if (files.includes('vocabulary.json')) {
                 const vocabularyContent = await fs.readFile(path.join(sessionPath, 'vocabulary.json'), 'utf-8');
                 sessionData.vocabularies = JSON.parse(vocabularyContent);
             }
-            // レポートの読み込み
             if (files.includes('report.md')) {
                 sessionData.report = await fs.readFile(path.join(sessionPath, 'report.md'), 'utf-8');
             }
@@ -336,13 +354,17 @@ class DataPersistenceService {
      * 履歴ブロックの追加
      */
     async addHistoryBlock(block) {
-        if (!this.currentSessionData) {
+        if (!this.currentSessionData || !this.currentSessionData.history) {
             mainLogger.warn('No active session to add history block');
             return;
         }
-        this.currentSessionData.history.blocks.push(block);
-        this.currentSessionData.history.totalSegments += block.sentences.length;
-        this.currentSessionData.history.totalWords += block.sentences.reduce((sum, sentence) => sum + sentence.original.split(' ').length, 0);
+        const sourceLanguage = this.currentSessionData.metadata?.sourceLanguage;
+        const { block: normalizedBlock, wordCount, segmentCount } = (0, persistenceSchema_1.normalizeHistoryBlock)(block, {
+            sourceLanguage
+        });
+        this.currentSessionData.history.blocks.push(normalizedBlock);
+        this.currentSessionData.history.totalSegments += segmentCount;
+        this.currentSessionData.history.totalWords += wordCount;
     }
     /**
      * 要約の追加
@@ -352,7 +374,11 @@ class DataPersistenceService {
             mainLogger.warn('No active session to add summary');
             return;
         }
-        this.currentSessionData.summaries.push(summary);
+        const normalizedSummary = (0, persistenceSchema_1.normalizeSummary)(summary);
+        if (!this.currentSessionData.summaries) {
+            this.currentSessionData.summaries = [];
+        }
+        this.currentSessionData.summaries.push(normalizedSummary);
     }
     /**
      * セッションデータの保存
@@ -365,16 +391,28 @@ class DataPersistenceService {
         try {
             const metadata = this.currentSessionData.metadata;
             const sessionPath = this.getSessionPath();
+            if (!this.currentSessionData.history) {
+                this.currentSessionData.history = {
+                    blocks: [],
+                    totalSegments: 0,
+                    totalWords: 0
+                };
+            }
+            const { totalWords, totalSegments } = (0, persistenceSchema_1.calculateHistoryTotals)(this.currentSessionData.history.blocks, {
+                sourceLanguage: metadata.sourceLanguage
+            });
+            this.currentSessionData.history.totalWords = totalWords;
+            this.currentSessionData.history.totalSegments = totalSegments;
+            metadata.wordCount = totalWords;
             // 終了時間と duration を更新
             if (this.sessionStartTime) {
                 metadata.endTime = new Date().toISOString();
                 metadata.duration = Math.floor((Date.now() - this.sessionStartTime.getTime()) / 1000);
             }
-            // 各ファイルを保存
             await fs.writeFile(path.join(sessionPath, 'metadata.json'), JSON.stringify(metadata, null, 2));
             await fs.writeFile(path.join(sessionPath, 'history.json'), JSON.stringify(this.currentSessionData.history, null, 2));
             if (this.currentSessionData.summaries && this.currentSessionData.summaries.length > 0) {
-                await fs.writeFile(path.join(sessionPath, 'summary.json'), JSON.stringify({ summaries: this.currentSessionData.summaries }, null, 2));
+                await fs.writeFile(path.join(sessionPath, 'summaries.json'), JSON.stringify(this.currentSessionData.summaries, null, 2));
             }
             if (this.currentSessionData.vocabularies && this.currentSessionData.vocabularies.length > 0) {
                 await fs.writeFile(path.join(sessionPath, 'vocabulary.json'), JSON.stringify({ vocabularies: this.currentSessionData.vocabularies }, null, 2));
@@ -393,17 +431,40 @@ class DataPersistenceService {
      * セッションデータの読み込み
      */
     async loadSession(courseName, dateStr, sessionNumber) {
-        // セッションパスを手動で構築
         const coursePath = path.join(this.basePath, this.sanitizePath(courseName));
         const sessionFolderName = `${dateStr}_第${sessionNumber}回`;
         const sessionPath = path.join(coursePath, sessionFolderName);
         try {
             const metadata = JSON.parse(await fs.readFile(path.join(sessionPath, 'metadata.json'), 'utf-8'));
-            const history = JSON.parse(await fs.readFile(path.join(sessionPath, 'history.json'), 'utf-8'));
-            const summariesFile = path.join(sessionPath, 'summary.json');
-            const summaries = await this.fileExists(summariesFile)
-                ? JSON.parse(await fs.readFile(summariesFile, 'utf-8')).summaries
-                : [];
+            const historyRaw = JSON.parse(await fs.readFile(path.join(sessionPath, 'history.json'), 'utf-8'));
+            const historyBlocks = Array.isArray(historyRaw?.blocks)
+                ? historyRaw.blocks
+                : Array.isArray(historyRaw)
+                    ? historyRaw
+                    : [];
+            const normalizedHistory = (0, persistenceSchema_1.normalizeHistoryBlocks)(historyBlocks, {
+                sourceLanguage: metadata.sourceLanguage
+            });
+            const history = {
+                blocks: normalizedHistory.blocks,
+                totalSegments: normalizedHistory.totalSegments,
+                totalWords: normalizedHistory.totalWords
+            };
+            let summaries = [];
+            const summariesPath = path.join(sessionPath, 'summaries.json');
+            if (await this.fileExists(summariesPath)) {
+                const parsed = JSON.parse(await fs.readFile(summariesPath, 'utf-8'));
+                const rawSummaries = Array.isArray(parsed) ? parsed : [];
+                summaries = rawSummaries.map(persistenceSchema_1.normalizeSummary);
+            }
+            else {
+                const legacySummariesPath = path.join(sessionPath, 'summary.json');
+                if (await this.fileExists(legacySummariesPath)) {
+                    const parsed = JSON.parse(await fs.readFile(legacySummariesPath, 'utf-8'));
+                    const rawSummaries = Array.isArray(parsed?.summaries) ? parsed.summaries : [];
+                    summaries = rawSummaries.map(persistenceSchema_1.normalizeSummary);
+                }
+            }
             const vocabFile = path.join(sessionPath, 'vocabulary.json');
             const vocabularies = await this.fileExists(vocabFile)
                 ? JSON.parse(await fs.readFile(vocabFile, 'utf-8')).vocabularies
@@ -412,6 +473,7 @@ class DataPersistenceService {
             const report = await this.fileExists(reportFile)
                 ? await fs.readFile(reportFile, 'utf-8')
                 : undefined;
+            metadata.wordCount = history.totalWords;
             return {
                 metadata,
                 history,
@@ -569,7 +631,6 @@ class DataPersistenceService {
      */
     async getFullHistory() {
         if (!this.currentSessionData || !this.currentSessionData.history) {
-            // 空のデータを返す
             return {
                 blocks: [],
                 entries: [],
@@ -581,15 +642,17 @@ class DataPersistenceService {
                 }
             };
         }
-        // HistoryBlockから個別のエントリーに展開
         const entries = [];
         for (const block of this.currentSessionData.history.blocks) {
             for (const sentence of block.sentences) {
                 entries.push({
                     id: sentence.id,
-                    original: sentence.original,
-                    translation: sentence.translation,
-                    timestamp: sentence.timestamp
+                    sourceText: sentence.sourceText,
+                    targetText: sentence.targetText,
+                    timestamp: sentence.timestamp,
+                    segmentIds: sentence.segmentIds,
+                    speaker: sentence.speaker,
+                    confidence: sentence.confidence
                 });
             }
         }
@@ -602,7 +665,7 @@ class DataPersistenceService {
             endTime: Date.now()
         };
         return {
-            blocks: this.currentSessionData.history.blocks,
+            blocks: (0, persistenceSchema_1.cloneHistoryBlocks)(this.currentSessionData.history.blocks),
             entries,
             metadata
         };

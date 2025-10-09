@@ -69,6 +69,42 @@ interface UniVoiceAPI {
         success: boolean;
         error?: string;
     }>;
+    startSession: (params: {
+        courseName: string;
+        sourceLanguage: string;
+        targetLanguage: string;
+        sessionNumber?: number;
+    }) => Promise<{
+        success: boolean;
+        error?: string;
+    }>;
+    saveHistoryBlock: (params: {
+        block: any;
+    }) => Promise<{
+        success: boolean;
+        error?: string;
+    }>;
+    saveSummary: (params: {
+        summary: {
+            id: string;
+            sourceText: string;
+            targetText: string;
+            wordCount: number;
+            timestamp: number;
+            timeRange?: {
+                start: number;
+                end: number;
+            } | string;
+            threshold?: number;
+        };
+    }) => Promise<{
+        success: boolean;
+        error?: string;
+    }>;
+    saveSession: () => Promise<{
+        success: boolean;
+        error?: string;
+    }>;
     onPipelineEvent: (callback: (event: PipelineEvent) => void) => () => void;
     onASREvent: (callback: (event: PipelineEvent & {
         type: 'asr';

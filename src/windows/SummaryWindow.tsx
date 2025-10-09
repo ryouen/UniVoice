@@ -199,6 +199,17 @@ export const SummaryWindow: React.FC<SummaryWindowProps> = ({
     return cleanup;
   }, [internalTheme, internalFontScale, internalDisplayMode]);
 
+
+  useEffect(() => {
+    const handleFocus = () => {
+      window.electron?.send?.('summary-window-refresh-request');
+    };
+
+    window.addEventListener("focus", handleFocus);
+    handleFocus();
+
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
   return (
     <WindowContainer theme={internalTheme} fontScale={internalFontScale} className={styles.summaryWindow}>
       <WindowHeader

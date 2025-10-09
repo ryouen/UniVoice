@@ -89,11 +89,9 @@ export declare class SummaryService extends EventEmitter {
     /**
      * 単語数をカウント
      */
-    private countWords;
     /**
      * 文字ベースの言語かチェック
      */
-    private isCharacterBasedLanguage;
     /**
      * 進捗的要約用のプロンプト
      */

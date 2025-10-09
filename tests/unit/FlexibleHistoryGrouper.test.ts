@@ -1,4 +1,4 @@
-import { FlexibleHistoryGrouper, HistoryBlock, Sentence } from '../../src/utils/FlexibleHistoryGrouper';
+import { FlexibleHistoryGrouper, HistoryBlock, HistorySentence } from '../../src/utils/FlexibleHistoryGrouper';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -15,7 +15,7 @@ describe('FlexibleHistoryGrouper', () => {
 
   describe('addSentence', () => {
     it('should add a sentence to the current block', () => {
-      const sentence: Sentence = { id: 's1', original: 'Hello', translation: '', timestamp: Date.now() };
+      const sentence: HistorySentence = { id: 's1', sourceText: 'Hello', targetText: '', timestamp: Date.now() };
       grouper.addSentence(sentence);
       const currentBlock = grouper.getCurrentBlock();
       expect(currentBlock).toHaveLength(1);
@@ -23,9 +23,9 @@ describe('FlexibleHistoryGrouper', () => {
     });
 
     it('should complete a block when max sentences are reached', async () => {
-      grouper.addSentence({ id: 's1', original: '1', translation: '', timestamp: 1 });
-      grouper.addSentence({ id: 's2', original: '2', translation: '', timestamp: 2 });
-      grouper.addSentence({ id: 's3', original: '3', translation: '', timestamp: 3 });
+      grouper.addSentence({ id: 's1', sourceText: '1', targetText: '', timestamp: 1 });
+      grouper.addSentence({ id: 's2', sourceText: '2', targetText: '', timestamp: 2 });
+      grouper.addSentence({ id: 's3', sourceText: '3', targetText: '', timestamp: 3 });
       // Assuming MAX_SENTENCES_PER_BLOCK is 3, the block should complete automatically
       await delay(1); // Allow for async completion
       expect(completedBlocks).toHaveLength(1);
@@ -36,34 +36,34 @@ describe('FlexibleHistoryGrouper', () => {
 
   describe('updateSentenceTranslation', () => {
     it('should update a sentence in the current block', () => {
-      grouper.addSentence({ id: 's1', original: 'Hello', translation: '', timestamp: Date.now() });
+      grouper.addSentence({ id: 's1', sourceText: 'Hello', targetText: '', timestamp: Date.now() });
       grouper.updateSentenceTranslation('s1', 'こんにちは');
       const currentBlock = grouper.getCurrentBlock();
-      expect(currentBlock[0].translation).toBe('こんにちは');
+      expect(currentBlock[0].targetText).toBe('こんにちは');
     });
 
     it('should update a sentence in a completed block', async () => {
       // Add sentences and complete the block
-      grouper.addSentence({ id: 's1', original: 'First', translation: '', timestamp: 1 });
-      grouper.addSentence({ id: 's2', original: 'Second', translation: '古い翻訳', timestamp: 2 });
+      grouper.addSentence({ id: 's1', sourceText: 'First', targetText: '', timestamp: 1 });
+      grouper.addSentence({ id: 's2', sourceText: 'Second', targetText: '古い翻訳', timestamp: 2 });
       grouper.forceCompleteCurrentBlock();
       await delay(1);
 
       expect(completedBlocks).toHaveLength(1);
       const completedBlock = completedBlocks[0];
-      expect(completedBlock.sentences[1].translation).toBe('古い翻訳');
+      expect(completedBlock.sentences[1].targetText).toBe('古い翻訳');
 
       // Update the translation in the completed block
       grouper.updateSentenceTranslation('s2', '新しい翻訳');
 
       // The test assumes the original block object is mutated.
-      expect(completedBlock.sentences[1].translation).toBe('新しい翻訳');
+      expect(completedBlock.sentences[1].targetText).toBe('新しい翻訳');
     });
   });
 
   describe('forceCompleteCurrentBlock', () => {
     it('should complete the current block and call the callback', async () => {
-      grouper.addSentence({ id: 's1', original: 'Test', translation: '', timestamp: Date.now() });
+      grouper.addSentence({ id: 's1', sourceText: 'Test', targetText: '', timestamp: Date.now() });
       grouper.forceCompleteCurrentBlock();
       await delay(1);
 
@@ -79,3 +79,5 @@ describe('FlexibleHistoryGrouper', () => {
     });
   });
 });
+
+

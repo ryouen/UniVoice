@@ -29,7 +29,7 @@ export interface PipelineStateInfo {
 
 export class PipelineStateManager {
   private state: PipelineState = 'idle';
-  private previousState?: PipelineState;
+  private previousState: PipelineState | null = null;
   private currentCorrelationId: string | null = null;
   private startTime: number = 0;
   private lastActivityTime: number = 0;
@@ -86,12 +86,15 @@ export class PipelineStateManager {
     }
     
     // 履歴に記録
-    this.stateHistory.push({
+    const transition: StateTransition = {
       from: oldState,
       to: newState,
       timestamp: Date.now(),
-      reason
-    });
+    };
+    if (reason) {
+      transition.reason = reason;
+    }
+    this.stateHistory.push(transition);
     
     // 状態変更時の処理
     this.onStateChange(oldState, newState);
@@ -132,7 +135,7 @@ export class PipelineStateManager {
       const targetState = this.previousState || 'listening';
       if (this.canTransitionTo(targetState)) {
         this.setState(targetState, undefined, 'User requested resume');
-        this.previousState = undefined;
+        this.previousState = null;
         return true;
       }
     }
@@ -194,7 +197,7 @@ export class PipelineStateManager {
    */
   reset(): void {
     this.state = 'idle';
-    this.previousState = undefined;
+    this.previousState = null;
     this.currentCorrelationId = null;
     this.startTime = 0;
     this.lastActivityTime = 0;

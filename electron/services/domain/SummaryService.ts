@@ -12,11 +12,13 @@
 
 import { EventEmitter } from 'events';
 import { OpenAI } from 'openai';
-import { 
+import {
   createProgressiveSummaryEvent,
   createErrorEvent
 } from '../ipc/contracts';
 import { logger } from '../../utils/logger';
+import { countWords, isCharacterBasedLanguage } from '../../utils/textMetrics';
+
 
 export interface SummaryServiceConfig {
   openaiApiKey: string;
@@ -143,7 +145,7 @@ export class SummaryService extends EventEmitter {
     this.translations.push(translation);
     
     // 単語数をカウント（ソース言語で）
-    const wordCount = this.countWords(translation.sourceText, this.sourceLanguage);
+    const wordCount = countWords(translation.sourceText, this.sourceLanguage);
     this.totalWordCount += wordCount;
     
     this.componentLogger.debug('Translation added for summary', {
@@ -165,7 +167,7 @@ export class SummaryService extends EventEmitter {
    * 進捗的要約の閾値をチェック
    */
   private async checkProgressiveSummaryThresholds(): Promise<void> {
-    const isCharacterBased = this.isCharacterBasedLanguage(this.sourceLanguage);
+    const isCharacterBased = isCharacterBasedLanguage(this.sourceLanguage);
     const multiplier = isCharacterBased ? 4 : 1;
     
     for (const baseThreshold of this.summaryThresholds) {
@@ -362,23 +364,9 @@ export class SummaryService extends EventEmitter {
   /**
    * 単語数をカウント
    */
-  private countWords(text: string, language: string): number {
-    if (this.isCharacterBasedLanguage(language)) {
-      // 日本語の場合は文字数をカウント
-      return text.replace(/[\s\n]+/g, '').length;
-    } else {
-      // その他の言語は単語数をカウント
-      return text.split(/\s+/).filter(word => word.length > 0).length;
-    }
-  }
-
   /**
    * 文字ベースの言語かチェック
    */
-  private isCharacterBasedLanguage(language: string): boolean {
-    return language === 'ja';  // 現在は日本語のみ
-  }
-
   // ========== プロンプト生成メソッド ==========
 
   /**
@@ -445,3 +433,6 @@ Keep the summary informative and well-structured.`;
     this.removeAllListeners();
   }
 }
+
+
+

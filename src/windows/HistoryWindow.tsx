@@ -20,6 +20,16 @@ import {
 } from '../components/shared/window';
 import styles from './HistoryWindow.module.css';
 
+const countWords = (text: string): number => {
+  if (!text) return 0;
+  const hasCJK = /[\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uF900-\uFAFF\uFF66-\uFF9D]/u.test(text);
+  const cleaned = text.replace(/[。、，．？！,.!?\\s]/g, '');
+  if (hasCJK) {
+    return cleaned.length;
+  }
+  return text.trim().split(/\\s+/).filter(Boolean).length;
+};
+
 /**
  * 履歴ウィンドウコンポーネント
  */
@@ -64,9 +74,9 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
           console.warn('[HistoryWindow] getFullHistory not available, using mock data');
           setHistoryData({
             entries: [
-              { id: '1', original: 'Hello world', translation: 'こんにちは世界', timestamp: Date.now() - 5000 },
-              { id: '2', original: 'This is a test', translation: 'これはテストです', timestamp: Date.now() - 3000 },
-              { id: '3', original: 'History window implementation', translation: '履歴ウィンドウの実装', timestamp: Date.now() - 1000 }
+              { id: '1', sourceText: 'Hello world', targetText: 'こんにちは世界', timestamp: Date.now() - 5000 },
+              { id: '2', sourceText: 'This is a test', targetText: 'これはテストです', timestamp: Date.now() - 3000 },
+              { id: '3', sourceText: 'History window implementation', targetText: '履歴ウィンドウの実装', timestamp: Date.now() - 1000 }
             ],
             metadata: {
               totalSegments: 3,
@@ -122,8 +132,8 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
       // 新しいエントリーを追加
       const newEntry: HistoryEntry = {
         id: `trans-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        original: data.sourceText,
-        translation: data.targetText,
+        sourceText: data.sourceText,
+        targetText: data.targetText,
         timestamp: Date.now()
       };
       
@@ -145,7 +155,7 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
             ...currentMetadata,
             totalSegments: currentMetadata.totalSegments + 1,
             totalSentences: currentMetadata.totalSentences + 1,
-            totalWords: currentMetadata.totalWords + data.sourceText.split(' ').length,
+            totalWords: currentMetadata.totalWords + countWords(data.sourceText),
             endTime: Date.now()
           }
         };
@@ -177,8 +187,8 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
     
     return historyData.entries.filter(entry => {
       if (count >= MAX_DISPLAY_ITEMS) return false;
-      const matches = entry.original.toLowerCase().includes(query) ||
-                     entry.translation.toLowerCase().includes(query);
+      const matches = entry.sourceText.toLowerCase().includes(query) ||
+                     entry.targetText.toLowerCase().includes(query);
       if (matches) count++;
       return matches;
     });
@@ -435,7 +445,7 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
                         </span>
                       </div>
                       <div className={styles.entryContent}>
-                        {entry.original}
+                        {entry.sourceText}
                       </div>
                     </div>
                   ))}
@@ -458,7 +468,7 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
                         </span>
                       </div>
                       <div className={styles.entryContent}>
-                        {entry.translation}
+                        {entry.targetText}
                       </div>
                     </div>
                   ))}
@@ -471,3 +481,5 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
     </WindowContainer>
   );
 };
+
+

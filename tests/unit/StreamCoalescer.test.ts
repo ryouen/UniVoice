@@ -39,12 +39,12 @@ describe('StreamCoalescer', () => {
   describe('デバウンス機能', () => {
     it('デバウンス時間内の更新は抑制され、最後の内容でコミットされる', async () => {
       coalescer.addSegment({ text: 'Hello', confidence: 0.8, isFinal: false });
-      await jest.advanceTimersByTimeAsync(50);
+      jest.advanceTimersByTime(50);\n      await Promise.resolve();
       coalescer.addSegment({ text: 'Hello world', confidence: 0.8, isFinal: false });
 
       expect(emittedSegments).toHaveLength(0);
 
-      await jest.advanceTimersByTimeAsync(101);
+      jest.advanceTimersByTime(101);\n      await Promise.resolve();
       await new Promise(process.nextTick);
       expect(emittedSegments).toHaveLength(1);
       expect(emittedSegments[0].data.text).toBe('Hello world');
@@ -52,7 +52,7 @@ describe('StreamCoalescer', () => {
 
     it('強制コミット時間で確実にコミット', async () => {
       coalescer.addSegment({ text: 'Long running', confidence: 0.8, isFinal: false });
-      await jest.advanceTimersByTimeAsync(501);
+      jest.advanceTimersByTime(501);\n      await Promise.resolve();
       await new Promise(process.nextTick);
       expect(emittedSegments).toHaveLength(1);
       expect(emittedSegments[0].data.text).toBe('Long running');
@@ -72,3 +72,5 @@ describe('StreamCoalescer', () => {
     });
   });
 });
+
+

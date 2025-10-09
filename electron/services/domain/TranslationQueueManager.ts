@@ -20,12 +20,15 @@ export interface QueuedTranslation {
   targetLanguage: string;
   timestamp: number;
   priority?: 'high' | 'normal' | 'low';
+  kind?: 'realtime' | 'history' | 'paragraph';
+  attempts?: number;
 }
 
 export interface TranslationQueueOptions {
   maxConcurrency: number;
   maxQueueSize?: number;
   requestTimeoutMs?: number;
+  maxRetries?: number;
 }
 
 export interface QueueStatus {
@@ -42,10 +45,12 @@ export class TranslationQueueManager {
   private readonly maxConcurrency: number;
   private readonly maxQueueSize: number;
   private readonly requestTimeoutMs: number;
+  private readonly maxRetries: number;
   
   private queue: QueuedTranslation[] = [];
   private activeTranslations = new Map<string, QueuedTranslation>();
   private translationHandler: TranslationHandler | null = null;
+  private translationErrorHandler: ((translation: QueuedTranslation, error: unknown) => void) | null = null;
   
   // Statistics
   private completedCount = 0;
@@ -56,6 +61,7 @@ export class TranslationQueueManager {
     this.maxConcurrency = options.maxConcurrency;
     this.maxQueueSize = options.maxQueueSize || 100;
     this.requestTimeoutMs = options.requestTimeoutMs || 30000; // 30秒
+    this.maxRetries = options.maxRetries ?? 1;
   }
   
   /**
@@ -63,6 +69,10 @@ export class TranslationQueueManager {
    */
   setTranslationHandler(handler: TranslationHandler): void {
     this.translationHandler = handler;
+  }
+
+  setErrorHandler(handler: (translation: QueuedTranslation, error: unknown) => void): void {
+    this.translationErrorHandler = handler;
   }
   
   /**
@@ -83,20 +93,22 @@ export class TranslationQueueManager {
       return;
     }
     
-    // 優先度に基づいてキューに挿入
-    if (translation.priority === 'high') {
-      // 高優先度は先頭に
-      this.queue.unshift(translation);
-    } else if (translation.priority === 'low') {
-      // 低優先度は最後尾に
-      this.queue.push(translation);
+    const queueItem: QueuedTranslation = { ...translation, attempts: translation.attempts ?? 0 };
+
+    // �D��x�Ɋ�Â��ăL���[�ɑ}��
+    if (queueItem.priority === 'high') {
+      // ���D��x�͐擪��
+      this.queue.unshift(queueItem);
+    } else if (queueItem.priority === 'low') {
+      // ��D��x�͍Ō����
+      this.queue.push(queueItem);
     } else {
-      // 通常優先度は中間に（高優先度の後、低優先度の前）
+      // �ʏ�D��x�͒��ԂɁi���D��x�̌�A��D��x�̑O�j
       const highPriorityCount = this.queue.filter(t => t.priority === 'high').length;
-      this.queue.splice(highPriorityCount, 0, translation);
+      this.queue.splice(highPriorityCount, 0, queueItem);
     }
-    
-    console.log(`[TranslationQueueManager] Enqueued: ${translation.segmentId}, queue size: ${this.queue.length}`);
+
+    console.log(`[TranslationQueueManager] Enqueued: ${queueItem.segmentId}, queue size: ${this.queue.length}`);
     
     // 処理を試行
     await this.processNext();
@@ -121,6 +133,7 @@ export class TranslationQueueManager {
     // アクティブに追加
     this.activeTranslations.set(translation.segmentId, translation);
     const startTime = Date.now();
+    const attempts = translation.attempts ?? 0;
     
     console.log(`[TranslationQueueManager] Processing: ${translation.segmentId}, active: ${this.activeTranslations.size}`);
     
@@ -145,9 +158,19 @@ export class TranslationQueueManager {
     } catch (error) {
       console.error(`[TranslationQueueManager] Error processing ${translation.segmentId}:`, error);
       this.errorCount++;
-      
-      // エラー時の再試行ロジック（将来実装）
-      // TODO: 指数バックオフでの再試行
+
+      if (attempts < this.maxRetries) {
+        const nextAttempt = attempts + 1;
+        console.warn(`[TranslationQueueManager] Retrying ${translation.segmentId}: attempt ${nextAttempt}/${this.maxRetries + 1}`);
+        const retryItem: QueuedTranslation = { ...translation, attempts: nextAttempt };
+        this.queue.unshift(retryItem);
+      } else if (this.translationErrorHandler) {
+        try {
+          this.translationErrorHandler(translation, error);
+        } catch (handlerError) {
+          console.error('[TranslationQueueManager] Translation error handler failed:', handlerError);
+        }
+      }
     } finally {
       // アクティブから削除
       this.activeTranslations.delete(translation.segmentId);

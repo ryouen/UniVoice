@@ -163,6 +163,10 @@ export declare class UnifiedPipelineService extends EventEmitter {
     /**
      * Emit error event
      */
+    private handleTranslationQueueFailure;
+    private handleRealtimeTranslationFailure;
+    private handleHistoryTranslationFailure;
+    private createFallbackTranslationText;
     private emitError;
     /**
      * Generate vocabulary from current session

@@ -15,10 +15,10 @@ class MockAdvancedFeatureService {
   }
   
   // 翻訳を追加
-  addTranslation(original, japanese) {
+  addTranslation(sourceText, japanese) {
     this.translations.push({
       id: `trans-${Date.now()}-${Math.random()}`,
-      original,
+      sourceText,
       japanese,
       timestamp: Date.now()
     });
@@ -77,7 +77,7 @@ class MockAdvancedFeatureService {
     console.log('📝 最終レポート生成開始...');
     
     const totalWords = this.translations.reduce((sum, t) => 
-      sum + t.original.split(' ').length, 0
+      sum + t.sourceText.split(' ').length, 0
     );
     
     const report = `# 講義レポート：人工知能入門

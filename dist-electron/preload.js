@@ -47,7 +47,12 @@ function createCommandSender() {
         },
         clearHistory: () => sendCommand({ command: 'clearHistory', params: {} }),
         generateVocabulary: (params) => sendCommand({ command: 'generateVocabulary', params }),
-        generateFinalReport: (params) => sendCommand({ command: 'generateFinalReport', params })
+        generateFinalReport: (params) => sendCommand({ command: 'generateFinalReport', params }),
+        // Data persistence methods
+        startSession: (params) => sendCommand({ command: 'startSession', params }),
+        saveHistoryBlock: (params) => sendCommand({ command: 'saveHistoryBlock', params }),
+        saveSummary: (params) => sendCommand({ command: 'saveSummary', params }),
+        saveSession: () => sendCommand({ command: 'saveSession', params: {} })
     };
 }
 /**
@@ -250,6 +255,7 @@ const allowedChannels = [
     'window:dragStarted', // Drag started notification
     'open-summary-window', // Open progressive summary window
     'summary-window-data', // Send data to summary window
+    'summary-window-refresh-request', // Request latest summary data
     'settings-updated', // Send settings updates between windows
     'window-state-changed' // Window state change notifications
 ];

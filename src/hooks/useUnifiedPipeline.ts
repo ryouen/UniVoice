@@ -89,7 +89,7 @@ export interface Summary {
 export type DisplayPair = SyncedDisplayPair;
 
 export interface PipelineState {
-  status: 'idle' | 'starting' | 'listening' | 'running' | 'processing' | 'stopping' | 'stopped';
+  status: 'idle' | 'starting' | 'listening' | 'running' | 'processing' | 'stopping' | 'stopped' | 'error';
   currentSegmentId: string | null;
   wordCount: number;
   duration: number;
@@ -179,6 +179,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   const [historyBlocks, setHistoryBlocks] = useState<HistoryBlock[]>([]);
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [error, setError] = useState<string | null>(null);
+
   const [vocabulary, setVocabulary] = useState<{ term: string; definition: string; context?: string }[]>([]);
   const [finalReport, setFinalReport] = useState<string | null>(null);
   const [state, setState] = useState<PipelineState>({
@@ -201,6 +202,17 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   const targetTextManagerRef = useRef<IncrementalTextManager | null>(null);
   const streamBatcherRef = useRef<StreamBatcher | null>(null);
   const translationTimeoutManagerRef = useRef<TranslationTimeoutManager | null>(null); // 翻訳タイムアウト管理
+  
+  const syncHistoryBlocksFromGrouper = useCallback(() => {
+    if (!historyGrouperRef.current) {
+      return;
+    }
+    const completedBlocks = historyGrouperRef.current.getCompletedBlocks().map(block => ({
+      ...block,
+      sentences: block.sentences.map(sentence => ({ ...sentence }))
+    }));
+    setHistoryBlocks(completedBlocks);
+  }, []);
   
   // 高品質翻訳を格納するマップ（combinedId -> translation）
   const highQualityTranslationsRef = useRef<Map<string, string>>(new Map());
@@ -286,13 +298,17 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     // Initialize FlexibleHistoryGrouper
     if (!historyGrouperRef.current) {
       historyGrouperRef.current = new FlexibleHistoryGrouper(
-        (block) => {
-          setHistoryBlocks(prev => [...prev, block]);
+        async (block) => {
+          syncHistoryBlocksFromGrouper();
           
           // 履歴ブロックをメインプロセスに送信（自動保存のため）
-          if (window.electron?.send) {
-            window.electron.send('history-block-created', block);
-            console.log('[useUnifiedPipeline] History block sent to main process:', block.id);
+          if (window.univoice?.saveHistoryBlock) {
+            try {
+              const result = await window.univoice.saveHistoryBlock({ block });
+              console.log('[useUnifiedPipeline] History block saved:', block.id, result);
+            } catch (error) {
+              console.error('[useUnifiedPipeline] Failed to save history block:', error);
+            }
           }
         }
       );
@@ -373,7 +389,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         translationTimeoutManagerRef.current = null;
       }
     };
-  }, []);
+  }, [syncHistoryBlocksFromGrouper]);
 
   // 言語設定の同期（パイプライン実行中は無視）
   useEffect(() => {
@@ -665,32 +681,8 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
               }
             }
             
-            // 既存の履歴ブロックを更新
-            setHistoryBlocks(prevBlocks => {
-              return prevBlocks.map(block => {
-                // 該当するセンテンスを含むブロックを探す
-                const updatedSentences = block.sentences.map(sentence => {
-                  if (sentence.id === targetId) {
-                    console.log('[useUnifiedPipeline] Updating sentence translation:', sentence.id);
-                    return {
-                      ...sentence,
-                      translation: translationText
-                    };
-                  }
-                  return sentence;
-                });
-                
-                // センテンスが更新された場合、ブロック全体を更新
-                const hasUpdates = updatedSentences.some((s, i) => s.targetText !== block.sentences[i].targetText);
-                if (hasUpdates) {
-                  return {
-                    ...block,
-                    sentences: updatedSentences
-                  };
-                }
-                return block;
-              });
-            });
+            // 最新の履歴ブロック状態を同期
+            syncHistoryBlocksFromGrouper();
           }
           
           // 通常の翻訳処理はスキップ
@@ -978,18 +970,25 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       //   }
       //   break;
 
-      case 'error':
-        const errorMessage = event.data.message;
+      case 'error': {
+        const { message: errorMessage, code, recoverable = false, details } = event.data;
         setError(errorMessage);
-        setIsRunning(false);
-        setState(prev => ({ ...prev, status: 'idle' }));
-        
+
+        if (recoverable) {
+          console.warn('[useUnifiedPipeline] Recoverable pipeline error:', { code, details });
+        } else {
+          setIsRunning(false);
+          setState(prev => ({ ...prev, status: 'error' }));
+          console.error('[useUnifiedPipeline] Pipeline error (fatal):', { code, message: errorMessage, details });
+        }
+
         if (onError) {
           onError(errorMessage);
         }
-        
-        console.error('[useUnifiedPipeline] Pipeline error:', errorMessage);
+
         break;
+      }
+
 
       // 🔴 ParagraphBuilderを一時的に無効化（重複定義の削除）
       // case 'paragraphComplete':
@@ -1167,6 +1166,22 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
           // セッションメモリの失敗は致命的ではないため、パイプラインは継続
         }
       }
+      
+      // データ永続化用のセッションを開始
+      if (window.univoice?.startSession) {
+        try {
+          await window.univoice.startSession({
+            courseName: sessionClassName || 'General',
+            sourceLanguage: currentSourceLanguage,
+            targetLanguage: currentTargetLanguage,
+            sessionNumber: 1 // TODO: セッション番号の管理
+          });
+          console.log('[useUnifiedPipeline] Data persistence session started');
+        } catch (error) {
+          console.error('[useUnifiedPipeline] Failed to start data persistence session:', error);
+          // データ永続化の失敗も致命的ではない
+        }
+      }
 
       const result = await window.univoice?.startListening?.({
         sourceLanguage: currentSourceLanguage,
@@ -1221,6 +1236,17 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         } catch (error) {
           console.error('[useUnifiedPipeline] Failed to complete session memory:', error);
           // セッションメモリの失敗は致命的ではないため、パイプラインの停止は継続
+        }
+      }
+      
+      // データ永続化: セッションを保存
+      if (window.univoice?.saveSession) {
+        try {
+          await window.univoice.saveSession();
+          console.log('[useUnifiedPipeline] Session data persisted');
+        } catch (error) {
+          console.error('[useUnifiedPipeline] Failed to save session data:', error);
+          // データ永続化の失敗も致命的ではない
         }
       }
 
@@ -1556,3 +1582,5 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
     refreshState: async () => {}, // Not needed in new architecture
   };
 };
+
+

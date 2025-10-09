@@ -274,6 +274,74 @@ export const LoadSessionCommandSchema = z.object({
   }),
 });
 
+// ========================================
+// Persistence Command Schemas
+// ========================================
+
+export const StartSessionCommandSchema = z.object({
+  command: z.literal('startSession'),
+  params: z.object({
+    courseName: z.string(),
+    sourceLanguage: z.string(),
+    targetLanguage: z.string(),
+    sessionNumber: z.number().optional(),
+  }),
+});
+
+export const SaveHistoryBlockCommandSchema = z.object({
+  command: z.literal('saveHistoryBlock'),
+  params: z.object({
+    block: z.object({
+      id: z.string(),
+      sentences: z.array(z.object({
+        id: z.string(),
+        sourceText: z.string(),
+        targetText: z.string(),
+        timestamp: z.number(),
+      })),
+      createdAt: z.number(),
+      totalHeight: z.number(),
+      isParagraph: z.boolean().optional(),
+      paragraphId: z.string().optional(),
+      rawText: z.string().optional(),
+      duration: z.number().optional(),
+    }),
+  }),
+});
+
+export const SaveSummaryCommandSchema = z.object({
+  command: z.literal('saveSummary'),
+  params: z.object({
+    summary: z.object({
+      id: z.string(),
+      sourceText: z.string(),
+      targetText: z.string(),
+      wordCount: z.number(),
+      timestamp: z.number(),
+      timeRange: z.union([
+        z.string(),
+        z.object({
+          start: z.number(),
+          end: z.number(),
+        }),
+      ]).optional(),
+      threshold: z.number().optional(),
+    }),
+  }),
+});
+
+export const SaveSessionCommandSchema = z.object({
+  command: z.literal('saveSession'),
+  params: z.object({
+    finalReport: z.string().optional(),
+    vocabulary: z.array(z.object({
+      term: z.string(),
+      definition: z.string(),
+      context: z.string().optional(),
+    })).optional(),
+  }),
+});
+
 export const IPCCommandSchema = z.discriminatedUnion('command', [
   StartListeningCommandSchema,
   StopListeningCommandSchema,
@@ -284,6 +352,10 @@ export const IPCCommandSchema = z.discriminatedUnion('command', [
   GenerateFinalReportCommandSchema,
   GetAvailableSessionsCommandSchema,
   LoadSessionCommandSchema,
+  StartSessionCommandSchema,
+  SaveHistoryBlockCommandSchema,
+  SaveSummaryCommandSchema,
+  SaveSessionCommandSchema,
 ]);
 
 // ========================================
@@ -311,6 +383,10 @@ export type GenerateVocabularyCommand = z.infer<typeof GenerateVocabularyCommand
 export type GenerateFinalReportCommand = z.infer<typeof GenerateFinalReportCommandSchema>;
 export type GetAvailableSessionsCommand = z.infer<typeof GetAvailableSessionsCommandSchema>;
 export type LoadSessionCommand = z.infer<typeof LoadSessionCommandSchema>;
+export type StartSessionCommand = z.infer<typeof StartSessionCommandSchema>;
+export type SaveHistoryBlockCommand = z.infer<typeof SaveHistoryBlockCommandSchema>;
+export type SaveSummaryCommand = z.infer<typeof SaveSummaryCommandSchema>;
+export type SaveSessionCommand = z.infer<typeof SaveSessionCommandSchema>;
 export type IPCCommand = z.infer<typeof IPCCommandSchema>;
 
 // ========================================

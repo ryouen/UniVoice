@@ -7,8 +7,8 @@
  */
 export interface HistoryEntry {
   id: string;
-  original: string;
-  translation: string;
+  sourceText: string;
+  targetText: string;
   timestamp?: number;
 }
 

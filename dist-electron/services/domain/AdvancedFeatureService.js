@@ -14,6 +14,7 @@ exports.AdvancedFeatureService = void 0;
 const events_1 = require("events");
 const openai_1 = __importDefault(require("openai"));
 const logger_1 = require("../../utils/logger");
+const textMetrics_1 = require("../../utils/textMetrics");
 const contracts_1 = require("../ipc/contracts");
 class AdvancedFeatureService extends events_1.EventEmitter {
     constructor(config) {
@@ -126,7 +127,7 @@ class AdvancedFeatureService extends events_1.EventEmitter {
         this.translations.push(translation);
         // Count words in SOURCE language for summary thresholds
         // This ensures consistent counting regardless of translation target
-        const wordCount = this.countWords(translation.sourceText, this.sourceLanguage);
+        const wordCount = (0, textMetrics_1.countWords)(translation.sourceText, this.sourceLanguage);
         this.totalWordCount += wordCount;
         this.componentLogger.info('Translation added', {
             translationCount: this.translations.length,
@@ -147,7 +148,7 @@ class AdvancedFeatureService extends events_1.EventEmitter {
      */
     async checkProgressiveSummaryThresholds() {
         // Adjust thresholds for character-based languages
-        const isCharacterBased = this.isCharacterBasedLanguage(this.sourceLanguage);
+        const isCharacterBased = (0, textMetrics_1.isCharacterBasedLanguage)(this.sourceLanguage);
         const multiplier = isCharacterBased ? parseInt(process.env.CHARACTER_LANGUAGE_MULTIPLIER || '4') : 1;
         for (const baseThreshold of this.summaryThresholds) {
             const threshold = baseThreshold * multiplier;
@@ -227,7 +228,7 @@ class AdvancedFeatureService extends events_1.EventEmitter {
         if (this.translations.length === 0)
             return;
         const startTime = Date.now();
-        const wordCount = this.translations.reduce((sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 0);
+        const wordCount = this.translations.reduce((sum, t) => sum + (0, textMetrics_1.countWords)(t.sourceText, this.sourceLanguage), 0);
         this.componentLogger.info('Generating summary', {
             isFinal,
             wordCount,
@@ -308,12 +309,12 @@ class AdvancedFeatureService extends events_1.EventEmitter {
             if (this.lastProgressiveSummary) {
                 translationsToInclude = this.translations.slice(this.lastProgressiveThresholdIndex + 1);
                 newContent = translationsToInclude.map(t => t.sourceText).join(' ');
-                actualWordCount = translationsToInclude.reduce((sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 0);
+                actualWordCount = translationsToInclude.reduce((sum, t) => sum + (0, textMetrics_1.countWords)(t.sourceText, this.sourceLanguage), 0);
             }
             else {
                 for (let i = 0; i < this.translations.length; i++) {
                     const translation = this.translations[i];
-                    const words = this.countWords(translation.sourceText, this.sourceLanguage);
+                    const words = (0, textMetrics_1.countWords)(translation.sourceText, this.sourceLanguage);
                     if (actualWordCount + words <= actualThreshold) {
                         translationsToInclude.push(translation);
                         actualWordCount += words;
@@ -465,7 +466,7 @@ class AdvancedFeatureService extends events_1.EventEmitter {
             return '';
         }
         try {
-            const totalWordCount = this.translations.reduce((sum, t) => sum + this.countWords(t.sourceText, this.sourceLanguage), 0);
+            const totalWordCount = this.translations.reduce((sum, t) => sum + (0, textMetrics_1.countWords)(t.sourceText, this.sourceLanguage), 0);
             const content = this.translations
                 .map(t => t.sourceText)
                 .join(' ');
@@ -600,18 +601,6 @@ class AdvancedFeatureService extends events_1.EventEmitter {
     }
     getSummaries() {
         return [...this.summaries];
-    }
-    isCharacterBasedLanguage(language) {
-        return language === 'ja';
-    }
-    countWords(text, language) {
-        if (this.isCharacterBasedLanguage(language)) {
-            const cleanedText = text.replace(/[。、！？,.!?\s]/g, '');
-            return cleanedText.length;
-        }
-        else {
-            return text.trim().split(/\s+/).filter(word => word.length > 0).length;
-        }
     }
     /**
      * Get all translations for history window
