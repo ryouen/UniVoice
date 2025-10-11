@@ -144,6 +144,24 @@ class AdvancedFeatureService extends events_1.EventEmitter {
         });
     }
     /**
+     * Update an existing translation with high-quality translation
+     */
+    updateTranslation(translationId, targetText) {
+        if (!this.isActive)
+            return;
+        const translation = this.translations.find(t => t.id === translationId);
+        if (translation) {
+            translation.targetText = targetText;
+            this.componentLogger.info('Translation updated with high-quality version', {
+                translationId,
+                targetTextLength: targetText.length
+            });
+        }
+        else {
+            this.componentLogger.warn('Translation not found for update', { translationId });
+        }
+    }
+    /**
      * Check if progressive summary thresholds are reached
      */
     async checkProgressiveSummaryThresholds() {

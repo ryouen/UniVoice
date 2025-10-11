@@ -128,6 +128,13 @@ export class DataPersistenceService {
    * セッションの開始
    */
   async startSession(metadata: Omit<SessionMetadata, 'sessionId' | 'date' | 'startTime' | 'version' | 'sessionNumber'>): Promise<string> {
+    // DEEP-THINK: courseNameの検証を強化
+    if (!metadata.courseName || metadata.courseName.trim() === '') {
+      const error = new Error('courseName is required and cannot be empty');
+      mainLogger.error('Invalid metadata for startSession', { metadata, error: error.message });
+      throw error;
+    }
+    
     const now = new Date();
     this.sessionStartTime = now;
     
@@ -430,6 +437,19 @@ export class DataPersistenceService {
     this.currentSessionData.history.blocks.push(normalizedBlock);
     this.currentSessionData.history.totalSegments += segmentCount;
     this.currentSessionData.history.totalWords += wordCount;
+
+    // 履歴ブロックが追加されたら即座に保存
+    try {
+      await this.saveSession();
+      mainLogger.info('History block saved to file', { 
+        blockId: normalizedBlock.id,
+        sentenceCount: normalizedBlock.sentences.length,
+        wordCount,
+        totalBlocks: this.currentSessionData.history.blocks.length
+      });
+    } catch (error) {
+      mainLogger.error('Failed to save history block to file', { error, blockId: normalizedBlock.id });
+    }
   }
 
   /**

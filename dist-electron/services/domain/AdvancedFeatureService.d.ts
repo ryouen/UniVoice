@@ -77,6 +77,10 @@ export declare class AdvancedFeatureService extends EventEmitter {
      */
     addTranslation(translation: Translation): void;
     /**
+     * Update an existing translation with high-quality translation
+     */
+    updateTranslation(translationId: string, targetText: string): void;
+    /**
      * Check if progressive summary thresholds are reached
      */
     private checkProgressiveSummaryThresholds;

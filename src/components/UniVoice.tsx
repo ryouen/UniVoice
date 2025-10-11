@@ -398,6 +398,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
   const pipelineSourceLang = sourceLanguage || 'multi';
   const pipelineTargetLang = targetLanguage || 'ja';
   
+  // デバッグ: activeSessionの値を確認
+  console.log('[UniVoice] activeSession for pipeline:', activeSession);
+  
   const pipeline = useUnifiedPipeline({
     sourceLanguage: pipelineSourceLang,
     targetLanguage: pipelineTargetLang,
@@ -561,9 +564,9 @@ export const UniVoice: React.FC<UniVoiceProps> = ({
       
       // 既にパイプラインが実行中でないことを再度確認
       if (!pipeline.isRunning) {
-        console.log('[UniVoice] Starting pipeline from microphone');
-        await pipeline.startFromMicrophone();
-        console.log('[UniVoice] ✅ Pipeline started successfully');
+        console.log('[UniVoice] Starting pipeline from microphone with className:', className);
+        await pipeline.startFromMicrophone({ className });
+        console.log('[UniVoice] ✅ Pipeline started successfully with className:', className);
       } else {
         console.log('[UniVoice] Pipeline already running, skipping startFromMicrophone');
       }

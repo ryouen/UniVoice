@@ -115,7 +115,7 @@ export interface UseUnifiedPipelineReturn {
   state: PipelineState;
   
   // Control functions
-  startFromMicrophone: () => Promise<void>;
+  startFromMicrophone: (options?: { className?: string }) => Promise<void>;
   stop: () => Promise<void>;
   translateUserInput: (text: string) => Promise<string>;
   generateVocabulary: () => Promise<void>;
@@ -898,7 +898,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         console.log('[DataFlow-11] CombinedSentence received in frontend:', {
           combinedId: event.data.combinedId,
           segmentIds: event.data.segmentIds,
-          textLength: event.data.originalText.length,
+          textLength: event.data.sourceText.length,
           timestamp: Date.now()
         });
         
@@ -1137,7 +1137,7 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
   }, []); // 空の依存配列に変更 - マウント時のみ実行
 
   // Control functions
-  const startFromMicrophone = useCallback(async () => {
+  const startFromMicrophone = useCallback(async (options?: { className?: string }) => {
     // レース防止: 連打対策
     if (state.status === 'starting' || state.status === 'listening') {
       console.warn('[useUnifiedPipeline] startFromMicrophone ignored: already starting/listening');
@@ -1155,32 +1155,47 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
       console.log('[useUnifiedPipeline] Languages:', { source: currentSourceLanguage, target: currentTargetLanguage });
 
       // SessionMemoryService: セッション開始
-      // classNameがない場合はデフォルト値を使用
-      const sessionClassName = className || `session_${new Date().toISOString().split('T')[0]}`;
-      if (!isSessionActive) {
-        console.log('[useUnifiedPipeline] Starting new session:', sessionClassName);
-        try {
-          await startSession(sessionClassName, currentSourceLanguage, currentTargetLanguage);
-        } catch (error) {
-          console.error('[useUnifiedPipeline] Failed to start session memory:', error);
-          // セッションメモリの失敗は致命的ではないため、パイプラインは継続
+      // DEEP-THINK: startFromMicrophoneの引数で明示的に渡されたclassNameを優先
+      const sessionClassName = options?.className || className;
+      console.log('[useUnifiedPipeline] className resolution:', { 
+        fromOptions: options?.className, 
+        fromProps: className, 
+        using: sessionClassName 
+      });
+      
+      if (!sessionClassName) {
+        console.error('[useUnifiedPipeline] WARNING: Starting pipeline without className. This should not happen in production.');
+        // classNameがない場合はセッション開始をスキップ
+        // ユーザーが明示的に選択した場合のみセッションを開始
+      } else {
+        // sessionClassNameを使用してセッション開始
+        if (!isSessionActive) {
+          console.log('[useUnifiedPipeline] Starting new session:', sessionClassName);
+          try {
+            await startSession(sessionClassName, currentSourceLanguage, currentTargetLanguage);
+          } catch (error) {
+            console.error('[useUnifiedPipeline] Failed to start session memory:', error);
+            // セッションメモリの失敗は致命的ではないため、パイプラインは継続
+          }
         }
       }
       
       // データ永続化用のセッションを開始
-      if (window.univoice?.startSession) {
+      // DEEP-THINK: sessionClassNameがある場合のみセッションメタデータを送信
+      if (window.electron?.send && sessionClassName) {
         try {
-          await window.univoice.startSession({
-            courseName: sessionClassName || 'General',
+          window.electron.send('session-metadata-update', {
+            className: sessionClassName,
             sourceLanguage: currentSourceLanguage,
-            targetLanguage: currentTargetLanguage,
-            sessionNumber: 1 // TODO: セッション番号の管理
+            targetLanguage: currentTargetLanguage
           });
-          console.log('[useUnifiedPipeline] Data persistence session started');
+          console.log('[useUnifiedPipeline] Session metadata update sent for data persistence with className:', sessionClassName);
         } catch (error) {
-          console.error('[useUnifiedPipeline] Failed to start data persistence session:', error);
+          console.error('[useUnifiedPipeline] Failed to send session metadata:', error);
           // データ永続化の失敗も致命的ではない
         }
+      } else if (window.electron?.send && !sessionClassName) {
+        console.warn('[useUnifiedPipeline] Skipping session metadata update - no className provided');
       }
 
       const result = await window.univoice?.startListening?.({
@@ -1239,6 +1254,12 @@ export const useUnifiedPipeline = (options: UseUnifiedPipelineOptions = {}) => {
         }
       }
       
+      // 未完成の履歴ブロックを強制的に完成させる
+      if (historyGrouperRef.current) {
+        console.log('[useUnifiedPipeline] Force completing current history block...');
+        historyGrouperRef.current.forceCompleteCurrentBlock();
+      }
+
       // データ永続化: セッションを保存
       if (window.univoice?.saveSession) {
         try {

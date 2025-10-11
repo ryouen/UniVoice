@@ -1035,14 +1035,13 @@ ${sourceText}`;
     async handleTranscriptSegment(result) {
         try {
             // コンソールログ（デバッグ用）
-            if (result.isFinal) {
-                console.log('[UnifiedPipelineService] Final transcript result:', {
-                    id: result.id,
-                    text: result.text.substring(0, 50) + '...',
-                    confidence: result.confidence,
-                    timestamp: Date.now()
-                });
-            }
+            console.log('[UnifiedPipelineService] Transcript result:', {
+                id: result.id,
+                text: result.text.substring(0, 50) + '...',
+                isFinal: result.isFinal,
+                confidence: result.confidence,
+                timestamp: Date.now()
+            });
             // トランスクリプト結果を保存（互換性のため）
             const segment = {
                 id: result.id,

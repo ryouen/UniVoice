@@ -257,7 +257,8 @@ const allowedChannels = [
     'summary-window-data', // Send data to summary window
     'summary-window-refresh-request', // Request latest summary data
     'settings-updated', // Send settings updates between windows
-    'window-state-changed' // Window state change notifications
+    'window-state-changed', // Window state change notifications
+    'session-metadata-update' // DEEP-THINK: セッション開始のために追加
 ];
 // Legacy Electron API for backward compatibility
 const legacyElectronAPI = {

@@ -37,24 +37,24 @@ export class SentenceCombiner {
   private lastSegmentTime: number = 0;
   private timeoutTimer: NodeJS.Timeout | null = null;
   
-  // 文末パターン（確実なもののみ）
-  private readonly sentenceEndPatterns = [
-    // 日本語
-    /[。．]\s*$/,                    // 句点
-    /[！？]\s*$/,                    // 感嘆符・疑問符
-    
-    // 英語
-    /[.!?]\s*$/,                     // 文末記号
-    /\.\)?\s*$/,                     // 括弧付きピリオド
-    /[.!?]['"]?\s*$/,                // 引用符付き文末
-  ];
+  // 文末パターン（確実なもののみ）- 現在は即座に保存するため未使用
+  // private readonly sentenceEndPatterns = [
+  //   // 日本語
+  //   /[。．]\s*$/,                    // 句点
+  //   /[！？]\s*$/,                    // 感嘆符・疑問符
+  //   
+  //   // 英語
+  //   /[.!?]\s*$/,                     // 文末記号
+  //   /\.\)?\s*$/,                     // 括弧付きピリオド
+  //   /[.!?]['"]?\s*$/,                // 引用符付き文末
+  // ];
   
-  // 文の途中を示すパターン
-  private readonly incompleteSentencePatterns = [
-    /[,、]\s*$/,                     // カンマ
-    /\s+(and|or|but)\s*$/i,          // 接続詞
-    /\s+(は|が|を|に|で|と|の)\s*$/,  // 日本語助詞
-  ];
+  // 文の途中を示すパターン - 現在は即座に保存するため未使用
+  // private readonly incompleteSentencePatterns = [
+  //   /[,、]\s*$/,                     // カンマ
+  //   /\s+(and|or|but)\s*$/i,          // 接続詞
+  //   /\s+(は|が|を|に|で|と|の)\s*$/,  // 日本語助詞
+  // ];
   
   private readonly options: Required<SentenceCombinerOptions>;
   
@@ -63,10 +63,12 @@ export class SentenceCombiner {
     options: SentenceCombinerOptions = {}
   ) {
     this.options = {
-      maxSegments: options.maxSegments || 10,
-      timeoutMs: options.timeoutMs || 2000,
-      minSegments: options.minSegments || 2
+      maxSegments: options.maxSegments ?? 10,
+      timeoutMs: options.timeoutMs ?? 2000,
+      minSegments: options.minSegments ?? 2
     };
+    
+    console.log('[SentenceCombiner] Initialized with options:', this.options);
   }
   
   /**
@@ -78,26 +80,21 @@ export class SentenceCombiner {
       return;
     }
     
+    console.log('[SentenceCombiner] Adding final segment:', {
+      id: segment.id,
+      text: segment.text.substring(0, 50) + '...',
+      currentBufferSize: this.segments.length
+    });
+    
     this.segments.push(segment);
     this.lastSegmentTime = Date.now();
     
     // タイムアウトタイマーをリセット
     this.resetTimeoutTimer();
     
-    // 結合された文字列を生成
-    const combinedText = this.getCombinedText();
-    
-    // 文が完成したかチェック
-    if (this.isSentenceComplete(combinedText)) {
-      // 最小セグメント数をチェック（断片的すぎる場合は待つ）
-      if (this.segments.length >= this.options.minSegments || 
-          this.isDefinitelySentenceEnd(combinedText)) {
-        this.emitCombinedSentence();
-      }
-    } else if (this.segments.length >= this.options.maxSegments) {
-      // 最大セグメント数に達したら強制的に出力
-      this.emitCombinedSentence();
-    }
+    // 保存を優先：各finalセグメントを即座に出力
+    // DEEP-THINK: 文末判定を待たずに保存することで、データ損失を防ぐ
+    this.emitCombinedSentence();
   }
   
   /**
@@ -110,32 +107,28 @@ export class SentenceCombiner {
       .join(' ');
   }
   
-  /**
-   * 文が完成したかチェック
-   */
-  private isSentenceComplete(text: string): boolean {
-    // 空文字列は未完成
-    if (!text || text.trim().length === 0) {
-      return false;
-    }
-    
-    // 明らかに未完成のパターンがあれば false
-    if (this.incompleteSentencePatterns.some(pattern => pattern.test(text))) {
-      return false;
-    }
-    
-    // 文末パターンに一致すれば完成
-    return this.sentenceEndPatterns.some(pattern => pattern.test(text));
-  }
+  // 文が完成したかチェック - 現在は即座に保存するため未使用
+  // private isSentenceComplete(text: string): boolean {
+  //   // 空文字列は未完成
+  //   if (!text || text.trim().length === 0) {
+  //     return false;
+  //   }
+  //   
+  //   // 明らかに未完成のパターンがあれば false
+  //   if (this.incompleteSentencePatterns.some(pattern => pattern.test(text))) {
+  //     return false;
+  //   }
+  //   
+  //   // 文末パターンに一致すれば完成
+  //   return this.sentenceEndPatterns.some(pattern => pattern.test(text));
+  // }
   
-  /**
-   * 確実に文末かチェック（短くても出力する場合）
-   */
-  private isDefinitelySentenceEnd(text: string): boolean {
-    // 疑問文、感嘆文、通常の文末（ピリオド・句点）は短くても文として成立
-    // DEEP-THINK改善: ピリオドと句点を追加
-    return /[？！?!。\.]\s*$/.test(text);
-  }
+  // 確実に文末かチェック - 現在は即座に保存するため未使用
+  // private isDefinitelySentenceEnd(text: string): boolean {
+  //   // 疑問文、感嘆文、通常の文末（ピリオド・句点）は短くても文として成立
+  //   // DEEP-THINK改善: ピリオドと句点を追加
+  //   return /[？！?!。\.]\s*$/.test(text);
+  // }
   
   /**
    * タイムアウトタイマーをリセット

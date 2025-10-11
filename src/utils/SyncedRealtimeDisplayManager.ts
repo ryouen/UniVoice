@@ -48,40 +48,18 @@ export class SyncedRealtimeDisplayManager {
   }
   
   /**
-   * 原文を更新（interimも表示するよう修正）
+   * 原文を更新（interim結果は表示しない）
    */
   updateOriginal(text: string, isFinal: boolean, segmentId?: string): void {
     if (!text) return;
     
-    // interim結果をチェック
+    // interim結果は表示しない（ユーザーの要望により）
     if (!isFinal) {
-      if (!segmentId) return; // segmentIdがないinterimは無視
-      
-      // 既存のペアを探す（segmentIdで完全一致）
-      const existingPair = this.displayPairs.find(pair => pair.segmentId === segmentId);
-      
-      if (existingPair) {
-        // 既存ペアのinterimテキストを更新
-        existingPair.original.text = text;
-        existingPair.original.timestamp = Date.now();
-        this.emitUpdate();
-        return;
-      }
-      
-      // interim結果では新しいペアを作成しない
-      // 最新のペアがinterimの場合のみ、そのペアを更新
-      const latestPair = this.displayPairs[0];
-      if (latestPair && !latestPair.original.isFinal) {
-        latestPair.original.text = text;
-        latestPair.original.timestamp = Date.now();
-        latestPair.segmentId = segmentId;
-        this.emitUpdate();
-        return;
-      }
-      
-      // 最新のペアがfinalの場合は、interim結果を無視
-      // （次のfinal結果を待つ）
-      return;
+      console.log('[SyncedRealtimeDisplayManager] Skipping interim result:', {
+        textLength: text.length,
+        segmentId
+      });
+      return; // interim結果は完全にスキップ
     }
     
     // Final結果を受信

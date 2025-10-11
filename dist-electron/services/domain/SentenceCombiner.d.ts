@@ -33,8 +33,6 @@ export declare class SentenceCombiner {
     private segments;
     private lastSegmentTime;
     private timeoutTimer;
-    private readonly sentenceEndPatterns;
-    private readonly incompleteSentencePatterns;
     private readonly options;
     constructor(onSentenceComplete: (sentence: CombinedSentence) => void, options?: SentenceCombinerOptions);
     /**
@@ -45,14 +43,6 @@ export declare class SentenceCombiner {
      * 結合されたテキストを取得
      */
     private getCombinedText;
-    /**
-     * 文が完成したかチェック
-     */
-    private isSentenceComplete;
-    /**
-     * 確実に文末かチェック（短くても出力する場合）
-     */
-    private isDefinitelySentenceEnd;
     /**
      * タイムアウトタイマーをリセット
      */

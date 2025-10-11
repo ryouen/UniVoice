@@ -1078,6 +1078,35 @@ function setupPipelineService() {
             // Ignore console errors to prevent EPIPE
         }
         gateway_1.ipcGateway.emitEvent(event);
+        // Forward combinedSentence events to AdvancedFeatureService for summary generation
+        if (event.type === 'combinedSentence' && advancedFeatureService) {
+            const { combinedId, sourceText, targetText, timestamp } = event.data;
+            mainLogger.info('Forwarding combined sentence to AdvancedFeatureService', {
+                combinedId,
+                sourceTextLength: sourceText?.length,
+                hasTranslation: !!targetText
+            });
+            // Add translation to AdvancedFeatureService for word counting and summary generation
+            advancedFeatureService.addTranslation({
+                id: combinedId,
+                sourceText: sourceText || '',
+                targetText: targetText || '',
+                timestamp: timestamp || Date.now()
+            });
+        }
+        // Forward translation events to AdvancedFeatureService
+        if (event.type === 'translation' && advancedFeatureService) {
+            // For segment translations, check if this is a history translation
+            if (event.data.segmentId && event.data.segmentId.startsWith('history_')) {
+                const baseId = event.data.segmentId.replace('history_', '');
+                mainLogger.info('Updating history translation in AdvancedFeatureService', {
+                    baseId,
+                    hasTranslation: !!event.data.translatedText
+                });
+                // Update existing translation with high-quality translation
+                advancedFeatureService.updateTranslation(baseId, event.data.translatedText || '');
+            }
+        }
     });
     // 親フォルダ仕様: 直接イベントの転送
     pipelineService.on('currentOriginalUpdate', (data) => {
@@ -1293,26 +1322,42 @@ function setupPipelineService() {
     // Handle session metadata update
     electron_1.ipcMain.on('session-metadata-update', async (_event, metadata) => {
         try {
-            if (dataPersistenceService && metadata && metadata.className) {
-                // 新規セッション開始（endSessionは呼ばない - 同日再開のため）
-                const sessionId = await dataPersistenceService.startSession({
-                    courseName: metadata.className,
+            // DEEP-THINK: className検証を強化
+            if (!metadata) {
+                mainLogger.error('session-metadata-update received with no metadata');
+                return;
+            }
+            if (!metadata.className || metadata.className.trim() === '') {
+                mainLogger.error('session-metadata-update received with empty className', { metadata });
+                return;
+            }
+            if (!dataPersistenceService) {
+                mainLogger.error('DataPersistenceService not initialized');
+                return;
+            }
+            // 新規セッション開始（endSessionは呼ばない - 同日再開のため）
+            const sessionId = await dataPersistenceService.startSession({
+                courseName: metadata.className,
+                sourceLanguage: metadata.sourceLanguage || 'en',
+                targetLanguage: metadata.targetLanguage || 'ja'
+            });
+            // startSessionが内部で自動保存を開始するので、ここでは不要
+            mainLogger.info('Session started', {
+                className: metadata.className,
+                sessionId,
+                sourceLanguage: metadata.sourceLanguage,
+                targetLanguage: metadata.targetLanguage
+            });
+            // STRUCTURAL FIX: Do not recreate the service, just update its languages
+            if (advancedFeatureService) {
+                advancedFeatureService.updateLanguages(metadata.sourceLanguage || 'en', metadata.targetLanguage || 'ja');
+                mainLogger.info('Updated AdvancedFeatureService languages', {
                     sourceLanguage: metadata.sourceLanguage || 'en',
                     targetLanguage: metadata.targetLanguage || 'ja'
                 });
-                // startSessionが内部で自動保存を開始するので、ここでは不要
-                mainLogger.info('Session started', { className: metadata.className, sessionId });
-                // STRUCTURAL FIX: Do not recreate the service, just update its languages
-                if (advancedFeatureService) {
-                    advancedFeatureService.updateLanguages(metadata.sourceLanguage || 'en', metadata.targetLanguage || 'ja');
-                    mainLogger.info('Updated AdvancedFeatureService languages', {
-                        sourceLanguage: metadata.sourceLanguage || 'en',
-                        targetLanguage: metadata.targetLanguage || 'ja'
-                    });
-                }
-                // REGRESSION FIX: Do not update pipeline service languages here, as it will restart the connection.
-                // The pipeline is already started with the correct languages via the startListening command.
             }
+            // REGRESSION FIX: Do not update pipeline service languages here, as it will restart the connection.
+            // The pipeline is already started with the correct languages via the startListening command.
         }
         catch (error) {
             mainLogger.error('Failed to start session', {
