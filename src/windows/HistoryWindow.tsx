@@ -5,7 +5,7 @@
  * メイン画面と同じ設定（テーマ、フォントサイズ、表示モード）を共有
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useDeferredValue, useRef } from 'react';
 import classNames from 'classnames';
 import type { HistoryWindowProps, HistoryEntry, HistoryData } from '../types/history-window.types';
 import {
@@ -18,6 +18,7 @@ import {
   BaseButton,
   ContentArea
 } from '../components/shared/window';
+import { ParagraphBuilder, Paragraph } from '../utils/ParagraphBuilder';
 import styles from './HistoryWindow.module.css';
 
 const countWords = (text: string): number => {
@@ -50,6 +51,10 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paragraphs, setParagraphs] = useState<Paragraph[]>([]);
+  
+  // ParagraphBuilder ref
+  const paragraphBuilderRef = useRef<ParagraphBuilder | null>(null);
 
   // プロップスの変更を内部状態に反映
   useEffect(() => {
@@ -116,7 +121,81 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
     loadHistoryData();
   }, []);
 
-  // リアルタイムで新しい翻訳を受信
+  // パラグラフ再翻訳の実行
+  const retranslateParagraph = useCallback(async (paragraph: Paragraph) => {
+    console.log('[HistoryWindow] Retranslating paragraph:', paragraph.id);
+    
+    if (!window.univoice?.translateParagraph) {
+      console.warn('[HistoryWindow] translateParagraph not available');
+      return;
+    }
+    
+    try {
+      // 再翻訳APIを呼び出し
+      await window.univoice.translateParagraph({
+        paragraphId: paragraph.id,
+        sourceText: paragraph.combinedSourceText,
+        sourceLanguage: 'en',
+        targetLanguage: 'ja',
+        correlationId: `para_trans_${paragraph.id}`
+      });
+      
+      // 翻訳結果はtranslation-completeイベントで受信される
+      console.log('[HistoryWindow] Paragraph retranslation requested:', paragraph.id);
+    } catch (error) {
+      console.error('[HistoryWindow] Failed to retranslate paragraph:', error);
+      setParagraphs(prev => prev.map(p => 
+        p.id === paragraph.id 
+          ? { ...p, status: 'completed' as const }
+          : p
+      ));
+    }
+  }, []);
+
+  // 履歴データからパラグラフを構築
+  useEffect(() => {
+    if (!historyData?.entries || historyData.entries.length === 0) return;
+    
+    // 既存の履歴エントリーからパラグラフを構築
+    if (!paragraphBuilderRef.current) {
+      paragraphBuilderRef.current = new ParagraphBuilder({
+        minChunks: 15,
+        maxChunks: 30,
+        silenceThresholdMs: 5000,
+        onParagraphComplete: (paragraph) => {
+          console.log('[HistoryWindow] Paragraph completed:', paragraph.id);
+          setParagraphs(prev => [...prev, paragraph]);
+          // パラグラフ完成時に再翻訳を実行
+          retranslateParagraph(paragraph);
+        }
+      });
+    }
+    
+    // 履歴エントリーをParagraphBuilderに追加
+    historyData.entries.forEach((entry) => {
+      if (paragraphBuilderRef.current && entry.timestamp) {
+        paragraphBuilderRef.current.addSegment({
+          id: entry.id,
+          sourceText: entry.sourceText,
+          targetText: entry.targetText,
+          timestamp: entry.timestamp
+        });
+      }
+    });
+    
+    // 最後のパラグラフをフラッシュ
+    if (paragraphBuilderRef.current) {
+      paragraphBuilderRef.current.flush();
+    }
+    
+    return () => {
+      if (paragraphBuilderRef.current) {
+        paragraphBuilderRef.current.reset();
+      }
+    };
+  }, [historyData, retranslateParagraph]);
+
+  // パラグラフ再翻訳の結果のみを受信
   useEffect(() => {
     if (!window.electronAPI) return;
     
@@ -126,40 +205,20 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
       sourceLanguage: string;
       targetLanguage: string;
       correlationId: string;
+      segmentId?: string;
     }) => {
-      console.log('[HistoryWindow] Received translation-complete:', data);
-      
-      // 新しいエントリーを追加
-      const newEntry: HistoryEntry = {
-        id: `trans-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        sourceText: data.sourceText,
-        targetText: data.targetText,
-        timestamp: Date.now()
-      };
-      
-      setHistoryData(prev => {
-        if (!prev) return prev;
-        
-        // デフォルトのメタデータを確保
-        const currentMetadata = prev.metadata || {
-          totalSegments: 0,
-          totalSentences: 0,
-          totalWords: 0,
-          duration: 0
-        };
-        
-        return {
-          ...prev,
-          entries: [...prev.entries, newEntry],
-          metadata: {
-            ...currentMetadata,
-            totalSegments: currentMetadata.totalSegments + 1,
-            totalSentences: currentMetadata.totalSentences + 1,
-            totalWords: currentMetadata.totalWords + countWords(data.sourceText),
-            endTime: Date.now()
-          }
-        };
-      });
+      // パラグラフ再翻訳の場合のみ処理
+      if (data.correlationId?.startsWith('para_trans_')) {
+        console.log('[HistoryWindow] Received paragraph retranslation:', data);
+        const paragraphId = data.segmentId || data.correlationId.replace('para_trans_', '');
+        setParagraphs(prev => prev.map(p => 
+          p.id === paragraphId 
+            ? { ...p, retranslatedText: data.targetText, status: 'completed' as const }
+            : p
+        ));
+        console.log('[HistoryWindow] Updated paragraph translation:', paragraphId);
+      }
+      // 通常の翻訳は無視（リアルタイム更新は不要）
     };
     
     const cleanup = window.electronAPI.on('translation-complete', handleTranslationComplete);
@@ -193,6 +252,18 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
       return matches;
     });
   }, [historyData, deferredSearchQuery]);
+
+  // パラグラフの検索フィルタリング
+  const filteredParagraphs = useMemo(() => {
+    if (!deferredSearchQuery) return paragraphs;
+    
+    const query = deferredSearchQuery.toLowerCase();
+    return paragraphs.filter(para => 
+      para.combinedSourceText.toLowerCase().includes(query) ||
+      para.combinedTargetText?.toLowerCase().includes(query) ||
+      para.retranslatedText?.toLowerCase().includes(query)
+    );
+  }, [paragraphs, deferredSearchQuery]);
 
   // 表示モード変更ハンドラー
   const handleDisplayModeChange = useCallback((mode: 'both' | 'source' | 'target') => {
@@ -245,7 +316,43 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
   }, []);
 
   // ウィンドウを閉じる処理
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback(async () => {
+    // パラグラフデータを保存
+    if (paragraphs.length > 0 && window.univoice?.saveHistoryBlock) {
+      console.log('[HistoryWindow] Saving paragraph data...');
+      
+      // 各パラグラフをブロックとして保存
+      for (const paragraph of paragraphs) {
+        try {
+          await window.univoice.saveHistoryBlock({
+            block: {
+              id: paragraph.id,
+              sentences: paragraph.segments.map(seg => ({
+                id: seg.id,
+                sourceText: seg.sourceText,
+                targetText: paragraph.retranslatedText || seg.targetText,
+                timestamp: seg.timestamp
+              })),
+              createdAt: paragraph.startTime,
+              totalHeight: paragraph.segments.length * 60, // 推定高さ
+              isParagraph: true,
+              paragraphId: paragraph.id,
+              rawText: paragraph.combinedSourceText,
+              duration: paragraph.endTime - paragraph.startTime
+            }
+          });
+          console.log('[HistoryWindow] Saved paragraph:', paragraph.id);
+        } catch (error) {
+          console.error('[HistoryWindow] Failed to save paragraph:', paragraph.id, error);
+        }
+      }
+    }
+    
+    // 現在のパラグラフをフラッシュして保存
+    if (paragraphBuilderRef.current) {
+      paragraphBuilderRef.current.flush();
+    }
+    
     // コールバックを実行
     onClose();
     
@@ -253,7 +360,7 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
     if (window.univoice?.window?.close) {
       window.univoice.window.close();
     }
-  }, [onClose]);
+  }, [onClose, paragraphs]);
 
   // キーボードショートカット
   useEffect(() => {
@@ -426,26 +533,34 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
                 再読み込み
               </button>
             </div>
-          ) : filteredEntries.length === 0 ? (
+          ) : filteredParagraphs.length === 0 && filteredEntries.length > 0 ? (
+            <div className={styles.emptyState}>
+              <span>パラグラフを構築中です...</span>
+            </div>
+          ) : (filteredEntries.length === 0 && filteredParagraphs.length === 0) ? (
             <div className={styles.emptyState}>
               <span>
                 {searchQuery ? '検索結果がありません' : '履歴データがありません'}
               </span>
             </div>
           ) : (
+            // パラグラフビュー
             <>
-              {/* 左側: 原文 */}
+              {/* 左側: 原文パラグラフ */}
               {internalDisplayMode !== 'target' && (
                 <div className={styles.sourceColumn}>
-                  {filteredEntries.map((entry, index) => (
-                    <div key={entry.id || index} className={styles.historyEntry}>
+                  {filteredParagraphs.map((para) => (
+                    <div key={para.id} className={classNames(styles.historyEntry, styles.paragraphEntry)}>
                       <div className={styles.entryHeader}>
                         <span className={styles.entryTime}>
-                          {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('ja-JP') : ''}
+                          {new Date(para.startTime).toLocaleTimeString('ja-JP')} - {new Date(para.endTime).toLocaleTimeString('ja-JP')}
+                        </span>
+                        <span className={styles.paragraphInfo}>
+                          {para.segments.length}チャンク / {para.combinedSourceText.split(' ').length}語
                         </span>
                       </div>
                       <div className={styles.entryContent}>
-                        {entry.sourceText}
+                        {para.combinedSourceText}
                       </div>
                     </div>
                   ))}
@@ -457,18 +572,21 @@ export const HistoryWindow: React.FC<HistoryWindowProps> = ({
                 <div className={styles.divider} />
               )}
 
-              {/* 右側: 翻訳 */}
+              {/* 右側: 再翻訳 or 結合翻訳 */}
               {internalDisplayMode !== 'source' && (
                 <div className={styles.targetColumn}>
-                  {filteredEntries.map((entry, index) => (
-                    <div key={entry.id || index} className={styles.historyEntry}>
+                  {filteredParagraphs.map((para) => (
+                    <div key={para.id} className={classNames(styles.historyEntry, styles.paragraphEntry)}>
                       <div className={styles.entryHeader}>
                         <span className={styles.entryTime}>
-                          {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('ja-JP') : ''}
+                          {new Date(para.startTime).toLocaleTimeString('ja-JP')} - {new Date(para.endTime).toLocaleTimeString('ja-JP')}
                         </span>
+                        {para.status === 'translating' && (
+                          <span className={styles.translatingIndicator}>再翻訳中...</span>
+                        )}
                       </div>
                       <div className={styles.entryContent}>
-                        {entry.targetText}
+                        {para.retranslatedText || para.combinedTargetText}
                       </div>
                     </div>
                   ))}

@@ -99,13 +99,25 @@ export interface GenerateFinalReportCommand {
   };
 }
 
+export interface TranslateParagraphCommand {
+  command: 'translateParagraph';
+  params: {
+    paragraphId: string;
+    sourceText: string;
+    sourceLanguage: string;
+    targetLanguage: string;
+    correlationId: string;
+  };
+}
+
 export type IPCCommand = 
   | StartListeningCommand
   | StopListeningCommand
   | GetHistoryCommand
   | ClearHistoryCommand
   | GenerateVocabularyCommand
-  | GenerateFinalReportCommand;
+  | GenerateFinalReportCommand
+  | TranslateParagraphCommand;
 `;
 
 // Write the output file

@@ -67,6 +67,8 @@ declare global {
       clearHistory?: () => Promise<{ success: boolean; error?: string }>;
       generateVocabulary?: (params: any) => Promise<{ success: boolean; error?: string }>;
       generateFinalReport?: (params: any) => Promise<{ success: boolean; error?: string }>;
+      // Paragraph translation
+      translateParagraph?: (params: any) => Promise<{ success: boolean; error?: string }>;
       onPipelineEvent?: (callback: (event: any) => void) => () => void;
       onASREvent?: (callback: (event: any) => void) => () => void;
       onTranslationEvent?: (callback: (event: any) => void) => () => void;

@@ -48,6 +48,18 @@ function createCommandSender() {
         clearHistory: () => sendCommand({ command: 'clearHistory', params: {} }),
         generateVocabulary: (params) => sendCommand({ command: 'generateVocabulary', params }),
         generateFinalReport: (params) => sendCommand({ command: 'generateFinalReport', params }),
+        // Translate paragraph for history window
+        translateParagraph: async (params) => {
+            const result = await sendCommand({
+                command: 'translateParagraph',
+                params: {
+                    ...params,
+                    sourceLanguage: params.sourceLanguage || 'en',
+                    targetLanguage: params.targetLanguage || 'ja'
+                }
+            });
+            return result;
+        },
         // Data persistence methods
         startSession: (params) => sendCommand({ command: 'startSession', params }),
         saveHistoryBlock: (params) => sendCommand({ command: 'saveHistoryBlock', params }),

@@ -23,9 +23,9 @@ export interface Paragraph {
 }
 
 export interface ParagraphBuilderOptions {
-  minDurationMs?: number;      // 最小期間（デフォルト: 20秒）
+  minChunks?: number;          // 最小チャンク数（デフォルト: 15）
   maxDurationMs?: number;      // 最大期間（デフォルト: 60秒）
-  silenceThresholdMs?: number; // 無音判定（デフォルト: 2秒）
+  silenceThresholdMs?: number; // 無音判定（デフォルト: 5秒）
 }
 
 export class ParagraphBuilder {
@@ -36,9 +36,9 @@ export class ParagraphBuilder {
   constructor(
     private onParagraphComplete: (paragraph: Paragraph) => void,
     private options: Required<ParagraphBuilderOptions> = {
-      minDurationMs: 20000,    // 20秒
+      minChunks: 15,           // 15チャンク
       maxDurationMs: 60000,    // 60秒
-      silenceThresholdMs: 2000 // 2秒
+      silenceThresholdMs: 5000 // 5秒
     }
   ) {}
 
@@ -83,12 +83,10 @@ export class ParagraphBuilder {
     
     this.lastSegmentTime = segment.timestamp;
     
-    // 最小期間チェック
+    // 最小チャンク数チェック
+    const chunkCount = this.currentParagraph.segments.length;
     const duration = now - this.paragraphStartTime;
-    if (duration < this.options.minDurationMs) {
-      return;
-    }
-
+    
     // 最大期間チェック
     if (duration >= this.options.maxDurationMs) {
       console.log('[ParagraphBuilder] Max duration reached, completing paragraph');
@@ -96,8 +94,20 @@ export class ParagraphBuilder {
       return;
     }
 
-    // 自然な区切りを検出（最小期間経過後のみ）
-    if (duration >= this.options.minDurationMs && this.isNaturalBreak(segment.text)) {
+    // 最小チャンク数に達していない場合は継続
+    if (chunkCount < this.options.minChunks) {
+      return;
+    }
+
+    // 文末記号チェック（最小チャンク数達成後）
+    if (this.isEndOfSentence(segment.text)) {
+      console.log('[ParagraphBuilder] End of sentence detected, completing paragraph');
+      this.completeParagraph();
+      return;
+    }
+
+    // 自然な区切りを検出
+    if (this.isNaturalBreak(segment.text)) {
       console.log('[ParagraphBuilder] Natural break detected, completing paragraph');
       this.completeParagraph();
     }
@@ -167,6 +177,14 @@ export class ParagraphBuilder {
     
     // リセット
     this.currentParagraph = null;
+  }
+
+  /**
+   * 文末記号をチェック
+   */
+  private isEndOfSentence(text: string): boolean {
+    const trimmed = text.trim();
+    return /[。.!?！？]$/.test(trimmed);
   }
 
   /**

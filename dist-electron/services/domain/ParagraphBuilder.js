@@ -11,9 +11,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ParagraphBuilder = void 0;
 class ParagraphBuilder {
     constructor(onParagraphComplete, options = {
-        minDurationMs: 20000, // 20秒
+        minChunks: 15, // 15チャンク
         maxDurationMs: 60000, // 60秒
-        silenceThresholdMs: 2000 // 2秒
+        silenceThresholdMs: 5000 // 5秒
     }) {
         this.onParagraphComplete = onParagraphComplete;
         this.options = options;
@@ -55,19 +55,27 @@ class ParagraphBuilder {
             timestamp: segment.timestamp
         });
         this.lastSegmentTime = segment.timestamp;
-        // 最小期間チェック
+        // 最小チャンク数チェック
+        const chunkCount = this.currentParagraph.segments.length;
         const duration = now - this.paragraphStartTime;
-        if (duration < this.options.minDurationMs) {
-            return;
-        }
         // 最大期間チェック
         if (duration >= this.options.maxDurationMs) {
             console.log('[ParagraphBuilder] Max duration reached, completing paragraph');
             this.completeParagraph();
             return;
         }
-        // 自然な区切りを検出（最小期間経過後のみ）
-        if (duration >= this.options.minDurationMs && this.isNaturalBreak(segment.text)) {
+        // 最小チャンク数に達していない場合は継続
+        if (chunkCount < this.options.minChunks) {
+            return;
+        }
+        // 文末記号チェック（最小チャンク数達成後）
+        if (this.isEndOfSentence(segment.text)) {
+            console.log('[ParagraphBuilder] End of sentence detected, completing paragraph');
+            this.completeParagraph();
+            return;
+        }
+        // 自然な区切りを検出
+        if (this.isNaturalBreak(segment.text)) {
             console.log('[ParagraphBuilder] Natural break detected, completing paragraph');
             this.completeParagraph();
         }
@@ -127,6 +135,13 @@ class ParagraphBuilder {
         this.onParagraphComplete(this.currentParagraph);
         // リセット
         this.currentParagraph = null;
+    }
+    /**
+     * 文末記号をチェック
+     */
+    isEndOfSentence(text) {
+        const trimmed = text.trim();
+        return /[。.!?！？]$/.test(trimmed);
     }
     /**
      * 自然な区切りかチェック（簡易版）

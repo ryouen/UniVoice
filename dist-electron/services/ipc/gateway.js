@@ -155,6 +155,13 @@ class IPCGateway extends events_1.EventEmitter {
                     correlationId,
                 });
                 break;
+            case 'translateParagraph':
+                this.emit('domain-command', {
+                    type: 'translateParagraph',
+                    params: command.params,
+                    correlationId,
+                });
+                break;
             default:
                 // TypeScript should prevent this, but handle gracefully
                 this.componentLogger.error('Unknown command type', { command, correlationId });

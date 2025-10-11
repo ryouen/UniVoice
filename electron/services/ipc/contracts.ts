@@ -257,6 +257,18 @@ export const GenerateFinalReportCommandSchema = z.object({
   }),
 });
 
+// パラグラフ再翻訳コマンド
+export const TranslateParagraphCommandSchema = z.object({
+  command: z.literal('translateParagraph'),
+  params: z.object({
+    paragraphId: z.string(),
+    sourceText: z.string(),
+    sourceLanguage: z.string().default('en'),
+    targetLanguage: z.string().default('ja'),
+    correlationId: z.string(),
+  }),
+});
+
 export const GetAvailableSessionsCommandSchema = z.object({
   command: z.literal('getAvailableSessions'),
   params: z.object({
@@ -350,6 +362,7 @@ export const IPCCommandSchema = z.discriminatedUnion('command', [
   ClearHistoryCommandSchema,
   GenerateVocabularyCommandSchema,
   GenerateFinalReportCommandSchema,
+  TranslateParagraphCommandSchema,
   GetAvailableSessionsCommandSchema,
   LoadSessionCommandSchema,
   StartSessionCommandSchema,
@@ -387,6 +400,7 @@ export type StartSessionCommand = z.infer<typeof StartSessionCommandSchema>;
 export type SaveHistoryBlockCommand = z.infer<typeof SaveHistoryBlockCommandSchema>;
 export type SaveSummaryCommand = z.infer<typeof SaveSummaryCommandSchema>;
 export type SaveSessionCommand = z.infer<typeof SaveSessionCommandSchema>;
+export type TranslateParagraphCommand = z.infer<typeof TranslateParagraphCommandSchema>;
 export type IPCCommand = z.infer<typeof IPCCommandSchema>;
 
 // ========================================

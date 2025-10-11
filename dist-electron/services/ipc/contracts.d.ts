@@ -531,8 +531,8 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
         endTime: number;
         duration: number;
         wordCount: number;
-        segmentIds: string[];
         paragraphId: string;
+        segmentIds: string[];
         rawText: string;
         cleanedText?: string | undefined;
         paragraph?: {
@@ -554,8 +554,8 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
         endTime: number;
         duration: number;
         wordCount: number;
-        segmentIds: string[];
         paragraphId: string;
+        segmentIds: string[];
         rawText: string;
         cleanedText?: string | undefined;
         paragraph?: {
@@ -581,8 +581,8 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
         endTime: number;
         duration: number;
         wordCount: number;
-        segmentIds: string[];
         paragraphId: string;
+        segmentIds: string[];
         rawText: string;
         cleanedText?: string | undefined;
         paragraph?: {
@@ -609,8 +609,8 @@ export declare const ParagraphCompleteEventSchema: z.ZodObject<{
         endTime: number;
         duration: number;
         wordCount: number;
-        segmentIds: string[];
         paragraphId: string;
+        segmentIds: string[];
         rawText: string;
         cleanedText?: string | undefined;
         paragraph?: {
@@ -1119,8 +1119,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         endTime: number;
         duration: number;
         wordCount: number;
-        segmentIds: string[];
         paragraphId: string;
+        segmentIds: string[];
         rawText: string;
         cleanedText?: string | undefined;
         paragraph?: {
@@ -1142,8 +1142,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         endTime: number;
         duration: number;
         wordCount: number;
-        segmentIds: string[];
         paragraphId: string;
+        segmentIds: string[];
         rawText: string;
         cleanedText?: string | undefined;
         paragraph?: {
@@ -1169,8 +1169,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         endTime: number;
         duration: number;
         wordCount: number;
-        segmentIds: string[];
         paragraphId: string;
+        segmentIds: string[];
         rawText: string;
         cleanedText?: string | undefined;
         paragraph?: {
@@ -1197,8 +1197,8 @@ export declare const PipelineEventSchema: z.ZodDiscriminatedUnion<"type", [z.Zod
         endTime: number;
         duration: number;
         wordCount: number;
-        segmentIds: string[];
         paragraphId: string;
+        segmentIds: string[];
         rawText: string;
         cleanedText?: string | undefined;
         paragraph?: {
@@ -1351,6 +1351,46 @@ export declare const GenerateFinalReportCommandSchema: z.ZodObject<{
     command: "generateFinalReport";
     params: {
         correlationId: string;
+    };
+}>;
+export declare const TranslateParagraphCommandSchema: z.ZodObject<{
+    command: z.ZodLiteral<"translateParagraph">;
+    params: z.ZodObject<{
+        paragraphId: z.ZodString;
+        sourceText: z.ZodString;
+        sourceLanguage: z.ZodDefault<z.ZodString>;
+        targetLanguage: z.ZodDefault<z.ZodString>;
+        correlationId: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        correlationId: string;
+        sourceLanguage: string;
+        targetLanguage: string;
+        paragraphId: string;
+        sourceText: string;
+    }, {
+        correlationId: string;
+        paragraphId: string;
+        sourceText: string;
+        sourceLanguage?: string | undefined;
+        targetLanguage?: string | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "translateParagraph";
+    params: {
+        correlationId: string;
+        sourceLanguage: string;
+        targetLanguage: string;
+        paragraphId: string;
+        sourceText: string;
+    };
+}, {
+    command: "translateParagraph";
+    params: {
+        correlationId: string;
+        paragraphId: string;
+        sourceText: string;
+        sourceLanguage?: string | undefined;
+        targetLanguage?: string | undefined;
     };
 }>;
 export declare const GetAvailableSessionsCommandSchema: z.ZodObject<{
@@ -1856,6 +1896,45 @@ export declare const IPCCommandSchema: z.ZodDiscriminatedUnion<"command", [z.Zod
         correlationId: string;
     };
 }>, z.ZodObject<{
+    command: z.ZodLiteral<"translateParagraph">;
+    params: z.ZodObject<{
+        paragraphId: z.ZodString;
+        sourceText: z.ZodString;
+        sourceLanguage: z.ZodDefault<z.ZodString>;
+        targetLanguage: z.ZodDefault<z.ZodString>;
+        correlationId: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        correlationId: string;
+        sourceLanguage: string;
+        targetLanguage: string;
+        paragraphId: string;
+        sourceText: string;
+    }, {
+        correlationId: string;
+        paragraphId: string;
+        sourceText: string;
+        sourceLanguage?: string | undefined;
+        targetLanguage?: string | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    command: "translateParagraph";
+    params: {
+        correlationId: string;
+        sourceLanguage: string;
+        targetLanguage: string;
+        paragraphId: string;
+        sourceText: string;
+    };
+}, {
+    command: "translateParagraph";
+    params: {
+        correlationId: string;
+        paragraphId: string;
+        sourceText: string;
+        sourceLanguage?: string | undefined;
+        targetLanguage?: string | undefined;
+    };
+}>, z.ZodObject<{
     command: z.ZodLiteral<"getAvailableSessions">;
     params: z.ZodObject<{
         courseName: z.ZodOptional<z.ZodString>;
@@ -2248,6 +2327,7 @@ export type StartSessionCommand = z.infer<typeof StartSessionCommandSchema>;
 export type SaveHistoryBlockCommand = z.infer<typeof SaveHistoryBlockCommandSchema>;
 export type SaveSummaryCommand = z.infer<typeof SaveSummaryCommandSchema>;
 export type SaveSessionCommand = z.infer<typeof SaveSessionCommandSchema>;
+export type TranslateParagraphCommand = z.infer<typeof TranslateParagraphCommandSchema>;
 export type IPCCommand = z.infer<typeof IPCCommandSchema>;
 export declare const validatePipelineEvent: (data: unknown) => PipelineEvent;
 export declare const validateIPCCommand: (data: unknown) => IPCCommand;

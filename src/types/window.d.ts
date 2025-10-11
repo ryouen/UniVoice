@@ -6,7 +6,8 @@ import type {
   GetHistoryCommand,
   ClearHistoryCommand,
   GenerateVocabularyCommand,
-  GenerateFinalReportCommand
+  GenerateFinalReportCommand,
+  TranslateParagraphCommand
 } from '../shared/types/contracts';
 import type { UnifiedEvent } from '../shared/types/ipcEvents';
 
@@ -40,6 +41,15 @@ interface UniVoiceAPI {
   clearHistory: () => Promise<{ success: boolean; error?: string }>;
   generateVocabulary: (params: GenerateVocabularyCommand['params']) => Promise<{ success: boolean; error?: string }>;
   generateFinalReport: (params: GenerateFinalReportCommand['params']) => Promise<{ success: boolean; error?: string }>;
+  
+  // Paragraph translation
+  translateParagraph: (params: TranslateParagraphCommand['params']) => Promise<{ success: boolean; error?: string }>;
+  
+  // Data persistence
+  startSession: (params: { courseName: string; sourceLanguage: string; targetLanguage: string; sessionNumber?: number }) => Promise<{ success: boolean; error?: string }>;
+  saveHistoryBlock: (params: { block: any }) => Promise<{ success: boolean; error?: string }>;
+  saveSummary: (params: any) => Promise<{ success: boolean; error?: string }>;
+  saveSession: () => Promise<{ success: boolean; error?: string }>;
   
   // Event listeners
   onPipelineEvent: (callback: (event: PipelineEvent) => void) => () => void;

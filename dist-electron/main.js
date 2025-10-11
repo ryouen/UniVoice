@@ -882,6 +882,18 @@ function setupIPCGateway() {
                         mainLogger.error('DataPersistenceService not initialized');
                     }
                     break;
+                case 'translateParagraph':
+                    if (pipelineService) {
+                        // パラグラフの再翻訳を実行
+                        await pipelineService.translateParagraph(domainCommand.params.paragraphId, domainCommand.params.sourceText, domainCommand.params.sourceLanguage, domainCommand.params.targetLanguage, domainCommand.correlationId);
+                        mainLogger.info('Paragraph translation requested', {
+                            paragraphId: domainCommand.params.paragraphId
+                        });
+                    }
+                    else {
+                        mainLogger.error('PipelineService not initialized');
+                    }
+                    break;
                 default:
                     mainLogger.warn('Unknown domain command', { domainCommand });
             }

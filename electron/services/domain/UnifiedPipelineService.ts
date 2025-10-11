@@ -262,6 +262,91 @@ export class UnifiedPipelineService extends EventEmitter {
   }
 
   /**
+   * Translate a paragraph (for history window)
+   */
+  async translateParagraph(
+    paragraphId: string,
+    sourceText: string,
+    sourceLanguage: string,
+    targetLanguage: string,
+    correlationId: string
+  ): Promise<void> {
+    try {
+      this.componentLogger.info('Translating paragraph', {
+        paragraphId,
+        sourceLanguage,
+        targetLanguage,
+        textLength: sourceText.length
+      });
+
+      // パラグラフ翻訳用のプロンプトを生成
+      const systemPrompt = getTranslationPrompt(
+        sourceLanguage as LanguageCode,
+        targetLanguage as LanguageCode
+      );
+      const prompt = `${systemPrompt}\n\n${sourceText}`;
+
+      // OpenAI APIを直接呼び出し（キューを通さない）
+      const stream = await this.openai.chat.completions.create({
+        model: 'gpt-4-turbo-preview',
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: Math.min(sourceText.length * 4, 8192),
+        stream: true
+      });
+
+      let translatedText = '';
+
+      // ストリームを処理
+      for await (const chunk of stream) {
+        const delta = chunk.choices?.[0]?.delta;
+        if (delta?.content) {
+          translatedText += delta.content;
+        }
+      }
+
+      // クリーンアップ
+      translatedText = this.cleanTranslationOutput(translatedText);
+
+      // パラグラフ翻訳完了イベントを発行
+      const translationEvent = createTranslationEvent({
+        sourceText,
+        targetText: translatedText,
+        sourceLanguage,
+        targetLanguage,
+        confidence: 1.0,
+        isFinal: true,
+        segmentId: paragraphId
+      }, correlationId);
+
+      this.emitEvent(translationEvent);
+
+      this.componentLogger.info('Paragraph translation completed', {
+        paragraphId,
+        translatedLength: translatedText.length
+      });
+
+    } catch (error) {
+      this.componentLogger.error('Paragraph translation failed', {
+        error: error instanceof Error ? error.message : String(error),
+        paragraphId
+      });
+      
+      // エラーイベントを発行
+      this.emitError(
+        'PARAGRAPH_TRANSLATION_FAILED',
+        error instanceof Error ? error.message : 'Failed to translate paragraph',
+        correlationId,
+        {
+          recoverable: true,
+          details: { paragraphId }
+        }
+      );
+    }
+  }
+
+  /**
    * Start listening with specified languages
    */
   async startListening(

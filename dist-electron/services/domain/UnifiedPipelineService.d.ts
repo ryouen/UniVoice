@@ -68,6 +68,10 @@ export declare class UnifiedPipelineService extends EventEmitter {
     private audioFrameCount;
     constructor(audioConfig: AudioConfig, deepgramConfig: DeepgramConfig, openaiConfig: OpenAIConfig, languageConfig?: LanguageConfig);
     /**
+     * Translate a paragraph (for history window)
+     */
+    translateParagraph(paragraphId: string, sourceText: string, sourceLanguage: string, targetLanguage: string, correlationId: string): Promise<void>;
+    /**
      * Start listening with specified languages
      */
     startListening(sourceLanguage: LanguageCode | undefined, targetLanguage: LanguageCode | undefined, correlationId: string): Promise<void>;

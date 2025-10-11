@@ -166,6 +166,25 @@ function createCommandSender() {
     generateFinalReport: (params: GenerateFinalReportCommand['params']) => 
       sendCommand({ command: 'generateFinalReport', params }),
     
+    // Translate paragraph for history window
+    translateParagraph: async (params: { 
+      paragraphId: string;
+      sourceText: string;
+      sourceLanguage?: string;
+      targetLanguage?: string;
+      correlationId: string;
+    }) => {
+      const result = await sendCommand({ 
+        command: 'translateParagraph', 
+        params: {
+          ...params,
+          sourceLanguage: params.sourceLanguage || 'en',
+          targetLanguage: params.targetLanguage || 'ja'
+        }
+      });
+      return result;
+    },
+    
     // Data persistence methods
     startSession: (params: { courseName: string; sourceLanguage: string; targetLanguage: string; sessionNumber?: number }) => 
       sendCommand({ command: 'startSession', params }),

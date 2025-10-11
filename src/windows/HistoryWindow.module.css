@@ -776,3 +776,39 @@
 .historyContent {
   animation: fadeIn 0.3s ease-out;
 }
+
+/* パラグラフ表示関連 */
+.paragraphToggle {
+  min-width: 36px;
+  height: var(--button-height);
+  padding: 0 10px;
+}
+
+.paragraphToggle.active {
+  background: var(--button-hover-bg);
+}
+
+.paragraphEntry {
+  border-bottom: 2px solid var(--divider-color);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.paragraphInfo {
+  margin-left: 12px;
+  font-size: 0.85em;
+  color: var(--secondary-color);
+}
+
+.translatingIndicator {
+  margin-left: 12px;
+  font-size: 0.85em;
+  color: var(--accent-color);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}

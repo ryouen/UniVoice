@@ -21,7 +21,7 @@ export interface Paragraph {
     status: 'collecting' | 'processing' | 'completed';
 }
 export interface ParagraphBuilderOptions {
-    minDurationMs?: number;
+    minChunks?: number;
     maxDurationMs?: number;
     silenceThresholdMs?: number;
 }
@@ -53,6 +53,10 @@ export declare class ParagraphBuilder {
      * パラグラフを完成させる
      */
     private completeParagraph;
+    /**
+     * 文末記号をチェック
+     */
+    private isEndOfSentence;
     /**
      * 自然な区切りかチェック（簡易版）
      */
